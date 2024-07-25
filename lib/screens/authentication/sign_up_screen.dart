@@ -1,4 +1,5 @@
 import 'package:code_note/helpers/helper_methods.dart';
+import 'package:code_note/screens/authentication/image_picking_screen.dart';
 import 'package:code_note/screens/authentication/login.dart';
 import 'package:code_note/screens/authentication/start.dart';
 import 'package:code_note/widgets/custom_button.dart';
@@ -134,6 +135,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Container(
                     width: double.infinity,
                     child: CustomButton(
+                      onPressed: () => navigateTo(toPage: ImagePickingScreen()),
                       text: 'Sign up',
                       icon: Icon(
                         Icons.navigate_next_rounded,

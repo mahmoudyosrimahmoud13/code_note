@@ -9,9 +9,7 @@ class CustomTextfield extends StatelessWidget {
       this.textInputType,
       this.validator,
       this.obscureText}) {
-    if (obscureText == null) {
-      this.obscureText = false;
-    }
+    obscureText ??= false;
   }
 
   final String hint;
@@ -23,8 +21,6 @@ class CustomTextfield extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
     return TextFormField(
         style: TextStyle(color: color.onSurface),
