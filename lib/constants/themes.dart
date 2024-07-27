@@ -6,10 +6,11 @@ final clorScheme = ColorScheme.fromSeed(
 final darkColorScheme = ColorScheme.fromSeed(
     seedColor: Color.fromARGB(255, 77, 35, 230), brightness: Brightness.dark);
 
-final mainTheme = ThemeData()
-    .copyWith(colorScheme: clorScheme, textTheme: GoogleFonts.kalamTextTheme());
+final mainTheme = ThemeData().copyWith(
+  colorScheme: clorScheme,
+);
 final darkTheme = ThemeData.dark().copyWith(
-    colorScheme: darkColorScheme.copyWith(
-      primary: Color.fromARGB(255, 126, 108, 192),
-    ),
-    textTheme: GoogleFonts.kalamTextTheme());
+  colorScheme: darkColorScheme.copyWith(
+    primary: Color.fromARGB(255, 126, 108, 192),
+  ),
+);

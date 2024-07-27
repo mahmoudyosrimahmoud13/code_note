@@ -1,9 +1,8 @@
 import 'package:code_note/constants/themes.dart';
 import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/screens/authentication/login.dart';
-import 'package:code_note/screens/authentication/start.dart';
 import 'package:code_note/screens/home/home_screen.dart';
-import 'package:code_note/widgets/home_nav.dart';
+import 'package:code_note/screens/note/Scan_document.dart';
+import 'package:code_note/screens/note/note_screen.dart';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -21,7 +20,9 @@ class MyApp extends StatelessWidget {
       title: 'Code note',
       theme: mainTheme,
       darkTheme: darkTheme,
-      home: HomeScreen(),
+      home: MyHomePage(
+        title: 'dk',
+      ),
     );
   }
 }
