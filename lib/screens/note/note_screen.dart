@@ -1,11 +1,13 @@
 import 'dart:io';
 
+import 'package:code_note/screens/note/Scan_document.dart';
 import 'package:code_note/widgets/block.dart';
 import 'package:code_note/widgets/code_block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
+import 'package:code_note/widgets/image_block.dart';
 
 import 'package:code_note/widgets/note_navigation_bar.dart';
-import 'package:code_note/widgets/text_block.dart';
+import 'package:code_note/widgets/note_block.dart';
 import 'package:flutter/material.dart';
 import 'package:gallery_image_viewer/gallery_image_viewer.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,19 +24,28 @@ class _NoteScreenState extends State<NoteScreen> {
   final _uuid = UuidV4();
   final List<Block> _blocks = [];
   void _addCodeBlock() {
+    final key = _uuid.generate();
+
     setState(() {
       _blocks.add(CodeBlock(
-        id: _uuid.generate(),
+        id: key,
         onPressed: _deleteBlock,
+        moveUp: moveUp,
+        moveDown: moveDown,
+        key: ValueKey(key),
       ));
     });
   }
 
-  void _addTextBlock() {
+  void _addNoteBlock() {
+    final key = _uuid.generate();
     setState(() {
-      _blocks.add(TextBlock(
-        id: _uuid.generate(),
+      _blocks.add(NoteBlock(
+        id: key,
         onPressed: _deleteBlock,
+        moveUp: moveUp,
+        moveDown: moveDown,
+        key: ValueKey(key),
       ));
     });
   }
@@ -45,8 +56,15 @@ class _NoteScreenState extends State<NoteScreen> {
     final image = await imagePicker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        final imageFile = File(image.path);
-        _imageProviders.add(FileImage(imageFile));
+        final imageFile = FileImage(File(image.path));
+        _imageProviders.add(imageFile);
+        _blocks.add(ImageBlock(
+          image: imageFile,
+          id: _uuid.generate(),
+          onPressed: _deleteImageBlock,
+          moveUp: moveUp,
+          moveDown: moveDown,
+        ));
       });
     }
   }
@@ -57,22 +75,58 @@ class _NoteScreenState extends State<NoteScreen> {
     });
   }
 
+  void _deleteImageBlock(String id) {
+    final image = _blocks.lastWhere((element) => element.id == id);
+
+    setState(() {
+      _imageProviders.removeWhere((element) => element == image.image);
+      _blocks.removeWhere((element) => element.id == id);
+    });
+  }
+
+  void _scanDoc() async {
+    Block block = await Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => ScanDocument(
+        onPressed: _deleteBlock,
+      ),
+    ));
+    setState(() {
+      _blocks.add(block);
+    });
+  }
+
+  void moveUp(String id) {
+    print('fsmdkfsd');
+    final index = _blocks.indexWhere((element) => element.id == id);
+    if (index == 0) {
+      return;
+    }
+
+    final temp = _blocks[index - 1];
+    _blocks[index - 1] = _blocks[index];
+    _blocks[index] = temp;
+    setState(() {});
+  }
+
+  void moveDown(String id) {
+    final index = _blocks.indexWhere((element) => element.id == id);
+    if (index == _blocks.length - 1) {
+      return;
+    }
+
+    final temp = _blocks[index + 1];
+    _blocks[index + 1] = _blocks[index];
+    _blocks[index] = temp;
+    setState(() {});
+  }
+
   @override
   void initState() {
-    _addTextBlock();
+    _addNoteBlock();
     super.initState();
   }
 
-  final List<ImageProvider> _imageProviders = [
-    AssetImage('assets/background/city.jpg'),
-    AssetImage('assets/background/neural.jpg'),
-    AssetImage('assets/background/waves.jpg'),
-    AssetImage('assets/background/b7290b051bb2ce7af0aa9a2842bb5619.jpg'),
-    Image.network("https://picsum.photos/seed/picsum/200/300").image,
-    Image.network("https://picsum.photos/200/300?grayscale").image,
-    Image.network("https://picsum.photos/200/300").image,
-    Image.network("https://picsum.photos/200/300?grayscale").image
-  ];
+  final List<ImageProvider> _imageProviders = [];
 
   @override
   Widget build(BuildContext context) {
@@ -144,10 +198,10 @@ class _NoteScreenState extends State<NoteScreen> {
         ),
       )),
       floatingActionButton: NoteNavigationBar(
-        addText: _addTextBlock,
+        addText: _addNoteBlock,
         addCode: _addCodeBlock,
         addImage: _addImage,
-        scanDoc: _addImage,
+        scanDoc: _scanDoc,
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );

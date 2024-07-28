@@ -50,6 +50,9 @@ dependencies:
   icons_plus: ^5.0.0
   uuid: ^4.4.2
   flutter_scalable_ocr: ^2.0.0
+  permission_handler: ^11.3.1
+  google_ml_kit: ^0.14.0
+  widget_zoom: ^0.0.4
 
 dev_dependencies:
   flutter_test:

@@ -15,14 +15,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      navigatorKey: navigatorKey,
-      debugShowCheckedModeBanner: false,
-      title: 'Code note',
-      theme: mainTheme,
-      darkTheme: darkTheme,
-      home: MyHomePage(
-        title: 'dk',
-      ),
-    );
+        navigatorKey: navigatorKey,
+        debugShowCheckedModeBanner: false,
+        title: 'Code note',
+        theme: mainTheme,
+        darkTheme: darkTheme,
+        home: NoteScreen());
   }
 }
