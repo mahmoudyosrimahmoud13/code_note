@@ -1,8 +1,8 @@
 import 'dart:io';
-import 'package:code_note/widgets/note_block.dart';
+import 'package:code_note/widgets/block/note_block.dart';
 
-import 'package:code_note/widgets/block.dart';
-import 'package:code_note/widgets/code_block.dart';
+import 'package:code_note/widgets/block/block.dart';
+import 'package:code_note/widgets/block/code_block.dart';
 import 'package:code_note/widgets/custom_button.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
@@ -11,8 +11,15 @@ import 'package:image_picker/image_picker.dart';
 import 'package:uuid/v4.dart';
 
 class ScanDocument extends StatefulWidget {
-  ScanDocument({super.key, required this.onPressed});
+  ScanDocument({
+    super.key,
+    required this.onPressed,
+    this.moveUp,
+    this.moveDown,
+  });
   final void Function(String vlaue) onPressed;
+  final void Function(String vlaue)? moveUp;
+  final void Function(String vlaue)? moveDown;
 
   @override
   State<ScanDocument> createState() => _ScanDocumentState();
@@ -120,8 +127,11 @@ class _ScanDocumentState extends State<ScanDocument> {
                   icon: Icons.code,
                   onPressed: () => _return(CodeBlock(
                     id: _uuid.generate(),
-                    code: _controller.text,
-                    onPressed: widget.onPressed,
+                    text: _controller.text,
+                    delete: widget.onPressed,
+                    moveDown: widget.moveDown,
+                    moveUp: widget.moveUp,
+                    language: Language.python,
                   )),
                 ),
                 CustomIconButton(
@@ -129,10 +139,15 @@ class _ScanDocumentState extends State<ScanDocument> {
                   onPressed: () => _return(NoteBlock(
                     id: _uuid.generate(),
                     text: _controller.text,
-                    onPressed: widget.onPressed,
+                    delete: widget.onPressed,
+                    moveDown: widget.moveDown,
+                    moveUp: widget.moveUp,
                   )),
                 )
               ],
+            ),
+            SizedBox(
+              height: 40,
             )
           ],
         ),

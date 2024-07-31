@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/v4.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+const uuid = UuidV4();
 
 enum MessageType { success, faild }
 

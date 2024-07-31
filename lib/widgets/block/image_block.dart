@@ -1,17 +1,17 @@
 import 'package:code_note/helpers/helper_methods.dart';
 import 'package:code_note/screens/note/image_preview.dart';
-import 'package:code_note/widgets/block.dart';
+import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
 
 class ImageBlock extends Block {
-  const ImageBlock({
+  ImageBlock({
     required super.image,
     super.key,
     required super.id,
     super.moveUp,
     super.moveDown,
-    super.onPressed,
+    super.delete,
   });
 
   @override
@@ -55,7 +55,7 @@ class _ImageBlockState extends State<ImageBlock> {
                     innerColor: color.onError,
                     iconColor: color.error,
                     onPressed: () {
-                      widget.onPressed!(widget.id);
+                      widget.delete!(widget.id);
                     },
                   ),
                   CustomIconButton(

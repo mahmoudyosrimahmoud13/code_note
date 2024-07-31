@@ -16,7 +16,6 @@ class NoteNavigationBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 5),
       child: Container(

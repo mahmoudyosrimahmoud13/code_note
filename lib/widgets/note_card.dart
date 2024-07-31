@@ -1,6 +1,8 @@
 import 'package:code_note/helpers/helper_methods.dart';
+import 'package:code_note/models/note_model.dart';
 import 'package:code_note/screens/note/note_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class NoteCard extends StatelessWidget {
   const NoteCard(
@@ -8,7 +10,7 @@ class NoteCard extends StatelessWidget {
       required this.lastModified,
       required this.title,
       required this.body});
-  final String lastModified;
+  final DateTime lastModified;
   final String title;
   final String body;
   @override
@@ -19,7 +21,14 @@ class NoteCard extends StatelessWidget {
         child: Dismissible(
       key: UniqueKey(),
       child: InkWell(
-        onTap: () => navigateTo(toPage: NoteScreen()),
+        onTap: () => navigateTo(
+            toPage: NoteScreen(
+          note: Note(
+              id: uuid.generate(),
+              title: 'hi',
+              tags: [],
+              lastModified: DateTime.now()),
+        )),
         child: Stack(
           children: [
             Container(
@@ -29,7 +38,7 @@ class NoteCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    lastModified,
+                    DateFormat.yMEd().format(lastModified),
                     style:
                         textTheme.bodySmall!.copyWith(color: color.secondary),
                   ),

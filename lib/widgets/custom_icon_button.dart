@@ -28,12 +28,12 @@ class CustomIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Container(
-      padding: EdgeInsets.all(2),
+    return SizedBox(
       height: iconSize! + 25,
       child: ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
+            padding: EdgeInsets.all(0),
             backgroundColor: innerColor,
             shape:
                 CircleBorder(side: BorderSide(width: 1, color: borderColor!)),

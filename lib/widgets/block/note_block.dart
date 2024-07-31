@@ -1,4 +1,4 @@
-import 'package:code_note/widgets/block.dart';
+import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
 
@@ -8,7 +8,7 @@ class NoteBlock extends Block {
     required super.id,
     super.moveUp,
     super.moveDown,
-    super.onPressed,
+    super.delete,
     this.text,
   }) {
     text ??= 'Type here.';
@@ -31,10 +31,10 @@ class _NoteBlockState extends State<NoteBlock> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Note'),
+            const Text('Note'),
             Container(
-              margin: EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-              padding: EdgeInsets.symmetric(vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
+              padding: const EdgeInsets.symmetric(vertical: 4),
               width: 220,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
@@ -45,7 +45,7 @@ class _NoteBlockState extends State<NoteBlock> {
                     innerColor: color.onError,
                     iconColor: color.error,
                     onPressed: () {
-                      widget.onPressed!(widget.id);
+                      widget.delete!(widget.id);
                     },
                   ),
                   CustomIconButton(

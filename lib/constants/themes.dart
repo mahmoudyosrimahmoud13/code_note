@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 final clorScheme = ColorScheme.fromSeed(
     seedColor: Color.fromARGB(255, 77, 33, 238), brightness: Brightness.light);

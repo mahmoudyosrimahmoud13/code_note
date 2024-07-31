@@ -1,18 +1,25 @@
 import 'package:flutter/material.dart';
 
 class Block extends StatefulWidget {
-  const Block(
+  Block(
       {super.key,
+      this.text,
       this.image,
       required this.id,
-      this.onPressed,
-      this.moveUp,
-      this.moveDown});
+      required this.delete,
+      required this.moveUp,
+      required this.moveDown});
   final String id;
-  final void Function(String vlaue)? onPressed;
+  final void Function(String vlaue)? delete;
   final void Function(String vlaue)? moveUp;
   final void Function(String vlaue)? moveDown;
   final ImageProvider? image;
+  String? text;
+
+  @override
+  String toString({DiagnosticLevel minLevel = DiagnosticLevel.debug}) {
+    return text!;
+  }
 
   @override
   State<Block> createState() => _BlockState();

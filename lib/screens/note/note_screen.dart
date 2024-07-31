@@ -1,48 +1,55 @@
 import 'dart:io';
 
+import 'package:code_note/helpers/helper_methods.dart';
+import 'package:code_note/models/note_model.dart';
 import 'package:code_note/screens/note/Scan_document.dart';
-import 'package:code_note/widgets/block.dart';
-import 'package:code_note/widgets/code_block.dart';
+import 'package:code_note/widgets/block/block.dart';
+import 'package:code_note/widgets/block/code_block.dart';
+import 'package:code_note/widgets/custom_button.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
-import 'package:code_note/widgets/image_block.dart';
+import 'package:code_note/widgets/block/image_block.dart';
+import 'package:code_note/widgets/language_drop_down.dart';
 
 import 'package:code_note/widgets/note_navigation_bar.dart';
-import 'package:code_note/widgets/note_block.dart';
+import 'package:code_note/widgets/block/note_block.dart';
 import 'package:flutter/material.dart';
 import 'package:gallery_image_viewer/gallery_image_viewer.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uuid/v4.dart';
+import 'package:intl/intl.dart';
 
 class NoteScreen extends StatefulWidget {
-  const NoteScreen({super.key});
+  const NoteScreen({super.key, required this.note});
+  final Note note;
 
   @override
   State<NoteScreen> createState() => _NoteScreenState();
 }
 
 class _NoteScreenState extends State<NoteScreen> {
-  final _uuid = UuidV4();
-  final List<Block> _blocks = [];
+  final _titleController = TextEditingController();
+  final Language language = Language.python;
+
   void _addCodeBlock() {
-    final key = _uuid.generate();
+    final key = uuid.generate();
 
     setState(() {
-      _blocks.add(CodeBlock(
+      widget.note.blocks!.add(CodeBlock(
         id: key,
-        onPressed: _deleteBlock,
+        delete: _deleteBlock,
         moveUp: moveUp,
         moveDown: moveDown,
         key: ValueKey(key),
+        language: Language.python,
       ));
     });
   }
 
   void _addNoteBlock() {
-    final key = _uuid.generate();
+    final key = uuid.generate();
     setState(() {
-      _blocks.add(NoteBlock(
+      widget.note.blocks!.add(NoteBlock(
         id: key,
-        onPressed: _deleteBlock,
+        delete: _deleteBlock,
         moveUp: moveUp,
         moveDown: moveDown,
         key: ValueKey(key),
@@ -52,18 +59,20 @@ class _NoteScreenState extends State<NoteScreen> {
 
   void _addImage() async {
     ImagePicker imagePicker = ImagePicker();
+    final key = uuid.generate();
 
     final image = await imagePicker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
         final imageFile = FileImage(File(image.path));
         _imageProviders.add(imageFile);
-        _blocks.add(ImageBlock(
+        widget.note.blocks!.add(ImageBlock(
           image: imageFile,
-          id: _uuid.generate(),
-          onPressed: _deleteImageBlock,
+          id: key,
+          delete: _deleteImageBlock,
           moveUp: moveUp,
           moveDown: moveDown,
+          key: ValueKey(key),
         ));
       });
     }
@@ -71,16 +80,16 @@ class _NoteScreenState extends State<NoteScreen> {
 
   void _deleteBlock(String id) {
     setState(() {
-      _blocks.removeWhere((element) => element.id == id);
+      widget.note.blocks!.removeWhere((element) => element.id == id);
     });
   }
 
   void _deleteImageBlock(String id) {
-    final image = _blocks.lastWhere((element) => element.id == id);
+    final image = widget.note.blocks!.lastWhere((element) => element.id == id);
 
     setState(() {
       _imageProviders.removeWhere((element) => element == image.image);
-      _blocks.removeWhere((element) => element.id == id);
+      widget.note.blocks!.removeWhere((element) => element.id == id);
     });
   }
 
@@ -88,41 +97,43 @@ class _NoteScreenState extends State<NoteScreen> {
     Block block = await Navigator.of(context).push(MaterialPageRoute(
       builder: (context) => ScanDocument(
         onPressed: _deleteBlock,
+        moveDown: moveDown,
+        moveUp: moveUp,
       ),
     ));
     setState(() {
-      _blocks.add(block);
+      widget.note.blocks!.add(block);
     });
   }
 
   void moveUp(String id) {
     print('fsmdkfsd');
-    final index = _blocks.indexWhere((element) => element.id == id);
+    final index = widget.note.blocks!.indexWhere((element) => element.id == id);
     if (index == 0) {
       return;
     }
 
-    final temp = _blocks[index - 1];
-    _blocks[index - 1] = _blocks[index];
-    _blocks[index] = temp;
+    final temp = widget.note.blocks![index - 1];
+    widget.note.blocks![index - 1] = widget.note.blocks![index];
+    widget.note.blocks![index] = temp;
     setState(() {});
   }
 
   void moveDown(String id) {
-    final index = _blocks.indexWhere((element) => element.id == id);
-    if (index == _blocks.length - 1) {
+    final index = widget.note.blocks!.indexWhere((element) => element.id == id);
+    if (index == widget.note.blocks!.length - 1) {
       return;
     }
 
-    final temp = _blocks[index + 1];
-    _blocks[index + 1] = _blocks[index];
-    _blocks[index] = temp;
+    final temp = widget.note.blocks![index + 1];
+    widget.note.blocks![index + 1] = widget.note.blocks![index];
+    widget.note.blocks![index] = temp;
     setState(() {});
   }
 
   @override
   void initState() {
-    _addNoteBlock();
+    _titleController.text = widget.note.title;
     super.initState();
   }
 
@@ -176,6 +187,7 @@ class _NoteScreenState extends State<NoteScreen> {
               child: Column(
                 children: [
                   TextField(
+                    controller: _titleController,
                     decoration: InputDecoration(
                       hintText: 'Title',
                       border: InputBorder.none,
@@ -187,7 +199,15 @@ class _NoteScreenState extends State<NoteScreen> {
                     maxLines: 1000,
                     keyboardType: TextInputType.multiline,
                   ),
-                  ..._blocks,
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      DateFormat.yMMMd().format(widget.note.lastModified) +
+                          '- Last Modified',
+                      style: text.bodyMedium!.copyWith(color: color.secondary),
+                    ),
+                  ),
+                  ...widget.note.blocks!,
                   SizedBox(
                     height: 100,
                   )
