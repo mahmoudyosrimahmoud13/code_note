@@ -2,7 +2,6 @@ import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:code_note/widgets/language_drop_down.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:icons_plus/icons_plus.dart';
@@ -50,18 +49,18 @@ class CodeBlock extends Block {
 }
 
 class _CodeBlockState extends State<CodeBlock> {
-  final controller = CodeController(
+  final _controller = CodeController(
     text: '',
     // Initial code
     language: python,
   );
   void _addSyntax(String syntax) {
     setState(() {
-      controller.text = controller.text + syntax;
+      _controller.text = _controller.text + syntax;
     });
   }
 
-  // highligt.Mode controller.language  = python;
+  // highligt.Mode _controller.language  = python;
   void selectLanguageMode({required Language language}) {
     switch (language) {
       case Language.python:
@@ -69,154 +68,154 @@ class _CodeBlockState extends State<CodeBlock> {
           children: [Brand(Brands.python), const Text('Python')],
         );
         widget.language = Language.python;
-        controller.language = python;
+        _controller.language = python;
         break;
       case Language.cSharp:
         _langRow = Row(
           children: [Brand(Brands.c_sharp_logo), const Text('C#')],
         );
         widget.language = Language.cSharp;
-        controller.language = cs;
+        _controller.language = cs;
         break;
       case Language.dart:
         _langRow = Row(
           children: [Brand(Brands.dart), const Text('Dart')],
         );
         widget.language = Language.dart;
-        controller.language = dart;
+        _controller.language = dart;
         break;
       case Language.go:
         _langRow = Row(
           children: [Brand(Brands.golang), const Text('Go')],
         );
         widget.language = Language.go;
-        controller.language = go;
+        _controller.language = go;
         break;
       case Language.java:
         _langRow = Row(
           children: [Brand(Brands.java), const Text('Java')],
         );
         widget.language = Language.java;
-        controller.language = java;
+        _controller.language = java;
         break;
       case Language.javaScript:
         _langRow = Row(
           children: [Brand(Brands.javascript), const Text('JavaScript')],
         );
         widget.language = Language.javaScript;
-        controller.language = javascript;
+        _controller.language = javascript;
         break;
       case Language.typeScript:
         _langRow = Row(
           children: [Brand(Brands.typescript), const Text('TypeScript')],
         );
         widget.language = Language.typeScript;
-        controller.language = typescript;
+        _controller.language = typescript;
         break;
       case Language.cpp:
         _langRow = Row(
           children: [Brand(Brands.cpp), const Text('C++')],
         );
         widget.language = Language.cpp;
-        controller.language = cpp;
+        _controller.language = cpp;
         break;
       case Language.php:
         _langRow = Row(
           children: [Brand(Brands.php_designer), const Text('PHP')],
         );
         widget.language = Language.php;
-        controller.language = php;
+        _controller.language = php;
         break;
       case Language.arduino:
         _langRow = Row(
           children: [Brand(Brands.arduino), const Text('Arduino')],
         );
         widget.language = Language.arduino;
-        controller.language = arduino;
+        _controller.language = arduino;
         break;
       case Language.armAssembly:
         _langRow = Row(
           children: [Brand(Brands.arm_logo), const Text('ARM Assembly')],
         );
         widget.language = Language.armAssembly;
-        controller.language = armasm;
+        _controller.language = armasm;
         break;
       case Language.x86Assembly:
         _langRow = Row(
           children: [Brand(Brands.amd), const Text('x86 Assembly')],
         );
         widget.language = Language.x86Assembly;
-        controller.language = x86Asm;
+        _controller.language = x86Asm;
         break;
       case Language.bash:
         _langRow = Row(
           children: [Brand(Brands.bash), const Text('Bash')],
         );
         widget.language = Language.bash;
-        controller.language = bash;
+        _controller.language = bash;
         break;
       case Language.django:
         _langRow = Row(
           children: [Brand(Brands.django), const Text('Django')],
         );
         widget.language = Language.django;
-        controller.language = django;
+        _controller.language = django;
         break;
       case Language.html:
         _langRow = Row(
           children: [Brand(Brands.html_5), const Text('HTML')],
         );
         widget.language = Language.html;
-        controller.language = htmlbars;
+        _controller.language = htmlbars;
         break;
       case Language.css:
         _langRow = Row(
           children: [Brand(Brands.css3), const Text('CSS')],
         );
         widget.language = Language.css;
-        controller.language = css;
+        _controller.language = css;
         break;
       case Language.docker:
         _langRow = Row(
           children: [Brand(Brands.docker), const Text('Docker')],
         );
         widget.language = Language.docker;
-        controller.language = dockerfile;
+        _controller.language = dockerfile;
         break;
       case Language.kotlin:
         _langRow = Row(
           children: [Brand(Brands.kotlin), const Text('Kotlin')],
         );
         widget.language = Language.kotlin;
-        controller.language = kotlin;
+        _controller.language = kotlin;
         break;
       case Language.sql:
         _langRow = Row(
           children: [Brand(Brands.my_sql), const Text('SQL')],
         );
         widget.language = Language.sql;
-        controller.language = sql;
+        _controller.language = sql;
         break;
       case Language.pgSql:
         _langRow = Row(
           children: [Brand(Brands.postgresql), const Text('PostgreSQL')],
         );
         widget.language = Language.pgSql;
-        controller.language = pgsql;
+        _controller.language = pgsql;
         break;
       case Language.json:
         _langRow = Row(
           children: [Brand(Brands.json_web_token), const Text('JSON')],
         );
         widget.language = Language.json;
-        controller.language = json;
+        _controller.language = json;
         break;
       default:
         _langRow = Row(
           children: [Brand(Brands.python), const Text('Python')],
         );
         widget.language = Language.python;
-        controller.language = python;
+        _controller.language = python;
     }
   }
 
@@ -224,11 +223,18 @@ class _CodeBlockState extends State<CodeBlock> {
   void initState() {
     // TODO: implement initState
 
-    controller.text = widget.text!;
+    _controller.text = widget.text!;
     selectLanguageMode(language: widget.language!);
-    controller.language = controller.language;
+    _controller.language = _controller.language;
 
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    widget.text = _controller.text;
+    super.dispose();
   }
 
   Widget _langRow = Row(
@@ -257,7 +263,7 @@ class _CodeBlockState extends State<CodeBlock> {
                       selectLanguageMode(language: languages!);
                     });
 
-                    controller.language = controller.language;
+                    _controller.language = _controller.language;
                   },
                 ),
                 Container(
@@ -301,7 +307,7 @@ class _CodeBlockState extends State<CodeBlock> {
             data: CodeThemeData(styles: monokaiSublimeTheme),
             child: CodeField(
               background: Colors.transparent,
-              controller: controller,
+              controller: _controller,
             ),
           ),
           Container(

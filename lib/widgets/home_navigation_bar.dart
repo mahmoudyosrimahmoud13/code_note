@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 class NavBar extends StatelessWidget {
   const NavBar({
     super.key,
+    required this.addNote,
   });
+  final void Function() addNote;
 
   @override
   Widget build(BuildContext context) {
@@ -25,6 +27,7 @@ class NavBar extends StatelessWidget {
                 iconColor: color.onSecondary,
                 borderColor: color.surface,
                 innerColor: color.primary,
+                onPressed: addNote,
               ),
               CustomIconButton(icon: Icons.edit),
               CustomIconButton(icon: Icons.image),

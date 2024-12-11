@@ -2,6 +2,7 @@ import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
 
+// ignore: must_be_immutable
 class NoteBlock extends Block {
   NoteBlock({
     super.key,
@@ -9,12 +10,10 @@ class NoteBlock extends Block {
     super.moveUp,
     super.moveDown,
     super.delete,
-    this.text,
+    super.text,
   }) {
-    text ??= 'Type here.';
+    super.text ??= 'Type here.';
   }
-
-  String? text;
 
   @override
   State<NoteBlock> createState() => _NoteBlockState();
@@ -22,6 +21,14 @@ class NoteBlock extends Block {
 
 class _NoteBlockState extends State<NoteBlock> {
   final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    widget.text = _controller.text;
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;

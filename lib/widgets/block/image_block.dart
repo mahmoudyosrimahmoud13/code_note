@@ -25,7 +25,8 @@ class _ImageBlockState extends State<ImageBlock> {
     final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () => navigateTo(toPage: ImagePreview(image: widget.image!)),
+      onTap: () =>
+          navigateTo(toPage: ImagePreview(image: FileImage(widget.image!))),
       child: Stack(
         children: [
           Container(
@@ -33,7 +34,8 @@ class _ImageBlockState extends State<ImageBlock> {
             height: size.height * 0.3,
             width: double.infinity,
             decoration: BoxDecoration(
-                image: DecorationImage(image: widget.image!, fit: BoxFit.cover),
+                image: DecorationImage(
+                    image: FileImage(widget.image!), fit: BoxFit.cover),
                 borderRadius: BorderRadius.circular(30)),
           ),
           Align(

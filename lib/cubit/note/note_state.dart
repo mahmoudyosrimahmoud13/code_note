@@ -8,11 +8,13 @@ final class NoteInitial extends NoteState {}
 final class NoteLoading extends NoteState {}
 
 final class NoteSuccess extends NoteState {
-  final List<Note> notes;
+  void addNote(Note note) {
+    notes
+        .add(Note(id: uuid.generate(), lastModified: DateTime.now(), tags: []));
+    print(notes);
+  }
 
-  NoteSuccess({
-    required this.notes,
-  });
+  void notesUpdate() {}
 }
 
 final class NoteError extends NoteState {

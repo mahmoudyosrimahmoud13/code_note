@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 class Block extends StatefulWidget {
@@ -13,7 +15,7 @@ class Block extends StatefulWidget {
   final void Function(String vlaue)? delete;
   final void Function(String vlaue)? moveUp;
   final void Function(String vlaue)? moveDown;
-  final ImageProvider? image;
+  final File? image;
   String? text;
 
   @override

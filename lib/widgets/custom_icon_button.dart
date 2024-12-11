@@ -33,7 +33,6 @@ class CustomIconButton extends StatelessWidget {
       child: ElevatedButton(
           onPressed: onPressed,
           style: ElevatedButton.styleFrom(
-            padding: EdgeInsets.all(0),
             backgroundColor: innerColor,
             shape:
                 CircleBorder(side: BorderSide(width: 1, color: borderColor!)),

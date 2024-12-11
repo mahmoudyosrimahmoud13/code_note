@@ -1,25 +1,26 @@
 import 'dart:io';
 
+import 'package:code_note/cubit/note/note_cubit.dart';
 import 'package:code_note/helpers/helper_methods.dart';
 import 'package:code_note/models/note_model.dart';
 import 'package:code_note/screens/note/Scan_document.dart';
 import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/block/code_block.dart';
-import 'package:code_note/widgets/custom_button.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:code_note/widgets/block/image_block.dart';
-import 'package:code_note/widgets/language_drop_down.dart';
 
 import 'package:code_note/widgets/note_navigation_bar.dart';
 import 'package:code_note/widgets/block/note_block.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:gallery_image_viewer/gallery_image_viewer.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 
+@immutable
 class NoteScreen extends StatefulWidget {
-  const NoteScreen({super.key, required this.note});
-  final Note note;
+  NoteScreen({super.key, required this.note});
+  Note note;
 
   @override
   State<NoteScreen> createState() => _NoteScreenState();
@@ -64,8 +65,8 @@ class _NoteScreenState extends State<NoteScreen> {
     final image = await imagePicker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
-        final imageFile = FileImage(File(image.path));
-        _imageProviders.add(imageFile);
+        final imageFile = File(image.path);
+        _imageProviders.add(FileImage(imageFile));
         widget.note.blocks!.add(ImageBlock(
           image: imageFile,
           id: key,
@@ -88,7 +89,8 @@ class _NoteScreenState extends State<NoteScreen> {
     final image = widget.note.blocks!.lastWhere((element) => element.id == id);
 
     setState(() {
-      _imageProviders.removeWhere((element) => element == image.image);
+      _imageProviders
+          .removeWhere((element) => element == FileImage(image.image!));
       widget.note.blocks!.removeWhere((element) => element.id == id);
     });
   }
@@ -107,7 +109,6 @@ class _NoteScreenState extends State<NoteScreen> {
   }
 
   void moveUp(String id) {
-    print('fsmdkfsd');
     final index = widget.note.blocks!.indexWhere((element) => element.id == id);
     if (index == 0) {
       return;
@@ -133,8 +134,26 @@ class _NoteScreenState extends State<NoteScreen> {
 
   @override
   void initState() {
-    _titleController.text = widget.note.title;
+    if (widget.note.title != null) {
+      _titleController.text = widget.note.title!;
+    }
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    widget.note.lastModified = DateTime.now();
+    widget.note.title = _titleController.text;
+    if (notes.contains(widget.note)) {
+      final index = notes.indexOf(widget.note);
+      notes[index] = widget.note;
+    } else {
+      notes.add(widget.note);
+    }
+    BlocProvider.of<NoteCubit>(context).initializeNote(notes: []);
+
+    super.dispose();
   }
 
   final List<ImageProvider> _imageProviders = [];
@@ -181,7 +200,7 @@ class _NoteScreenState extends State<NoteScreen> {
                     boxFit: BoxFit.cover,
                     galleryType: 3,
                   )
-                : SizedBox.shrink(),
+                : const SizedBox.shrink(),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
@@ -198,17 +217,17 @@ class _NoteScreenState extends State<NoteScreen> {
                     minLines: 1,
                     maxLines: 1000,
                     keyboardType: TextInputType.multiline,
+                    textCapitalization: TextCapitalization.sentences,
                   ),
                   Align(
                     alignment: Alignment.topLeft,
                     child: Text(
-                      DateFormat.yMMMd().format(widget.note.lastModified) +
-                          '- Last Modified',
+                      '${DateFormat.yMMMd().format(widget.note.lastModified)}- Last Modified',
                       style: text.bodyMedium!.copyWith(color: color.secondary),
                     ),
                   ),
                   ...widget.note.blocks!,
-                  SizedBox(
+                  const SizedBox(
                     height: 100,
                   )
                 ],

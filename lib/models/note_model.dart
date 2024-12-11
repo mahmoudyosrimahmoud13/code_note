@@ -5,13 +5,13 @@ import 'package:code_note/widgets/block/note_block.dart';
 class Note {
   List<Block>? blocks;
   final String id;
-  final String title;
+  String? title;
   final List<String> tags;
-  final DateTime lastModified;
+  DateTime lastModified;
 
   Note(
       {required this.id,
-      required this.title,
+      this.title,
       required this.lastModified,
       required this.tags,
       this.blocks}) {

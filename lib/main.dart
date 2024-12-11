@@ -1,6 +1,7 @@
 import 'package:code_note/constants/themes.dart';
 import 'package:code_note/cubit/note/note_cubit.dart';
 import 'package:code_note/helpers/helper_methods.dart';
+import 'package:code_note/screens/authentication/start.dart';
 import 'package:code_note/screens/home/home_screen.dart';
 
 import 'package:code_note/screens/note/note_screen.dart';
@@ -28,7 +29,7 @@ class MyApp extends StatelessWidget {
           title: 'Code note',
           theme: mainTheme,
           darkTheme: darkTheme,
-          home: HomeScreen()),
+          home: StartScreen()),
     );
   }
 }
