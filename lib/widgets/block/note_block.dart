@@ -2,30 +2,34 @@ import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
 
-// ignore: must_be_immutable
 class NoteBlock extends Block {
-  NoteBlock({
+  const NoteBlock({
     super.key,
-    required super.id,
+    required super.entity,
     super.moveUp,
     super.moveDown,
     super.delete,
-    super.text,
-  }) {
-    super.text ??= 'Type here.';
-  }
+    super.onChanged,
+  });
 
   @override
   State<NoteBlock> createState() => _NoteBlockState();
 }
 
 class _NoteBlockState extends State<NoteBlock> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.text);
+  }
 
   @override
   void dispose() {
-    // TODO: implement dispose
-    widget.text = _controller.text;
+    // Note: In a real app, we'd update the entity via a callback/bloc
+    // but to keep it simple and feature-parity, we'll assume it's updated.
+    _controller.dispose();
     super.dispose();
   }
 
@@ -77,8 +81,13 @@ class _NoteBlockState extends State<NoteBlock> {
         Container(
           child: TextField(
             controller: _controller,
+            onChanged: (val) {
+              if (widget.onChanged != null) {
+                widget.onChanged!(widget.entity.copyWith(text: val));
+              }
+            },
             decoration: InputDecoration(
-              hintText: widget.text,
+              hintText: 'Type here.',
               border: InputBorder.none,
               hintStyle: textTheme.bodyLarge!.copyWith(color: color.onSurface),
             ),

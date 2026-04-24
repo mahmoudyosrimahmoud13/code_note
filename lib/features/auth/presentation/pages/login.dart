@@ -1,8 +1,9 @@
-import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/screens/authentication/sign_up_screen.dart';
-import 'package:code_note/screens/authentication/start.dart';
-import 'package:code_note/widgets/custom_button.dart';
-import 'package:code_note/widgets/custom_textfield.dart';
+import '../../../notes/presentation/pages/home_page.dart';
+import '../../../../helpers/helper_methods.dart';
+import 'sign_up_screen.dart';
+import 'start.dart';
+import '../../../../widgets/custom_button.dart';
+import '../../../../widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -116,6 +117,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     width: double.infinity,
                     child: CustomButton(
                       text: 'Login',
+                      onPressed: () => navigateTo(toPage: const HomePage(), replace: true),
                       icon: Icon(
                         Icons.navigate_next_rounded,
                         color: color.onSurface,

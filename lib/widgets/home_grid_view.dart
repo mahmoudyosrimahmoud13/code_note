@@ -1,87 +1,46 @@
-import 'package:code_note/models/note_model.dart';
+import 'package:code_note/features/notes/domain/entities/note.dart';
 import 'package:code_note/widgets/note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
 class HomeGridView extends StatelessWidget {
-  HomeGridView({super.key, required this.notes});
+  const HomeGridView({super.key, required this.notes, this.isShrinkWrap = false, this.isTrashView = false});
 
-  final List<Note> notes;
-  // = [
-  //   NoteCard(
-  //     image: AssetImage('assets/background/city.jpg'),
-  //     lastModified: DateTime.parse('2024-07-21'),
-  //     title: 'Grocery List',
-  //     body: 'Milk, Eggs, Bread, Butter, Cheese',
-  //   ),
-  //   NoteCard(
-  //     lastModified: DateTime.parse('2024-07-19'),
-  //     title: 'Meeting Notes',
-  //     body: 'Discuss project milestones, assign tasks, set deadlines.',
-  //   ),
-  //   NoteCard(
-  //     lastModified: DateTime.parse('2024-07-18'),
-  //     title: 'Workout Routine',
-  //     body:
-  //         'Monday: Chest, Tuesday: Back, Wednesday: Legs, Thursday: Shoulders, Friday: Arms.',
-  //   ),
-  //   NoteCard(
-  //     lastModified: DateTime.parse('2024-07-17'),
-  //     title: 'Travel Itinerary',
-  //     body:
-  //         'Day 1: Arrive in Paris, Day 2: Visit Eiffel Tower, Day 3: Louvre Museum.',
-  //   ),
-  //   NoteCard(
-  //     image: AssetImage('assets/background/start_image.jpg'),
-  //     lastModified: DateTime.parse('2024-07-16'),
-  //     title: 'Books to Read',
-  //     body:
-  //         '1984 by George Orwell, To Kill a Mockingbird by Harper Lee, The Great Gatsby by F. Scott Fitzgerald.',
-  //   ),
-  //   NoteCard(
-  //     image: AssetImage('assets/logo/logo.png'),
-  //     lastModified: DateTime.parse('2024-07-15'),
-  //     title: 'Recipe: Chocolate Cake',
-  //     body:
-  //         'Ingredients: Flour, Cocoa Powder, Baking Powder, Eggs, Sugar, Butter, Milk. Instructions: Mix, bake at 350°F for 30 minutes.',
-  //   ),
-  //   NoteCard(
-  //     lastModified: DateTime.parse('2024-07-14'),
-  //     title: 'Study Schedule',
-  //     body:
-  //         'Monday: Math, Tuesday: Science, Wednesday: History, Thursday: Literature, Friday: Art.',
-  //   ),
-  //   NoteCard(
-  //     lastModified: DateTime.parse('2024-07-13'),
-  //     title: 'Project Ideas',
-  //     body:
-  //         'Build a mobile app, create a personal blog, design a game, start a YouTube channel.',
-  //   ),
-  //   NoteCard(
-  //     lastModified: DateTime.parse('2024-07-12'),
-  //     title: 'Budget Plan',
-  //     body:
-  //         'Income: \$5000, Expenses: Rent \$1500, Food \$500, Utilities \$200, Savings \$1000.',
-  //   ),
-  //   NoteCard(
-  //     lastModified: DateTime.parse('2024-07-11'),
-  //     title: 'Weekly Goals',
-  //     body:
-  //         'Complete project report, finish reading a book, exercise 3 times, call family.',
-  //   ),
-  // ];
+  final List<NoteEntity> notes;
+  final bool isShrinkWrap;
+  final bool isTrashView;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: MasonryGridView.builder(
-        gridDelegate:
-            SliverSimpleGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2),
-        itemCount: notes.length,
-        itemBuilder: (context, index) {
-          return NoteCard(note: notes[index]);
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        int crossAxisCount = 2;
+        if (constraints.maxWidth > 1200) {
+          crossAxisCount = 6;
+        } else if (constraints.maxWidth > 900) {
+          crossAxisCount = 4;
+        } else if (constraints.maxWidth > 600) {
+          crossAxisCount = 3;
+        }
+        
+        return MasonryGridView.builder(
+          gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+          ),
+          itemCount: notes.length,
+          padding: const EdgeInsets.all(8),
+          shrinkWrap: isShrinkWrap,
+          physics: isShrinkWrap ? const NeverScrollableScrollPhysics() : null,
+          itemBuilder: (context, index) {
+            final note = notes[index];
+            return NoteCard(
+              key: ValueKey(note.id),
+              note: note, 
+              isTrashView: isTrashView,
+            );
+          },
+        );
+      },
     );
   }
 }

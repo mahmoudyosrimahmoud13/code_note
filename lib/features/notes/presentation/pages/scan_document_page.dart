@@ -1,17 +1,14 @@
 import 'dart:io';
-import 'package:code_note/widgets/block/note_block.dart';
-
-import 'package:code_note/widgets/block/block.dart';
-import 'package:code_note/widgets/block/code_block.dart';
-import 'package:code_note/widgets/custom_button.dart';
-import 'package:code_note/widgets/custom_icon_button.dart';
+import '../../domain/entities/block.dart';
+import '../../../../widgets/custom_button.dart';
+import '../../../../widgets/custom_icon_button.dart';
+import '../../../../helpers/helper_methods.dart';
 import 'package:flutter/material.dart';
 import 'package:google_ml_kit/google_ml_kit.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:uuid/v4.dart';
 
 class ScanDocument extends StatefulWidget {
-  ScanDocument({
+  const ScanDocument({
     super.key,
     required this.onPressed,
     this.moveUp,
@@ -26,12 +23,11 @@ class ScanDocument extends StatefulWidget {
 }
 
 class _ScanDocumentState extends State<ScanDocument> {
-  final _uuid = UuidV4();
   File? _pickedImage;
   final _controller = TextEditingController();
+
   void _pickImage() async {
     ImagePicker imagePicker = ImagePicker();
-
     final image = await imagePicker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
@@ -41,16 +37,34 @@ class _ScanDocumentState extends State<ScanDocument> {
   }
 
   Future<void> _extractText() async {
-    InputImage image = InputImage.fromFile(_pickedImage!);
-    TextRecognizer textRecognizer = TextRecognizer();
-    final textRecognized = await textRecognizer.processImage(image);
+    if (_pickedImage == null) return;
+    
+    // Check for Windows to avoid crash if google_ml_kit doesn't support it
+    if (Platform.isWindows) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Text recognition is not supported on Windows.')),
+      );
+      return;
+    }
 
-    setState(() {
-      _controller.text = textRecognized.text;
-    });
+    try {
+      InputImage image = InputImage.fromFile(_pickedImage!);
+      TextRecognizer textRecognizer = TextRecognizer();
+      final textRecognized = await textRecognizer.processImage(image);
+      if (!mounted) return;
+      setState(() {
+        _controller.text = textRecognized.text;
+      });
+      await textRecognizer.close();
+    } catch (e) {
+       if (!mounted) return;
+       ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    }
   }
 
-  void _return(Block block) {
+  void _return(BlockEntity block) {
     Navigator.pop(context, block);
   }
 
@@ -61,7 +75,7 @@ class _ScanDocumentState extends State<ScanDocument> {
     final color = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Document Scan'),
+        title: const Text('Document Scan'),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -69,7 +83,7 @@ class _ScanDocumentState extends State<ScanDocument> {
             GestureDetector(
               onTap: _pickImage,
               child: Container(
-                margin: EdgeInsets.all(20),
+                margin: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                     color: color.secondary.withAlpha(50),
                     borderRadius: BorderRadius.circular(30)),
@@ -80,7 +94,7 @@ class _ScanDocumentState extends State<ScanDocument> {
                     ? Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.image),
+                          const Icon(Icons.image),
                           Text(
                             'Choose Image',
                             style: text.headlineLarge!
@@ -99,14 +113,15 @@ class _ScanDocumentState extends State<ScanDocument> {
               text: 'Extract text',
               onPressed: _pickedImage == null ? null : _extractText,
             ),
-            SizedBox(
+            const SizedBox(
               height: 10,
             ),
-            Container(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
                 controller: _controller,
                 decoration: InputDecoration(
-                  label: Text('Extracted text'),
+                  label: const Text('Extracted text'),
                   border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30)),
                   hintStyle: text.bodyLarge!.copyWith(color: color.onSurface),
@@ -117,7 +132,7 @@ class _ScanDocumentState extends State<ScanDocument> {
                 keyboardType: TextInputType.multiline,
               ),
             ),
-            SizedBox(
+            const SizedBox(
               height: 10,
             ),
             Row(
@@ -125,28 +140,21 @@ class _ScanDocumentState extends State<ScanDocument> {
               children: [
                 CustomIconButton(
                   icon: Icons.code,
-                  onPressed: () => _return(CodeBlock(
-                    id: _uuid.generate(),
+                  onPressed: () => _return(CodeBlockEntity(
+                    id: uuid.generate(),
                     text: _controller.text,
-                    delete: widget.onPressed,
-                    moveDown: widget.moveDown,
-                    moveUp: widget.moveUp,
-                    language: Language.python,
                   )),
                 ),
                 CustomIconButton(
                   icon: Icons.text_format,
-                  onPressed: () => _return(NoteBlock(
-                    id: _uuid.generate(),
+                  onPressed: () => _return(NoteBlockEntity(
+                    id: uuid.generate(),
                     text: _controller.text,
-                    delete: widget.onPressed,
-                    moveDown: widget.moveDown,
-                    moveUp: widget.moveUp,
                   )),
                 )
               ],
             ),
-            SizedBox(
+            const SizedBox(
               height: 40,
             )
           ],

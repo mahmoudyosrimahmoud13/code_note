@@ -1,9 +1,9 @@
-import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/screens/authentication/image_picking_screen.dart';
-import 'package:code_note/screens/authentication/login.dart';
-import 'package:code_note/screens/authentication/start.dart';
-import 'package:code_note/widgets/custom_button.dart';
-import 'package:code_note/widgets/custom_textfield.dart';
+import '../../../../helpers/helper_methods.dart';
+import 'image_picking_screen.dart';
+import 'login.dart';
+import 'start.dart';
+import '../../../../widgets/custom_button.dart';
+import '../../../../widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
 
 class SignUpScreen extends StatefulWidget {

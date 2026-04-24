@@ -1,17 +1,17 @@
 import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/screens/note/image_preview.dart';
+import '../../features/notes/presentation/pages/image_preview_page.dart';
 import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
 
 class ImageBlock extends Block {
-  ImageBlock({
-    required super.image,
+  const ImageBlock({
     super.key,
-    required super.id,
+    required super.entity,
     super.moveUp,
     super.moveDown,
     super.delete,
+    super.onChanged,
   });
 
   @override
@@ -25,18 +25,19 @@ class _ImageBlockState extends State<ImageBlock> {
     final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: () =>
+      onTap: widget.image == null ? null : () =>
           navigateTo(toPage: ImagePreview(image: FileImage(widget.image!))),
       child: Stack(
         children: [
           Container(
-            margin: EdgeInsets.symmetric(vertical: 5),
+            margin: const EdgeInsets.symmetric(vertical: 5),
             height: size.height * 0.3,
             width: double.infinity,
             decoration: BoxDecoration(
-                image: DecorationImage(
-                    image: FileImage(widget.image!), fit: BoxFit.cover),
-                borderRadius: BorderRadius.circular(30)),
+                image: widget.image != null ? DecorationImage(
+                    image: FileImage(widget.image!), fit: BoxFit.cover) : null,
+                borderRadius: BorderRadius.circular(30),
+                color: Colors.grey.withAlpha(50)),
           ),
           Align(
             alignment: Alignment.topRight,

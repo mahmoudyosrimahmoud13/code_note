@@ -1,8 +1,8 @@
 import 'dart:io';
 
-import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/screens/home/home_screen.dart';
-import 'package:code_note/widgets/custom_button.dart';
+import '../../../../helpers/helper_methods.dart';
+import '../../../notes/presentation/pages/home_page.dart';
+import '../../../../widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
@@ -94,7 +94,7 @@ class _ImagePickingScreenState extends State<ImagePickingScreen> {
                         text: 'Skip',
                         backgroundColor: color.secondary,
                         onPressed: () =>
-                            navigateTo(toPage: HomeScreen(), replace: true),
+                            navigateTo(toPage: const HomePage(), replace: true),
                       ),
                       SizedBox(
                         width: 40,
@@ -102,7 +102,7 @@ class _ImagePickingScreenState extends State<ImagePickingScreen> {
                       CustomButton(
                         text: 'Finish',
                         onPressed: () =>
-                            navigateTo(toPage: HomeScreen(), replace: true),
+                            navigateTo(toPage: const HomePage(), replace: true),
                       ),
                     ],
                   ),

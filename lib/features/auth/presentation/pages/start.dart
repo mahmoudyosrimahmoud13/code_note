@@ -1,7 +1,8 @@
-import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/screens/authentication/login.dart';
-import 'package:code_note/screens/authentication/sign_up_screen.dart';
-import 'package:code_note/widgets/custom_button.dart';
+import '../../../../helpers/helper_methods.dart';
+import 'login.dart';
+import 'sign_up_screen.dart';
+import '../../../notes/presentation/pages/home_page.dart';
+import '../../../../widgets/custom_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -64,7 +65,7 @@ class StartScreen extends StatelessWidget {
           Padding(
               padding: const EdgeInsets.all(30),
               child: CustomButton(
-                onPressed: () => navigateTo(toPage: SignUpScreen()),
+                onPressed: () => navigateTo(toPage: const HomePage()),
                 text: 'Get started now',
                 icon:
                     Icon(Icons.navigate_next_outlined, color: color.onSurface),

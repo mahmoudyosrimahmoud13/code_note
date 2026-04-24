@@ -1,6 +1,6 @@
-import 'package:code_note/widgets/block/code_block.dart';
 import 'package:flutter/material.dart';
 import 'package:icons_plus/icons_plus.dart';
+import '../features/notes/domain/entities/language.dart';
 
 class LanguageDropDown extends StatefulWidget {
   LanguageDropDown(

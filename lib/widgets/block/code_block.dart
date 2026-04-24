@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:highlight/highlight_core.dart' as highligt;
+import 'package:highlight/highlight_core.dart' as highlight;
 
 import 'package:highlight/languages/dart.dart';
 import 'package:highlight/languages/arduino.dart';
@@ -28,218 +28,150 @@ import 'package:highlight/languages/python.dart';
 import 'package:highlight/languages/sql.dart';
 import 'package:highlight/languages/typescript.dart';
 import 'package:highlight/languages/x86asm.dart';
+import '../../features/notes/domain/entities/block.dart';
+import '../../features/notes/domain/entities/language.dart';
 
 class CodeBlock extends Block {
-  CodeBlock({
+  const CodeBlock({
     super.key,
-    required super.id,
-    this.language,
+    required super.entity,
     super.moveUp,
     super.moveDown,
     super.delete,
-    super.text,
-  }) {
-    super.text ??= '';
-  }
+    super.onChanged,
+  });
 
-  Language? language;
+  CodeBlockEntity get codeEntity => entity as CodeBlockEntity;
 
   @override
   State<CodeBlock> createState() => _CodeBlockState();
 }
 
 class _CodeBlockState extends State<CodeBlock> {
-  final _controller = CodeController(
-    text: '',
-    // Initial code
-    language: python,
+  late final CodeController _controller;
+  Widget _langRow = Row(
+    children: [Brand(Brands.python), const Text('Python')],
   );
-  void _addSyntax(String syntax) {
-    setState(() {
-      _controller.text = _controller.text + syntax;
-    });
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = CodeController(
+      text: widget.text ?? '',
+      language: _getHighlightMode(widget.codeEntity.language),
+    );
+    _updateLangRow(widget.codeEntity.language);
   }
 
-  // highligt.Mode _controller.language  = python;
-  void selectLanguageMode({required Language language}) {
+  highlight.Mode _getHighlightMode(Language lang) {
+    switch (lang) {
+      case Language.python: return python;
+      case Language.cSharp: return cs;
+      case Language.dart: return dart;
+      case Language.go: return go;
+      case Language.java: return java;
+      case Language.javaScript: return javascript;
+      case Language.typeScript: return typescript;
+      case Language.cpp: return cpp;
+      case Language.php: return php;
+      case Language.arduino: return arduino;
+      case Language.armAssembly: return armasm;
+      case Language.x86Assembly: return x86Asm;
+      case Language.bash: return bash;
+      case Language.django: return django;
+      case Language.html: return htmlbars;
+      case Language.css: return css;
+      case Language.docker: return dockerfile;
+      case Language.kotlin: return kotlin;
+      case Language.sql: return sql;
+      case Language.pgSql: return pgsql;
+      case Language.json: return json;
+      default: return python;
+    }
+  }
+
+  void _updateLangRow(Language language) {
     switch (language) {
       case Language.python:
-        _langRow = Row(
-          children: [Brand(Brands.python), const Text('Python')],
-        );
-        widget.language = Language.python;
-        _controller.language = python;
+        _langRow = Row(children: [Brand(Brands.python), const Text('Python')]);
         break;
       case Language.cSharp:
-        _langRow = Row(
-          children: [Brand(Brands.c_sharp_logo), const Text('C#')],
-        );
-        widget.language = Language.cSharp;
-        _controller.language = cs;
+        _langRow = Row(children: [Brand(Brands.c_sharp_logo), const Text('C#')]);
         break;
       case Language.dart:
-        _langRow = Row(
-          children: [Brand(Brands.dart), const Text('Dart')],
-        );
-        widget.language = Language.dart;
-        _controller.language = dart;
+        _langRow = Row(children: [Brand(Brands.dart), const Text('Dart')]);
         break;
       case Language.go:
-        _langRow = Row(
-          children: [Brand(Brands.golang), const Text('Go')],
-        );
-        widget.language = Language.go;
-        _controller.language = go;
+        _langRow = Row(children: [Brand(Brands.golang), const Text('Go')]);
         break;
       case Language.java:
-        _langRow = Row(
-          children: [Brand(Brands.java), const Text('Java')],
-        );
-        widget.language = Language.java;
-        _controller.language = java;
+        _langRow = Row(children: [Brand(Brands.java), const Text('Java')]);
         break;
       case Language.javaScript:
-        _langRow = Row(
-          children: [Brand(Brands.javascript), const Text('JavaScript')],
-        );
-        widget.language = Language.javaScript;
-        _controller.language = javascript;
+        _langRow = Row(children: [Brand(Brands.javascript), const Text('JavaScript')]);
         break;
       case Language.typeScript:
-        _langRow = Row(
-          children: [Brand(Brands.typescript), const Text('TypeScript')],
-        );
-        widget.language = Language.typeScript;
-        _controller.language = typescript;
+        _langRow = Row(children: [Brand(Brands.typescript), const Text('TypeScript')]);
         break;
       case Language.cpp:
-        _langRow = Row(
-          children: [Brand(Brands.cpp), const Text('C++')],
-        );
-        widget.language = Language.cpp;
-        _controller.language = cpp;
+        _langRow = Row(children: [Brand(Brands.cpp), const Text('C++')]);
         break;
       case Language.php:
-        _langRow = Row(
-          children: [Brand(Brands.php_designer), const Text('PHP')],
-        );
-        widget.language = Language.php;
-        _controller.language = php;
+        _langRow = Row(children: [Brand(Brands.php_designer), const Text('PHP')]);
         break;
       case Language.arduino:
-        _langRow = Row(
-          children: [Brand(Brands.arduino), const Text('Arduino')],
-        );
-        widget.language = Language.arduino;
-        _controller.language = arduino;
+        _langRow = Row(children: [Brand(Brands.arduino), const Text('Arduino')]);
         break;
       case Language.armAssembly:
-        _langRow = Row(
-          children: [Brand(Brands.arm_logo), const Text('ARM Assembly')],
-        );
-        widget.language = Language.armAssembly;
-        _controller.language = armasm;
+        _langRow = Row(children: [Brand(Brands.arm_logo), const Text('ARM Assembly')]);
         break;
       case Language.x86Assembly:
-        _langRow = Row(
-          children: [Brand(Brands.amd), const Text('x86 Assembly')],
-        );
-        widget.language = Language.x86Assembly;
-        _controller.language = x86Asm;
+        _langRow = Row(children: [Brand(Brands.amd), const Text('x86 Assembly')]);
         break;
       case Language.bash:
-        _langRow = Row(
-          children: [Brand(Brands.bash), const Text('Bash')],
-        );
-        widget.language = Language.bash;
-        _controller.language = bash;
+        _langRow = Row(children: [Brand(Brands.bash), const Text('Bash')]);
         break;
       case Language.django:
-        _langRow = Row(
-          children: [Brand(Brands.django), const Text('Django')],
-        );
-        widget.language = Language.django;
-        _controller.language = django;
+        _langRow = Row(children: [Brand(Brands.django), const Text('Django')]);
         break;
       case Language.html:
-        _langRow = Row(
-          children: [Brand(Brands.html_5), const Text('HTML')],
-        );
-        widget.language = Language.html;
-        _controller.language = htmlbars;
+        _langRow = Row(children: [Brand(Brands.html_5), const Text('HTML')]);
         break;
       case Language.css:
-        _langRow = Row(
-          children: [Brand(Brands.css3), const Text('CSS')],
-        );
-        widget.language = Language.css;
-        _controller.language = css;
+        _langRow = Row(children: [Brand(Brands.css3), const Text('CSS')]);
         break;
       case Language.docker:
-        _langRow = Row(
-          children: [Brand(Brands.docker), const Text('Docker')],
-        );
-        widget.language = Language.docker;
-        _controller.language = dockerfile;
+        _langRow = Row(children: [Brand(Brands.docker), const Text('Docker')]);
         break;
       case Language.kotlin:
-        _langRow = Row(
-          children: [Brand(Brands.kotlin), const Text('Kotlin')],
-        );
-        widget.language = Language.kotlin;
-        _controller.language = kotlin;
+        _langRow = Row(children: [Brand(Brands.kotlin), const Text('Kotlin')]);
         break;
       case Language.sql:
-        _langRow = Row(
-          children: [Brand(Brands.my_sql), const Text('SQL')],
-        );
-        widget.language = Language.sql;
-        _controller.language = sql;
+        _langRow = Row(children: [Brand(Brands.my_sql), const Text('SQL')]);
         break;
       case Language.pgSql:
-        _langRow = Row(
-          children: [Brand(Brands.postgresql), const Text('PostgreSQL')],
-        );
-        widget.language = Language.pgSql;
-        _controller.language = pgsql;
+        _langRow = Row(children: [Brand(Brands.postgresql), const Text('PostgreSQL')]);
         break;
       case Language.json:
-        _langRow = Row(
-          children: [Brand(Brands.json_web_token), const Text('JSON')],
-        );
-        widget.language = Language.json;
-        _controller.language = json;
+        _langRow = Row(children: [Brand(Brands.json_web_token), const Text('JSON')]);
         break;
       default:
-        _langRow = Row(
-          children: [Brand(Brands.python), const Text('Python')],
-        );
-        widget.language = Language.python;
-        _controller.language = python;
+        _langRow = Row(children: [Brand(Brands.python), const Text('Python')]);
+    }
+  }
+
+  void _addSyntax(String syntax) {
+    _controller.text = _controller.text + syntax;
+    if (widget.onChanged != null) {
+      widget.onChanged!(widget.codeEntity.copyWith(text: _controller.text));
     }
   }
 
   @override
-  void initState() {
-    // TODO: implement initState
-
-    _controller.text = widget.text!;
-    selectLanguageMode(language: widget.language!);
-    _controller.language = _controller.language;
-
-    super.initState();
-  }
-
-  @override
   void dispose() {
-    // TODO: implement dispose
-    widget.text = _controller.text;
+    _controller.dispose();
     super.dispose();
   }
-
-  Widget _langRow = Row(
-    children: [Brand(Brands.python), const Text('Python')],
-  );
 
   @override
   Widget build(BuildContext context) {
@@ -257,18 +189,21 @@ class _CodeBlockState extends State<CodeBlock> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 LanguageDropDown(
-                  language: widget.language!,
-                  selectLanguage: (languages) {
-                    setState(() {
-                      selectLanguageMode(language: languages!);
-                    });
-
-                    _controller.language = _controller.language;
+                  language: widget.codeEntity.language, 
+                  selectLanguage: (lang) {
+                    if (lang != null) {
+                      setState(() {
+                        _controller.language = _getHighlightMode(lang);
+                        _updateLangRow(lang);
+                      });
+                      if (widget.onChanged != null) {
+                        widget.onChanged!(widget.codeEntity.copyWith(language: lang));
+                      }
+                    }
                   },
                 ),
                 Container(
-                  margin:
-                      const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
+                  margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   width: 208,
                   child: Row(
@@ -279,23 +214,17 @@ class _CodeBlockState extends State<CodeBlock> {
                         iconSize: 18,
                         innerColor: color.onError,
                         iconColor: color.error,
-                        onPressed: () {
-                          widget.delete!(widget.id);
-                        },
+                        onPressed: () => widget.delete!(widget.id),
                       ),
                       CustomIconButton(
                         icon: Icons.arrow_upward,
                         iconSize: 18,
-                        onPressed: () {
-                          widget.moveUp!(widget.id);
-                        },
+                        onPressed: () => widget.moveUp!(widget.id),
                       ),
                       CustomIconButton(
                         icon: Icons.arrow_downward,
                         iconSize: 18,
-                        onPressed: () {
-                          widget.moveDown!(widget.id);
-                        },
+                        onPressed: () => widget.moveDown!(widget.id),
                       ),
                     ],
                   ),
@@ -308,6 +237,11 @@ class _CodeBlockState extends State<CodeBlock> {
             child: CodeField(
               background: Colors.transparent,
               controller: _controller,
+              onChanged: (val) {
+                if (widget.onChanged != null) {
+                  widget.onChanged!(widget.codeEntity.copyWith(text: val));
+                }
+              },
             ),
           ),
           Container(
@@ -316,36 +250,11 @@ class _CodeBlockState extends State<CodeBlock> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                CustomIconButton(
-                  text: ';',
-                  iconSize: 8,
-                  innerColor: Colors.transparent,
-                  onPressed: () => _addSyntax(';'),
-                ),
-                CustomIconButton(
-                  text: "'",
-                  iconSize: 8,
-                  innerColor: Colors.transparent,
-                  onPressed: () => _addSyntax("'"),
-                ),
-                CustomIconButton(
-                  text: "{}",
-                  iconSize: 8,
-                  innerColor: Colors.transparent,
-                  onPressed: () => _addSyntax("{}"),
-                ),
-                CustomIconButton(
-                  text: '(',
-                  iconSize: 8,
-                  innerColor: Colors.transparent,
-                  onPressed: () => _addSyntax('('),
-                ),
-                CustomIconButton(
-                  text: ')',
-                  iconSize: 8,
-                  innerColor: Colors.transparent,
-                  onPressed: () => _addSyntax(')'),
-                ),
+                CustomIconButton(text: ';', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax(';')),
+                CustomIconButton(text: "'", iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax("'")),
+                CustomIconButton(text: "{}", iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax("{}")),
+                CustomIconButton(text: '(', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax('(')),
+                CustomIconButton(text: ')', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax(')')),
               ],
             ),
           )
@@ -353,29 +262,4 @@ class _CodeBlockState extends State<CodeBlock> {
       ),
     );
   }
-}
-
-enum Language {
-  none,
-  python,
-  cSharp,
-  dart,
-  go,
-  java,
-  javaScript,
-  typeScript,
-  cpp,
-  php,
-  arduino,
-  armAssembly,
-  x86Assembly,
-  bash,
-  django,
-  html,
-  css,
-  docker,
-  kotlin,
-  sql,
-  pgSql,
-  json
 }

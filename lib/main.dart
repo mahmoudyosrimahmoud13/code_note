@@ -1,14 +1,15 @@
 import 'package:code_note/constants/themes.dart';
-import 'package:code_note/cubit/note/note_cubit.dart';
 import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/screens/authentication/start.dart';
-import 'package:code_note/screens/home/home_screen.dart';
-
-import 'package:code_note/screens/note/note_screen.dart';
+import 'package:code_note/features/auth/presentation/pages/start.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'injection_container.dart' as di;
+import 'features/notes/presentation/bloc/note_bloc.dart';
+import 'features/notes/presentation/bloc/note_event.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await di.init();
   runApp(const MyApp());
 }
 
@@ -20,7 +21,7 @@ class MyApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider(
-          create: (context) => NoteCubit(),
+          create: (context) => di.sl<NoteBloc>()..add(GetNotesEvent()),
         )
       ],
       child: MaterialApp(
@@ -29,7 +30,7 @@ class MyApp extends StatelessWidget {
           title: 'Code note',
           theme: mainTheme,
           darkTheme: darkTheme,
-          home: StartScreen()),
+          home: const StartScreen()),
     );
   }
 }
