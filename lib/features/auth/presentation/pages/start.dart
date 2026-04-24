@@ -16,7 +16,8 @@ class StartScreen extends StatelessWidget {
     final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Column(
+      body: SingleChildScrollView(
+        child: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           Container(
@@ -91,6 +92,7 @@ class StartScreen extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

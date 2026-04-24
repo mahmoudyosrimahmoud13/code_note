@@ -10,12 +10,16 @@ class UserHomePadge extends StatelessWidget {
     final color = Theme.of(context).colorScheme;
     return Container(
       height: size.height * 0.08,
-      width: size.width * 0.45,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(120),
+          color: color.primary.withAlpha(180)),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         mainAxisAlignment: MainAxisAlignment.start,
         children: [
           CircleAvatar(
-            radius: size.height * 0.04,
+            radius: size.height * 0.03,
             backgroundImage: AssetImage('assets/stocks/profile.jpg'),
           ),
           SizedBox(
@@ -24,6 +28,9 @@ class UserHomePadge extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   'Jhon doe',
@@ -39,9 +46,6 @@ class UserHomePadge extends StatelessWidget {
           )
         ],
       ),
-      decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(120),
-          color: color.primary.withAlpha(180)),
     );
   }
 }

@@ -7,6 +7,53 @@ The core objective of CodeNote is to provide a seamless experience for managing 
 
 ---
 
+## 📸 Screenshots
+
+### 🔐 Login
+Secure login screen with email and password authentication, featuring the CodeNote branding and a clean dark-themed UI.
+
+<p align="center">
+  <img src="screenshots/login.png" width="300" alt="Login Screen"/>
+</p>
+
+---
+
+### 🏠 Home
+The main dashboard with a masonry grid layout displaying your notes. Pinned notes appear at the top under a dedicated section. The bottom navigation bar provides quick access to **Notes**, **Reminders**, **Archive**, and **Trash**.
+
+<p align="center">
+  <img src="screenshots/home.png" width="300" alt="Home Screen"/>
+</p>
+
+---
+
+### 📝 Note & Code Block
+A note editor with support for multiple block types. Here you can see a **text block** and a **code block** with Dart syntax, line numbers, and a quick-access toolbar for common symbols.
+
+<p align="center">
+  <img src="screenshots/note_code_block.png" width="300" alt="Note with Code Block"/>
+</p>
+
+---
+
+### 💡 Code Suggestions
+Intelligent code suggestions appear as you type inside code blocks, helping you write code faster with language-aware autocomplete.
+
+<p align="center">
+  <img src="screenshots/code_suggestions.png" width="300" alt="Code Suggestions"/>
+</p>
+
+---
+
+### 🌐 Language Selection
+Choose from a wide variety of programming languages — Python, C#, Dart, Go, Java, JavaScript, TypeScript, C++, PHP, Arduino, ARM Assembly, x86 Assembly, Bash, and more — each with its own icon for easy identification.
+
+<p align="center">
+  <img src="screenshots/language_selection.png" width="300" alt="Language Selection"/>
+</p>
+
+---
+
 ## ✨ Implemented Features
 
 ### 🛠️ Architecture & Core
@@ -25,6 +72,7 @@ The core objective of CodeNote is to provide a seamless experience for managing 
   - **Text Blocks**: For rich descriptions and ideas.
   - **Code Blocks**: Multi-language support (Python, Dart, C++, etc.) with syntax-aware organization.
   - **Image Blocks**: Attach screenshots or diagrams directly to your notes.
+- **Code Suggestions**: Language-aware autocomplete for faster code writing.
 - **OCR (Document Scan)**: Extract text or code directly from images using Google ML Kit.
 
 ### 📱 Responsive Design

@@ -43,12 +43,14 @@ class _NotePageState extends State<NotePage> {
     setState(() {
       _blocks.add(NoteBlockEntity(id: uuid.generate()));
     });
+    _saveNote();
   }
 
   void _addCodeBlock() {
     setState(() {
       _blocks.add(CodeBlockEntity(id: uuid.generate()));
     });
+    _saveNote();
   }
 
   void _addImage() async {
@@ -58,6 +60,7 @@ class _NotePageState extends State<NotePage> {
       setState(() {
         _blocks.add(ImageBlockEntity(id: uuid.generate(), imagePath: image.path));
       });
+      _saveNote();
     }
   }
 
@@ -73,6 +76,7 @@ class _NotePageState extends State<NotePage> {
       setState(() {
         _blocks.add(result);
       });
+      _saveNote();
     }
   }
 

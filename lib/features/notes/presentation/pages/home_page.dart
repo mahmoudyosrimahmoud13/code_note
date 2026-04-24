@@ -100,17 +100,14 @@ class _HomePageState extends State<HomePage> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const UserHomePadge(),
-                                  SizedBox(
-                                    width: size.width * 0.3,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.end,
-                                      children: [
-                                        CustomIconButton(icon: Icons.search),
-                                        const SizedBox(width: 0),
-                                        CustomIconButton(icon: Icons.people)
-                                      ],
-                                    ),
+                                  const Flexible(child: UserHomePadge()),
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      CustomIconButton(icon: Icons.search),
+                                      const SizedBox(width: 0),
+                                      CustomIconButton(icon: Icons.people)
+                                    ],
                                   )
                                 ],
                               ),
@@ -184,7 +181,7 @@ class _HomePageState extends State<HomePage> {
                                 );
                               }),
                             ),
-                            const SizedBox(height: 40)
+                            const SizedBox(height: 100)
                           ],
                         ),
                         if (!PlatformHelper.isDesktopOrWeb)
@@ -192,6 +189,12 @@ class _HomePageState extends State<HomePage> {
                             alignment: Alignment.bottomCenter,
                             child: NavBar(
                               addNote: () => _addNote(context),
+                              selectedIndex: _selectedIndex,
+                              onIndexChanged: (index) {
+                                setState(() {
+                                  _selectedIndex = index;
+                                });
+                              },
                             ),
                           ),
                         if (PlatformHelper.isDesktopOrWeb)
