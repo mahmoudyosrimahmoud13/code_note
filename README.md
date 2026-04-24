@@ -7,6 +7,17 @@ The core objective of CodeNote is to provide a seamless experience for managing 
 
 ---
 
+## 📥 Download (Beta)
+Get the latest pre-built binaries for your platform:
+
+*   **[🪟 Download for Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/beta/Release_windows_x86.zip)**
+*   **[📱 Download for Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/beta/app-release.apk)**
+
+> [!NOTE]
+> Since this is a Beta release, you may need to "Allow from unknown sources" on Android or "Run anyway" on Windows (SmartScreen) as these binaries are not yet digitally signed.
+
+---
+
 ## 📸 Screenshots
 
 ### 🏠 Home & Dashboard
