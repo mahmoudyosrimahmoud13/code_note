@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../features/notes/domain/entities/block.dart';
 
@@ -20,7 +21,15 @@ abstract class Block extends StatefulWidget {
 
   String get id => entity.id;
   String? get text => entity.text;
-  File? get image => entity.imagePath != null ? File(entity.imagePath!) : null;
+  
+  ImageProvider? get imageProvider {
+    if (entity.imagePath == null) return null;
+    if (kIsWeb) {
+      return NetworkImage(entity.imagePath!);
+    } else {
+      return FileImage(File(entity.imagePath!));
+    }
+  }
 
   @override
   String toString({DiagnosticLevel minLevel = DiagnosticLevel.debug}) {

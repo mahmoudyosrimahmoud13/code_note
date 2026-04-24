@@ -4,7 +4,6 @@ import 'package:code_note/widgets/language_drop_down.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
-import 'package:icons_plus/icons_plus.dart';
 import 'package:highlight/highlight_core.dart' as highlight;
 
 import 'package:highlight/languages/dart.dart';
@@ -30,6 +29,8 @@ import 'package:highlight/languages/typescript.dart';
 import 'package:highlight/languages/x86asm.dart';
 import '../../features/notes/domain/entities/block.dart';
 import '../../features/notes/domain/entities/language.dart';
+import '../../core/util/note_share_helper.dart';
+import '../../helpers/helper_methods.dart';
 
 class CodeBlock extends Block {
   const CodeBlock({
@@ -49,9 +50,6 @@ class CodeBlock extends Block {
 
 class _CodeBlockState extends State<CodeBlock> {
   late final CodeController _controller;
-  Widget _langRow = Row(
-    children: [Brand(Brands.python), const Text('Python')],
-  );
 
   @override
   void initState() {
@@ -60,7 +58,6 @@ class _CodeBlockState extends State<CodeBlock> {
       text: widget.text ?? '',
       language: _getHighlightMode(widget.codeEntity.language),
     );
-    _updateLangRow(widget.codeEntity.language);
   }
 
   highlight.Mode _getHighlightMode(Language lang) {
@@ -90,81 +87,19 @@ class _CodeBlockState extends State<CodeBlock> {
     }
   }
 
-  void _updateLangRow(Language language) {
-    switch (language) {
-      case Language.python:
-        _langRow = Row(children: [Brand(Brands.python), const Text('Python')]);
-        break;
-      case Language.cSharp:
-        _langRow = Row(children: [Brand(Brands.c_sharp_logo), const Text('C#')]);
-        break;
-      case Language.dart:
-        _langRow = Row(children: [Brand(Brands.dart), const Text('Dart')]);
-        break;
-      case Language.go:
-        _langRow = Row(children: [Brand(Brands.golang), const Text('Go')]);
-        break;
-      case Language.java:
-        _langRow = Row(children: [Brand(Brands.java), const Text('Java')]);
-        break;
-      case Language.javaScript:
-        _langRow = Row(children: [Brand(Brands.javascript), const Text('JavaScript')]);
-        break;
-      case Language.typeScript:
-        _langRow = Row(children: [Brand(Brands.typescript), const Text('TypeScript')]);
-        break;
-      case Language.cpp:
-        _langRow = Row(children: [Brand(Brands.cpp), const Text('C++')]);
-        break;
-      case Language.php:
-        _langRow = Row(children: [Brand(Brands.php_designer), const Text('PHP')]);
-        break;
-      case Language.arduino:
-        _langRow = Row(children: [Brand(Brands.arduino), const Text('Arduino')]);
-        break;
-      case Language.armAssembly:
-        _langRow = Row(children: [Brand(Brands.arm_logo), const Text('ARM Assembly')]);
-        break;
-      case Language.x86Assembly:
-        _langRow = Row(children: [Brand(Brands.amd), const Text('x86 Assembly')]);
-        break;
-      case Language.bash:
-        _langRow = Row(children: [Brand(Brands.bash), const Text('Bash')]);
-        break;
-      case Language.django:
-        _langRow = Row(children: [Brand(Brands.django), const Text('Django')]);
-        break;
-      case Language.html:
-        _langRow = Row(children: [Brand(Brands.html_5), const Text('HTML')]);
-        break;
-      case Language.css:
-        _langRow = Row(children: [Brand(Brands.css3), const Text('CSS')]);
-        break;
-      case Language.docker:
-        _langRow = Row(children: [Brand(Brands.docker), const Text('Docker')]);
-        break;
-      case Language.kotlin:
-        _langRow = Row(children: [Brand(Brands.kotlin), const Text('Kotlin')]);
-        break;
-      case Language.sql:
-        _langRow = Row(children: [Brand(Brands.my_sql), const Text('SQL')]);
-        break;
-      case Language.pgSql:
-        _langRow = Row(children: [Brand(Brands.postgresql), const Text('PostgreSQL')]);
-        break;
-      case Language.json:
-        _langRow = Row(children: [Brand(Brands.json_web_token), const Text('JSON')]);
-        break;
-      default:
-        _langRow = Row(children: [Brand(Brands.python), const Text('Python')]);
-    }
-  }
-
   void _addSyntax(String syntax) {
     _controller.text = _controller.text + syntax;
     if (widget.onChanged != null) {
       widget.onChanged!(widget.codeEntity.copyWith(text: _controller.text));
     }
+  }
+
+  void _shareBlock() {
+    NoteShareHelper.shareBlockAsFile(
+      widget.codeEntity,
+      'Code Block',
+      widget.codeEntity.language,
+    );
   }
 
   @override
@@ -188,45 +123,61 @@ class _CodeBlockState extends State<CodeBlock> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                LanguageDropDown(
-                  language: widget.codeEntity.language, 
-                  selectLanguage: (lang) {
-                    if (lang != null) {
-                      setState(() {
-                        _controller.language = _getHighlightMode(lang);
-                        _updateLangRow(lang);
-                      });
-                      if (widget.onChanged != null) {
-                        widget.onChanged!(widget.codeEntity.copyWith(language: lang));
+                Flexible(
+                  flex: 3,
+                  child: LanguageDropDown(
+                    language: widget.codeEntity.language, 
+                    selectLanguage: (lang) {
+                      if (lang != null) {
+                        setState(() {
+                          _controller.language = _getHighlightMode(lang);
+                        });
+                        if (widget.onChanged != null) {
+                          widget.onChanged!(widget.codeEntity.copyWith(language: lang));
+                        }
                       }
-                    }
-                  },
+                    },
+                  ),
                 ),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 8),
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  width: 208,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      CustomIconButton(
-                        icon: Icons.delete,
-                        iconSize: 18,
-                        innerColor: color.onError,
-                        iconColor: color.error,
-                        onPressed: () => widget.delete!(widget.id),
-                      ),
-                      CustomIconButton(
-                        icon: Icons.arrow_upward,
-                        iconSize: 18,
-                        onPressed: () => widget.moveUp!(widget.id),
-                      ),
-                      CustomIconButton(
-                        icon: Icons.arrow_downward,
-                        iconSize: 18,
-                        onPressed: () => widget.moveDown!(widget.id),
-                      ),
-                    ],
+                Flexible(
+                  flex: 5,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        CustomIconButton(
+                          icon: Icons.copy,
+                          iconSize: 18,
+                          onPressed: () {
+                            NoteShareHelper.copyToClipboard(_controller.text);
+                            showMessage(message: 'Code copied to clipboard!');
+                          },
+                        ),
+                        CustomIconButton(
+                          icon: Icons.share,
+                          iconSize: 18,
+                          onPressed: _shareBlock,
+                        ),
+                        CustomIconButton(
+                          icon: Icons.delete,
+                          iconSize: 18,
+                          innerColor: color.onError,
+                          iconColor: color.error,
+                          onPressed: () => widget.delete!(widget.id),
+                        ),
+                        CustomIconButton(
+                          icon: Icons.arrow_upward,
+                          iconSize: 18,
+                          onPressed: () => widget.moveUp!(widget.id),
+                        ),
+                        CustomIconButton(
+                          icon: Icons.arrow_downward,
+                          iconSize: 18,
+                          onPressed: () => widget.moveDown!(widget.id),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -247,15 +198,18 @@ class _CodeBlockState extends State<CodeBlock> {
           Container(
             margin: const EdgeInsets.symmetric(vertical: 8),
             padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CustomIconButton(text: ';', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax(';')),
-                CustomIconButton(text: "'", iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax("'")),
-                CustomIconButton(text: "{}", iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax("{}")),
-                CustomIconButton(text: '(', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax('(')),
-                CustomIconButton(text: ')', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax(')')),
-              ],
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CustomIconButton(text: ';', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax(';')),
+                  CustomIconButton(text: "'", iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax("'")),
+                  CustomIconButton(text: "{}", iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax("{}")),
+                  CustomIconButton(text: '(', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax('(')),
+                  CustomIconButton(text: ')', iconSize: 8, innerColor: Colors.transparent, onPressed: () => _addSyntax(')')),
+                ],
+              ),
             ),
           )
         ],

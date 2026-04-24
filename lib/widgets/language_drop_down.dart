@@ -3,10 +3,14 @@ import 'package:icons_plus/icons_plus.dart';
 import '../features/notes/domain/entities/language.dart';
 
 class LanguageDropDown extends StatefulWidget {
-  LanguageDropDown(
-      {super.key, required this.selectLanguage, required this.language});
+  const LanguageDropDown({
+    super.key,
+    required this.selectLanguage,
+    required this.language,
+  });
+
   final void Function(Language? languages)? selectLanguage;
-  Language language;
+  final Language language;
 
   @override
   State<LanguageDropDown> createState() => _LanguageDropDownState();
@@ -245,8 +249,8 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
-    return SizedBox(
-      width: 140,
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 140),
       child: DropdownButton(
         isExpanded: true,
         dropdownColor: color.primary.withAlpha(70),

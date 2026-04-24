@@ -22,11 +22,10 @@ class _ImageBlockState extends State<ImageBlock> {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
-    final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
     return GestureDetector(
-      onTap: widget.image == null ? null : () =>
-          navigateTo(toPage: ImagePreview(image: FileImage(widget.image!))),
+      onTap: widget.imageProvider == null ? null : () =>
+          navigateTo(toPage: ImagePreview(image: widget.imageProvider!)),
       child: Stack(
         children: [
           Container(
@@ -34,8 +33,8 @@ class _ImageBlockState extends State<ImageBlock> {
             height: size.height * 0.3,
             width: double.infinity,
             decoration: BoxDecoration(
-                image: widget.image != null ? DecorationImage(
-                    image: FileImage(widget.image!), fit: BoxFit.cover) : null,
+                image: widget.imageProvider != null ? DecorationImage(
+                    image: widget.imageProvider!, fit: BoxFit.cover) : null,
                 borderRadius: BorderRadius.circular(30),
                 color: Colors.grey.withAlpha(50)),
           ),

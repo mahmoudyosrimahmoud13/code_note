@@ -1,10 +1,14 @@
-import '../../../notes/presentation/pages/home_page.dart';
-import '../../../../helpers/helper_methods.dart';
-import 'sign_up_screen.dart';
-import 'start.dart';
-import '../../../../widgets/custom_button.dart';
-import '../../../../widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_bloc.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_event.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_state.dart';
+import 'package:code_note/features/auth/presentation/pages/start.dart';
+import 'package:code_note/features/auth/presentation/pages/sign_up_screen.dart';
+import 'package:code_note/features/notes/presentation/pages/home_page.dart';
+import 'package:code_note/widgets/custom_button.dart';
+import 'package:code_note/widgets/custom_textfield.dart';
+import 'package:code_note/helpers/helper_methods.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -18,7 +22,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
 
@@ -108,14 +111,23 @@ class _LoginScreenState extends State<LoginScreen> {
                       style: text.bodyMedium!.copyWith(color: color.primary),
                     ),
                   ),
-                  SizedBox(
+                  const SizedBox(
                     height: 20,
                   ),
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     child: CustomButton(
                       text: 'Login',
-                      onPressed: () => navigateTo(toPage: const HomePage(), replace: true),
+                      onPressed: () {
+                        final settingsBloc = context.read<SettingsBloc>();
+                        if (settingsBloc.state is SettingsLoaded) {
+                          final currentSettings = (settingsBloc.state as SettingsLoaded).settings;
+                          settingsBloc.add(UpdateSettingsEvent(
+                            currentSettings.copyWith(hasCompletedOnboarding: true),
+                          ));
+                        }
+                        navigateTo(toPage: const HomePage(), replace: true);
+                      },
                       icon: Icon(
                         Icons.navigate_next_rounded,
                         color: color.onSurface,

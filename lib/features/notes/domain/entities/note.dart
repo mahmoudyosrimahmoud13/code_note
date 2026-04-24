@@ -10,6 +10,7 @@ class NoteEntity extends Equatable {
   final bool isPinned;
   final bool isArchived;
   final bool isDeleted;
+  final NoteReminderEntity? reminder;
 
   const NoteEntity({
     required this.id,
@@ -20,6 +21,7 @@ class NoteEntity extends Equatable {
     this.isPinned = false,
     this.isArchived = false,
     this.isDeleted = false,
+    this.reminder,
   });
 
   NoteEntity copyWith({
@@ -31,6 +33,8 @@ class NoteEntity extends Equatable {
     bool? isPinned,
     bool? isArchived,
     bool? isDeleted,
+    NoteReminderEntity? reminder,
+    bool clearReminder = false,
   }) {
     return NoteEntity(
       id: id ?? this.id,
@@ -41,9 +45,23 @@ class NoteEntity extends Equatable {
       isPinned: isPinned ?? this.isPinned,
       isArchived: isArchived ?? this.isArchived,
       isDeleted: isDeleted ?? this.isDeleted,
+      reminder: clearReminder ? null : (reminder ?? this.reminder),
     );
   }
 
   @override
-  List<Object?> get props => [id, title, tags, lastModified, blocks, isPinned, isArchived, isDeleted];
+  List<Object?> get props => [id, title, tags, lastModified, blocks, isPinned, isArchived, isDeleted, reminder];
+}
+
+class NoteReminderEntity extends Equatable {
+  final DateTime dateTime;
+  final String message;
+
+  const NoteReminderEntity({
+    required this.dateTime,
+    required this.message,
+  });
+
+  @override
+  List<Object?> get props => [dateTime, message];
 }

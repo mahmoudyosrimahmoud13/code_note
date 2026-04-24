@@ -4,7 +4,7 @@ import '../../../../widgets/custom_button.dart';
 import '../../../../widgets/custom_icon_button.dart';
 import '../../../../helpers/helper_methods.dart';
 import 'package:flutter/material.dart';
-import 'package:google_ml_kit/google_ml_kit.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 
 class ScanDocument extends StatefulWidget {

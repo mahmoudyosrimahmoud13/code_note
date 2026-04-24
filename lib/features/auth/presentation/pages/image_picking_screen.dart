@@ -1,10 +1,13 @@
 import 'dart:io';
-
-import '../../../../helpers/helper_methods.dart';
-import '../../../notes/presentation/pages/home_page.dart';
-import '../../../../widgets/custom_button.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_bloc.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_event.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_state.dart';
+import 'package:code_note/features/notes/presentation/pages/home_page.dart';
+import 'package:code_note/widgets/custom_button.dart';
+import 'package:code_note/helpers/helper_methods.dart';
 
 class ImagePickingScreen extends StatefulWidget {
   const ImagePickingScreen({super.key});
@@ -32,7 +35,7 @@ class _ImagePickingScreenState extends State<ImagePickingScreen> {
     final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
     return Scaffold(
-      body: Container(
+      body: SizedBox(
         width: double.infinity,
         child: Stack(
           alignment: Alignment.center,
@@ -85,7 +88,7 @@ class _ImagePickingScreenState extends State<ImagePickingScreen> {
                 SizedBox(
                   height: 20,
                 ),
-                Container(
+                SizedBox(
                   height: 50,
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -93,16 +96,32 @@ class _ImagePickingScreenState extends State<ImagePickingScreen> {
                       CustomButton(
                         text: 'Skip',
                         backgroundColor: color.secondary,
-                        onPressed: () =>
-                            navigateTo(toPage: const HomePage(), replace: true),
+                        onPressed: () {
+                          final settingsBloc = context.read<SettingsBloc>();
+                          if (settingsBloc.state is SettingsLoaded) {
+                            final currentSettings = (settingsBloc.state as SettingsLoaded).settings;
+                            settingsBloc.add(UpdateSettingsEvent(
+                              currentSettings.copyWith(hasCompletedOnboarding: true),
+                            ));
+                          }
+                          navigateTo(toPage: const HomePage(), replace: true);
+                        },
                       ),
-                      SizedBox(
+                      const SizedBox(
                         width: 40,
                       ),
                       CustomButton(
                         text: 'Finish',
-                        onPressed: () =>
-                            navigateTo(toPage: const HomePage(), replace: true),
+                        onPressed: () {
+                          final settingsBloc = context.read<SettingsBloc>();
+                          if (settingsBloc.state is SettingsLoaded) {
+                            final currentSettings = (settingsBloc.state as SettingsLoaded).settings;
+                            settingsBloc.add(UpdateSettingsEvent(
+                              currentSettings.copyWith(hasCompletedOnboarding: true),
+                            ));
+                          }
+                          navigateTo(toPage: const HomePage(), replace: true);
+                        },
                       ),
                     ],
                   ),

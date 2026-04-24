@@ -36,3 +36,12 @@ class DeleteNoteEvent extends NoteEvent {
   @override
   List<Object> get props => [id];
 }
+
+class SearchNotesEvent extends NoteEvent {
+  final String query;
+
+  const SearchNotesEvent(this.query);
+
+  @override
+  List<Object> get props => [query];
+}

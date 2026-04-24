@@ -9,88 +9,156 @@ The core objective of CodeNote is to provide a seamless experience for managing 
 
 ## 📸 Screenshots
 
-### 🔐 Login
-Secure login screen with email and password authentication, featuring the CodeNote branding and a clean dark-themed UI.
+### 🏠 Home & Dashboard
+The primary workspace featuring a masonry grid, **Pinned Notes**, and the new **Tag Cloud** for instant filtering.
 
 <p align="center">
-  <img src="screenshots/login.png" width="300" alt="Login Screen"/>
+  <img src="screenshots/windows_home.png" width="450" alt="Windows Home"/>
+  <img src="screenshots/android_home.jpg" width="220" alt="Android Home"/>
 </p>
 
 ---
 
-### 🏠 Home
-The main dashboard with a masonry grid layout displaying your notes. Pinned notes appear at the top under a dedicated section. The bottom navigation bar provides quick access to **Notes**, **Reminders**, **Archive**, and **Trash**.
+### 🔍 Search & Live Suggestions
+Advanced search logic with real-time suggestions matching titles and tags.
 
 <p align="center">
-  <img src="screenshots/home.png" width="300" alt="Home Screen"/>
+  <img src="screenshots/windows_search.png" width="450" alt="Windows Search"/>
+  <img src="screenshots/android_search.jpg" width="220" alt="Android Search"/>
 </p>
 
 ---
 
-### 📝 Note & Code Block
-A note editor with support for multiple block types. Here you can see a **text block** and a **code block** with Dart syntax, line numbers, and a quick-access toolbar for common symbols.
+### 📝 Note Details & Multi-Block Editing
+A rich editor supporting **Text**, **Code**, and **Image** blocks with syntax highlighting and tactile controls.
 
 <p align="center">
-  <img src="screenshots/note_code_block.png" width="300" alt="Note with Code Block"/>
+  <img src="screenshots/windows_note_details.png" width="450" alt="Windows Note"/>
+  <img src="screenshots/android_note_details.jpg" width="220" alt="Android Note"/>
 </p>
 
 ---
 
-### 💡 Code Suggestions
-Intelligent code suggestions appear as you type inside code blocks, helping you write code faster with language-aware autocomplete.
+### 📁 Group Management
+Organize related notes into functional groups with dedicated detail views.
 
 <p align="center">
-  <img src="screenshots/code_suggestions.png" width="300" alt="Code Suggestions"/>
+  <img src="screenshots/windows_group_details.png" width="500" alt="Windows Group Details"/>
 </p>
 
 ---
 
-### 🌐 Language Selection
-Choose from a wide variety of programming languages — Python, C#, Dart, Go, Java, JavaScript, TypeScript, C++, PHP, Arduino, ARM Assembly, x86 Assembly, Bash, and more — each with its own icon for easy identification.
+### ⚙️ User Settings & Personalization
+Customize your experience with **Theme Mode** (Dark/Light/System) and adjustable **Font Sizes**.
 
 <p align="center">
-  <img src="screenshots/language_selection.png" width="300" alt="Language Selection"/>
+  <img src="screenshots/windows_settings.png" width="450" alt="Windows Settings"/>
+  <img src="screenshots/android_settings.jpg" width="220" alt="Android Settings"/>
 </p>
+
+---
+
+### 🔔 Reminders & Notifications
+Never miss a task with the integrated reminder picker and notification shortcuts.
+
+<p align="center">
+  <img src="screenshots/android_reminder_picker.jpg" width="220" alt="Reminder Picker"/>
+</p>
+
+---
+
+### 👆 Tactile Interactions
+Smooth **Swipe-to-Action** (Archive/Delete) interactions optimized for both desktop and touch.
+
+<p align="center">
+  <img src="screenshots/windows_swipe.png" width="450" alt="Windows Swipe"/>
+  <img src="screenshots/android_swipe.jpg" width="220" alt="Android Swipe"/>
+</p>
+
+---
+
+### 🔐 Authentication
+Secure entry point to your local workspace.
+
+<p align="center">
+  <img src="screenshots/login.png" width="220" alt="Login Screen"/>
+</p>
+
+---
+
+## 🚀 Massive Feature Update (April 2026)
+We've recently overhauled CodeNote to move from a basic MVP to a production-ready power tool.
+
+- **Advanced Search Hub**: Live suggestions, tag-based filtering, and multi-criteria queries.
+- **Persistence 2.0**: The app now remembers your session state, last active tab, and intelligently bypasses onboarding for returning users.
+- **Premium Tactile UI**: Added bouncy physics, haptic feedback, and optimized layouts for both Windows (Navigation Rail) and Mobile (NavBar).
+- **Organization**: Robust Grouping system, Archive/Trash logic, and a Reminders engine.
 
 ---
 
 ## ✨ Implemented Features
 
-### 🛠️ Architecture & Core
+<details>
+<summary>🛠️ Architecture & Core</summary>
+
 - **Clean Architecture**: Built following TDD principles with a strict separation of Domain, Data, and Presentation layers.
 - **Local-First Persistence**: Fully offline-capable using `shared_preferences` for fast and reliable local storage across all platforms.
 - **Auto-Save**: Every change you make—whether it's a title, a text block, or a code snippet—is saved instantly.
+- **State Persistence**: Remembers your last active tab (Notes, Reminders, Archive, or Trash) so you can pick up exactly where you left off.
+- **Optimized Onboarding**: Intelligent startup flow that skips the onboarding screen for returning users.
+</details>
 
-### 📝 Note Management (Keep-Inspired)
+<details>
+<summary>🔍 Advanced Search & Discovery</summary>
+
+- **Live Search Suggestions**: Real-time matching for note titles and tags as you type.
+- **Dynamic Tag Cloud**: A horizontal, interactive tag list on the home screen for instant filtering.
+- **Multi-Criteria Search**: Find notes by title, tag content, or text within code/text blocks.
+</details>
+
+<details>
+<summary>📝 Note Management (Keep-Inspired)</summary>
+
 - **Pinning**: Keep your most important notes at the top of your dashboard.
 - **Archiving**: Swipe to hide notes from your main view without deleting them.
 - **Trash System**: A dedicated trash section for deleted notes with restore and permanent delete options.
-- **Search**: (Coming soon) Quickly find any note by title or content.
+- **Reminders**: Integrated scheduling and a quick-access notification bell for upcoming tasks.
+</details>
 
-### 💻 Developer Experience (Jupyter-Inspired)
+<details>
+<summary>💻 Developer Experience (Jupyter-Inspired)</summary>
+
 - **Block-Based System**: Notes are composed of dynamic blocks:
   - **Text Blocks**: For rich descriptions and ideas.
   - **Code Blocks**: Multi-language support (Python, Dart, C++, etc.) with syntax-aware organization.
   - **Image Blocks**: Attach screenshots or diagrams directly to your notes.
 - **Code Suggestions**: Language-aware autocomplete for faster code writing.
-- **OCR (Document Scan)**: Extract text or code directly from images using Google ML Kit.
+- **OCR (Document Scan)**: Extract text or code directly from images using specialized Google ML Kit text recognition.
+</details>
 
-### 📱 Responsive Design
-- **Cross-Platform**: Optimized for **Windows**, **Web**, **Android**, and **iOS**.
-- **Adaptive UI**: 
+<details>
+<summary>📱 Premium UI/UX</summary>
+
+- **Bouncy Animations**: Fluid, scale-bounce interactions on icons and buttons for a premium feel.
+- **Haptic Feedback**: Tactile response on core actions (saving, switching tabs, clicking tags).
+- **Responsive Layout**: 
   - **NavigationRail** for Desktop and Web.
   - **BottomNavigationBar** for Mobile.
-  - **Dynamic Grid**: Automatically scales from 2 to 6 columns based on screen width.
+  - **Adaptive Grid**: Dynamically scales columns based on device width.
+</details>
 
 ---
 
 ## 🚀 Roadmap (Upcoming Features)
 
-- [ ] **Cloud Sync**: Synchronize your notes across all your devices.
+<details>
+<summary>View Future Plans</summary>
+
+- [ ] **Cloud Sync**: Optional cloud synchronization for multi-device workflows.
 - [ ] **AI Snippet Explainer**: Integrated AI to explain complex code blocks or suggest optimizations.
-- [ ] **Messaging & Collaboration**: Chat with other developers and share notes in real-time.
 - [ ] **Public Note Sharing**: Generate public links to share your technical notes with the community.
 - [ ] **Advanced Formatting**: Markdown support within text blocks.
+</details>
 
 ---
 
@@ -99,7 +167,8 @@ Choose from a wide variety of programming languages — Python, C#, Dart, Go, Ja
 - **State Management**: [Bloc](https://pub.dev/packages/flutter_bloc)
 - **Dependency Injection**: [GetIt](https://pub.dev/packages/get_it)
 - **Local Storage**: [Shared Preferences](https://pub.dev/packages/shared_preferences)
-- **OCR**: [Google ML Kit](https://developers.google.com/ml-kit)
+- **OCR**: [Google ML Kit Text Recognition](https://pub.dev/packages/google_mlkit_text_recognition)
+- **Icons & UI**: Material 3 Design with Custom Bouncy Animations
 
 ---
 

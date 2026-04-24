@@ -1,5 +1,4 @@
 import '../../domain/entities/note.dart';
-import '../../domain/entities/block.dart';
 import 'block_model.dart';
 
 class NoteModel extends NoteEntity {
@@ -12,6 +11,7 @@ class NoteModel extends NoteEntity {
     super.isPinned,
     super.isArchived,
     super.isDeleted,
+    super.reminder,
   });
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
@@ -26,6 +26,9 @@ class NoteModel extends NoteEntity {
       isPinned: json['isPinned'] ?? false,
       isArchived: json['isArchived'] ?? false,
       isDeleted: json['isDeleted'] ?? false,
+      reminder: json['reminder'] != null 
+          ? NoteReminderModel.fromJson(json['reminder']) 
+          : null,
     );
   }
 
@@ -39,29 +42,51 @@ class NoteModel extends NoteEntity {
       'isPinned': isPinned,
       'isArchived': isArchived,
       'isDeleted': isDeleted,
+      'reminder': reminder != null 
+          ? NoteReminderModel.fromEntity(reminder!).toJson() 
+          : null,
     };
   }
 
-  @override
-  NoteModel copyWith({
-    String? id,
-    String? title,
-    List<String>? tags,
-    DateTime? lastModified,
-    List<BlockEntity>? blocks,
-    bool? isPinned,
-    bool? isArchived,
-    bool? isDeleted,
-  }) {
+  static NoteModel fromEntity(NoteEntity entity) {
     return NoteModel(
-      id: id ?? this.id,
-      title: title ?? this.title,
-      tags: tags ?? this.tags,
-      lastModified: lastModified ?? this.lastModified,
-      blocks: blocks ?? this.blocks,
-      isPinned: isPinned ?? this.isPinned,
-      isArchived: isArchived ?? this.isArchived,
-      isDeleted: isDeleted ?? this.isDeleted,
+      id: entity.id,
+      title: entity.title,
+      tags: entity.tags,
+      lastModified: entity.lastModified,
+      blocks: entity.blocks,
+      isPinned: entity.isPinned,
+      isArchived: entity.isArchived,
+      isDeleted: entity.isDeleted,
+      reminder: entity.reminder,
+    );
+  }
+}
+
+class NoteReminderModel extends NoteReminderEntity {
+  const NoteReminderModel({
+    required super.dateTime,
+    required super.message,
+  });
+
+  factory NoteReminderModel.fromJson(Map<String, dynamic> json) {
+    return NoteReminderModel(
+      dateTime: DateTime.parse(json['dateTime']),
+      message: json['message'],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'dateTime': dateTime.toIso8601String(),
+      'message': message,
+    };
+  }
+
+  factory NoteReminderModel.fromEntity(NoteReminderEntity entity) {
+    return NoteReminderModel(
+      dateTime: entity.dateTime,
+      message: entity.message,
     );
   }
 }

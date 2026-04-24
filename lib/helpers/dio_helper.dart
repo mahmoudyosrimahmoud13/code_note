@@ -1,11 +1,12 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class DioHelper {
   static final Dio _dio =
       Dio(BaseOptions(baseUrl: "http://healthhubserver.runasp.net/", headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
-    'Authorization': 'Bearer }',
+    'Authorization': 'Bearer',
   }));
 
   static Future<ResponseData> sendData({
@@ -16,7 +17,7 @@ class DioHelper {
       var response = await _dio.post(endPoint, data: data);
       return ResponseData(isSuccess: true, response: response);
     } on DioException catch (ex) {
-      print(ex.response?.data.toString());
+      debugPrint(ex.response?.data.toString());
       return ResponseData(isSuccess: false, response: ex.response);
     }
   }

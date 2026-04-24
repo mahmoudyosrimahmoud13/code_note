@@ -66,7 +66,7 @@ class BlockModel extends BlockEntity {
       id: id ?? this.id,
       text: text ?? this.text,
       imagePath: imagePath ?? this.imagePath,
-      type: this.type,
+      type: type,
       language: language ?? this.language,
     );
   }

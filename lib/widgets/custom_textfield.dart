@@ -1,22 +1,21 @@
 import 'package:flutter/material.dart';
 
 class CustomTextfield extends StatelessWidget {
-  CustomTextfield(
-      {super.key,
-      required this.hint,
-      this.icon,
-      this.iconColor,
-      this.textInputType,
-      this.validator,
-      this.obscureText}) {
-    obscureText ??= false;
-  }
+  const CustomTextfield({
+    super.key,
+    required this.hint,
+    this.icon,
+    this.iconColor,
+    this.textInputType,
+    this.validator,
+    this.obscureText = false,
+  });
 
   final String hint;
   final IconButton? icon;
   final Color? iconColor;
   final TextInputType? textInputType;
-  bool? obscureText;
+  final bool obscureText;
   final String? Function(String?)? validator;
 
   @override
@@ -25,7 +24,7 @@ class CustomTextfield extends StatelessWidget {
     return TextFormField(
         style: TextStyle(color: color.onSurface),
         keyboardType: textInputType,
-        obscureText: obscureText!,
+        obscureText: obscureText,
         validator: validator,
         decoration: InputDecoration(
             hintText: hint,

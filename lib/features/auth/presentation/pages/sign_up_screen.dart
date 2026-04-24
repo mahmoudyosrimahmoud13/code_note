@@ -1,10 +1,9 @@
-import '../../../../helpers/helper_methods.dart';
-import 'image_picking_screen.dart';
-import 'login.dart';
-import 'start.dart';
-import '../../../../widgets/custom_button.dart';
-import '../../../../widgets/custom_textfield.dart';
 import 'package:flutter/material.dart';
+import 'package:code_note/features/auth/presentation/pages/image_picking_screen.dart';
+import 'package:code_note/features/auth/presentation/pages/login.dart';
+import 'package:code_note/widgets/custom_button.dart';
+import 'package:code_note/widgets/custom_textfield.dart';
+import 'package:code_note/helpers/helper_methods.dart';
 
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -18,7 +17,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
     final text = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
     return Scaffold(
@@ -132,7 +130,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   SizedBox(
                     height: 20,
                   ),
-                  Container(
+                  SizedBox(
                     width: double.infinity,
                     child: CustomButton(
                       onPressed: () => navigateTo(toPage: ImagePickingScreen()),

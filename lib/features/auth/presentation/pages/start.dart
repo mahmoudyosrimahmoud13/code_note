@@ -1,11 +1,12 @@
-import '../../../../helpers/helper_methods.dart';
-import 'login.dart';
-import 'sign_up_screen.dart';
-import '../../../notes/presentation/pages/home_page.dart';
-import '../../../../widgets/custom_button.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_bloc.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_event.dart';
+import 'package:code_note/features/settings/presentation/bloc/settings_state.dart';
+import 'package:code_note/features/notes/presentation/pages/home_page.dart';
+import 'package:code_note/widgets/custom_button.dart';
+import 'package:code_note/helpers/helper_methods.dart';
+import 'package:code_note/features/auth/presentation/pages/login.dart';
 
 class StartScreen extends StatelessWidget {
   const StartScreen({super.key});
@@ -18,11 +19,12 @@ class StartScreen extends StatelessWidget {
     return Scaffold(
       body: SingleChildScrollView(
         child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        children: [
-          Container(
-            width: double.infinity,
-            child: Stack(children: [
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            SizedBox(
+              width: double.infinity,
+              child: Stack(
+                children: [
               Container(
                 height: size.height * 0.55,
               ),
@@ -66,10 +68,18 @@ class StartScreen extends StatelessWidget {
           Padding(
               padding: const EdgeInsets.all(30),
               child: CustomButton(
-                onPressed: () => navigateTo(toPage: const HomePage()),
+                onPressed: () {
+                  final settingsBloc = context.read<SettingsBloc>();
+                  if (settingsBloc.state is SettingsLoaded) {
+                    final currentSettings = (settingsBloc.state as SettingsLoaded).settings;
+                    settingsBloc.add(UpdateSettingsEvent(
+                      currentSettings.copyWith(hasCompletedOnboarding: true),
+                    ));
+                  }
+                  navigateTo(toPage: const HomePage());
+                },
                 text: 'Get started now',
-                icon:
-                    Icon(Icons.navigate_next_outlined, color: color.onSurface),
+                icon: Icon(Icons.navigate_next_outlined, color: color.onSurface),
               )),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 100, vertical: 10),

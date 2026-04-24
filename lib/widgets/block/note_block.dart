@@ -1,6 +1,8 @@
 import 'package:code_note/widgets/block/block.dart';
 import 'package:code_note/widgets/custom_icon_button.dart';
 import 'package:flutter/material.dart';
+import '../../core/util/note_share_helper.dart';
+import '../../features/notes/domain/entities/language.dart';
 
 class NoteBlock extends Block {
   const NoteBlock({
@@ -33,6 +35,14 @@ class _NoteBlockState extends State<NoteBlock> {
     super.dispose();
   }
 
+  void _shareNoteBlock() {
+    NoteShareHelper.shareBlockAsFile(
+      widget.entity,
+      'Text Block',
+      Language.none,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -43,13 +53,15 @@ class _NoteBlockState extends State<NoteBlock> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Note'),
-            Container(
-              margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 5),
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              width: 220,
+            Flexible(
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
+                  CustomIconButton(
+                    icon: Icons.share,
+                    iconSize: 15,
+                    onPressed: _shareNoteBlock,
+                  ),
                   CustomIconButton(
                     icon: Icons.delete,
                     iconSize: 15,
@@ -78,24 +90,22 @@ class _NoteBlockState extends State<NoteBlock> {
             )
           ],
         ),
-        Container(
-          child: TextField(
-            controller: _controller,
-            onChanged: (val) {
-              if (widget.onChanged != null) {
-                widget.onChanged!(widget.entity.copyWith(text: val));
-              }
-            },
-            decoration: InputDecoration(
-              hintText: 'Type here.',
-              border: InputBorder.none,
-              hintStyle: textTheme.bodyLarge!.copyWith(color: color.onSurface),
-            ),
-            style: textTheme.bodyLarge!.copyWith(color: color.onSurface),
-            minLines: 1,
-            maxLines: 1000,
-            keyboardType: TextInputType.multiline,
+        TextField(
+          controller: _controller,
+          onChanged: (val) {
+            if (widget.onChanged != null) {
+              widget.onChanged!(widget.entity.copyWith(text: val));
+            }
+          },
+          decoration: InputDecoration(
+            hintText: 'Type here.',
+            border: InputBorder.none,
+            hintStyle: textTheme.bodyLarge!.copyWith(color: color.onSurface),
           ),
+          style: textTheme.bodyLarge!.copyWith(color: color.onSurface),
+          minLines: 1,
+          maxLines: 1000,
+          keyboardType: TextInputType.multiline,
         ),
       ],
     );
