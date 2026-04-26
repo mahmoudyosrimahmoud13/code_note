@@ -22,6 +22,14 @@ Get the latest pre-built binaries for your platform:
 
 ## ✨ New Features
 
+### 🚀 Recent Enhancements
+*   **WhatsApp-Style Reactions**: Long-press any message to react with emojis (❤️, 👍, 😂, etc.) that sync in real-time.
+*   **Smart Chat Sorting**: Automatic reordering of private and group chats based on the latest activity.
+*   **Rich Group Previews**: Chat list now displays the sender's name and message snippet for groups.
+*   **Zero-Lag Loading**: Optimized data fetching with parallel user lookups for a smooth scrolling experience.
+*   **Auto-Save Inline Editing**: Code and note blocks now save automatically as you type with smart debouncing.
+*   **UI Polish**: Resolved context menu overflows and improved message status visibility (Blue/Green indicators).
+
 ### 💬 Real-time Messaging & Collaboration
 *   **Direct Chat**: Instant messaging with friends using Firebase real-time technology.
 *   **Group Chats**: Create collaborative groups, manage members, and assign admins.
