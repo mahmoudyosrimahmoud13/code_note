@@ -83,7 +83,7 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
                       if (noteState is NoteLoaded) {
                         var notes = noteState.notes
                             .where((n) => currentGroup.noteIds.contains(n.id))
-                            .where((n) => !n.isArchived && !n.isDeleted)
+                            .where((n) => !n.isArchived && !n.isTrashed)
                             .where((n) => !_dismissedNoteIds.contains(n.id))
                             .toList();
 

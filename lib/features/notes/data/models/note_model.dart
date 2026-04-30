@@ -1,3 +1,4 @@
+import '../../domain/entities/block.dart';
 import '../../domain/entities/note.dart';
 import 'block_model.dart';
 
@@ -10,8 +11,13 @@ class NoteModel extends NoteEntity {
     required super.blocks,
     super.isPinned,
     super.isArchived,
-    super.isDeleted,
+    super.isTrashed,
+    super.groupId,
     super.reminder,
+    super.version,
+    super.lastSyncedAt,
+    super.isDirty,
+    super.trashTimestamp,
   });
 
   factory NoteModel.fromJson(Map<String, dynamic> json) {
@@ -25,9 +31,18 @@ class NoteModel extends NoteEntity {
           .toList(),
       isPinned: json['isPinned'] ?? false,
       isArchived: json['isArchived'] ?? false,
-      isDeleted: json['isDeleted'] ?? false,
-      reminder: json['reminder'] != null 
-          ? NoteReminderModel.fromJson(json['reminder']) 
+      isTrashed: json['isTrashed'] ?? false,
+      groupId: json['groupId'],
+      reminder: json['reminder'] != null
+          ? NoteReminderModel.fromJson(json['reminder'])
+          : null,
+      version: json['version'] ?? 0,
+      lastSyncedAt: json['lastSyncedAt'] != null
+          ? DateTime.parse(json['lastSyncedAt'])
+          : null,
+      isDirty: json['isDirty'] ?? false,
+      trashTimestamp: json['trashTimestamp'] != null
+          ? DateTime.parse(json['trashTimestamp'])
           : null,
     );
   }
@@ -41,10 +56,15 @@ class NoteModel extends NoteEntity {
       'blocks': blocks.map((i) => BlockModel.fromEntity(i).toJson()).toList(),
       'isPinned': isPinned,
       'isArchived': isArchived,
-      'isDeleted': isDeleted,
-      'reminder': reminder != null 
-          ? NoteReminderModel.fromEntity(reminder!).toJson() 
+      'isTrashed': isTrashed,
+      'groupId': groupId,
+      'reminder': reminder != null
+          ? NoteReminderModel.fromEntity(reminder!).toJson()
           : null,
+      'version': version,
+      'lastSyncedAt': lastSyncedAt?.toIso8601String(),
+      'isDirty': isDirty,
+      'trashTimestamp': trashTimestamp?.toIso8601String(),
     };
   }
 
@@ -57,8 +77,52 @@ class NoteModel extends NoteEntity {
       blocks: entity.blocks,
       isPinned: entity.isPinned,
       isArchived: entity.isArchived,
-      isDeleted: entity.isDeleted,
+      isTrashed: entity.isTrashed,
+      groupId: entity.groupId,
       reminder: entity.reminder,
+      version: entity.version,
+      lastSyncedAt: entity.lastSyncedAt,
+      isDirty: entity.isDirty,
+      trashTimestamp: entity.trashTimestamp,
+    );
+  }
+
+  @override
+  NoteModel copyWith({
+    String? id,
+    String? title,
+    List<String>? tags,
+    DateTime? lastModified,
+    List<BlockEntity>? blocks,
+    bool? isPinned,
+    bool? isArchived,
+    bool? isTrashed,
+    String? groupId,
+    bool clearGroupId = false,
+    NoteReminderEntity? reminder,
+    bool clearReminder = false,
+    int? version,
+    DateTime? lastSyncedAt,
+    bool? isDirty,
+    DateTime? trashTimestamp,
+    bool clearTrashTimestamp = false,
+  }) {
+    return NoteModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      tags: tags ?? this.tags,
+      lastModified: lastModified ?? this.lastModified,
+      blocks: blocks ?? this.blocks,
+      isPinned: isPinned ?? this.isPinned,
+      isArchived: isArchived ?? this.isArchived,
+      isTrashed: isTrashed ?? this.isTrashed,
+      groupId: clearGroupId ? null : (groupId ?? this.groupId),
+      reminder: clearReminder ? null : (reminder ?? this.reminder),
+      version: version ?? this.version,
+      lastSyncedAt: lastSyncedAt ?? this.lastSyncedAt,
+      isDirty: isDirty ?? this.isDirty,
+      trashTimestamp:
+          clearTrashTimestamp ? null : (trashTimestamp ?? this.trashTimestamp),
     );
   }
 }

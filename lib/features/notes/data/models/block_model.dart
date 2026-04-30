@@ -79,6 +79,8 @@ class BlockModel extends BlockEntity {
         return CodeBlockEntity(id: id, text: text, language: language ?? Language.dart);
       case BlockType.image:
         return ImageBlockEntity(id: id, imagePath: imagePath ?? '');
+      case BlockType.markdown:
+        return MarkdownBlockEntity(id: id, text: text);
     }
   }
 }

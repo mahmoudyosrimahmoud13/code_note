@@ -1,5 +1,5 @@
-import 'package:code_note/features/notes/domain/entities/note.dart';
-import 'package:code_note/widgets/note_card.dart';
+import '../features/notes/domain/entities/note.dart';
+import 'note_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 
@@ -35,9 +35,10 @@ class HomeGridView extends StatelessWidget {
         } else if (constraints.maxWidth < 350) {
           crossAxisCount = 1;
         }
-        
+
         return MasonryGridView.builder(
-          key: ValueKey('grid_${notes.length}_${notes.isNotEmpty ? notes.first.id : "empty"}'),
+          key: ValueKey(
+              'grid_${notes.length}_${notes.isNotEmpty ? notes.first.id : "empty"}'),
           gridDelegate: SliverSimpleGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
           ),
@@ -46,16 +47,21 @@ class HomeGridView extends StatelessWidget {
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
           shrinkWrap: isShrinkWrap,
-          physics: isShrinkWrap ? const NeverScrollableScrollPhysics() : const BouncingScrollPhysics(),
+          physics: isShrinkWrap
+              ? const NeverScrollableScrollPhysics()
+              : const BouncingScrollPhysics(),
           itemBuilder: (context, index) {
             final note = notes[index];
             return NoteCard(
               key: ValueKey('note_card_${note.id}'),
-              note: note, 
+              note: note,
               isTrashView: isTrashView,
               onTapOverride: onNoteTap != null ? () => onNoteTap!(note) : null,
-              onRemoveFromGroup: onRemoveFromGroup != null ? () => onRemoveFromGroup!(note) : null,
-              onDismissed: onNoteDismissed != null ? () => onNoteDismissed!(note) : null,
+              onRemoveFromGroup: onRemoveFromGroup != null
+                  ? () => onRemoveFromGroup!(note)
+                  : null,
+              onDismissed:
+                  onNoteDismissed != null ? () => onNoteDismissed!(note) : null,
             );
           },
         );

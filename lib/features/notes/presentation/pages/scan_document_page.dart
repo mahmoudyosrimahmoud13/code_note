@@ -1,11 +1,13 @@
 import 'dart:io';
-import '../../domain/entities/block.dart';
-import '../../../../widgets/custom_button.dart';
-import '../../../../widgets/custom_icon_button.dart';
-import '../../../../helpers/helper_methods.dart';
+
 import 'package:flutter/material.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
+
+import '../../../../helpers/helper_methods.dart';
+import '../../../../widgets/custom_button.dart';
+import '../../../../widgets/custom_icon_button.dart';
+import '../../domain/entities/block.dart';
 
 class ScanDocument extends StatefulWidget {
   const ScanDocument({
@@ -38,11 +40,12 @@ class _ScanDocumentState extends State<ScanDocument> {
 
   Future<void> _extractText() async {
     if (_pickedImage == null) return;
-    
+
     // Check for Windows to avoid crash if google_ml_kit doesn't support it
     if (Platform.isWindows) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Text recognition is not supported on Windows.')),
+        const SnackBar(
+            content: Text('Text recognition is not supported on Windows.')),
       );
       return;
     }
@@ -57,8 +60,8 @@ class _ScanDocumentState extends State<ScanDocument> {
       });
       await textRecognizer.close();
     } catch (e) {
-       if (!mounted) return;
-       ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error: $e')),
       );
     }

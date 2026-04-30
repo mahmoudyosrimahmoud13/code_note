@@ -1,4 +1,4 @@
-import 'package:code_note/widgets/custom_icon_button.dart';
+import 'custom_icon_button.dart';
 import 'package:flutter/material.dart';
 
 class NoteNavigationBar extends StatelessWidget {
@@ -7,25 +7,27 @@ class NoteNavigationBar extends StatelessWidget {
     this.addText,
     this.addCode,
     this.addImage,
+    this.addMarkdown,
     this.scanDoc,
   });
   final void Function()? addText;
   final void Function()? addCode;
   final void Function()? addImage;
+  final void Function()? addMarkdown;
   final void Function()? scanDoc;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40.0, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 5),
       child: Container(
           height: 60,
-          width: 400,
+          width: double.infinity,
           decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.primary.withAlpha(30),
               borderRadius: BorderRadius.circular(60)),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               CustomIconButton(
                 icon: Icons.text_format,
@@ -36,6 +38,11 @@ class NoteNavigationBar extends StatelessWidget {
                 icon: Icons.code,
                 iconSize: 20,
                 onPressed: addCode,
+              ),
+              CustomIconButton(
+                icon: Icons.description_rounded,
+                iconSize: 20,
+                onPressed: addMarkdown,
               ),
               CustomIconButton(
                 icon: Icons.image,

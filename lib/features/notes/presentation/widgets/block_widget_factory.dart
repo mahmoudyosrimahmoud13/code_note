@@ -3,6 +3,7 @@ import '../../domain/entities/block.dart';
 import '../../../../widgets/block/note_block.dart';
 import '../../../../widgets/block/code_block.dart';
 import '../../../../widgets/block/image_block.dart';
+import '../../../../widgets/block/markdown_block.dart';
 
 class BlockWidgetFactory {
   static Widget createBlockWidget({
@@ -14,6 +15,15 @@ class BlockWidgetFactory {
   }) {
     if (entity is NoteBlockEntity) {
       return NoteBlock(
+        key: ValueKey(entity.id),
+        entity: entity,
+        delete: onDelete,
+        moveUp: onMoveUp,
+        moveDown: onMoveDown,
+        onChanged: onChanged,
+      );
+    } else if (entity is MarkdownBlockEntity) {
+      return MarkdownBlock(
         key: ValueKey(entity.id),
         entity: entity,
         delete: onDelete,

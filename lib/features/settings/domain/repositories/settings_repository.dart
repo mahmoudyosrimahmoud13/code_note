@@ -5,4 +5,5 @@ import '../entities/settings.dart';
 abstract class SettingsRepository {
   Future<Either<Failure, SettingsEntity>> getSettings();
   Future<Either<Failure, void>> saveSettings(SettingsEntity settings);
+  Future<Either<Failure, void>> resetAllData();
 }

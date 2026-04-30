@@ -29,4 +29,14 @@ class SettingsRepositoryImpl implements SettingsRepository {
       return Left(CacheFailure());
     }
   }
+
+  @override
+  Future<Either<Failure, void>> resetAllData() async {
+    try {
+      await localDataSource.resetData();
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure());
+    }
+  }
 }

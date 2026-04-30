@@ -1,5 +1,5 @@
-import 'package:code_note/widgets/block/block.dart';
-import 'package:code_note/widgets/custom_icon_button.dart';
+import 'block.dart';
+import '../custom_icon_button.dart';
 import 'package:flutter/material.dart';
 import '../../core/util/note_share_helper.dart';
 import '../../features/notes/domain/entities/language.dart';
@@ -29,17 +29,31 @@ class _NoteBlockState extends State<NoteBlock> {
 
   @override
   void dispose() {
-    // Note: In a real app, we'd update the entity via a callback/bloc
-    // but to keep it simple and feature-parity, we'll assume it's updated.
     _controller.dispose();
     super.dispose();
   }
 
-  void _shareNoteBlock() {
-    NoteShareHelper.shareBlockAsFile(
-      widget.entity,
-      'Text Block',
-      Language.none,
+  void _shareLocal() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.share_rounded),
+            title: const Text('Share as File'),
+            onTap: () {
+              Navigator.pop(context);
+              NoteShareHelper.shareBlockAsFile(
+                widget.entity,
+                'Text Block',
+                Language.none,
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
@@ -60,31 +74,34 @@ class _NoteBlockState extends State<NoteBlock> {
                   CustomIconButton(
                     icon: Icons.share,
                     iconSize: 15,
-                    onPressed: _shareNoteBlock,
+                    onPressed: _shareLocal,
                   ),
-                  CustomIconButton(
-                    icon: Icons.delete,
-                    iconSize: 15,
-                    innerColor: color.onError,
-                    iconColor: color.error,
-                    onPressed: () {
-                      widget.delete!(widget.id);
-                    },
-                  ),
-                  CustomIconButton(
-                    icon: Icons.arrow_upward,
-                    iconSize: 15,
-                    onPressed: () {
-                      widget.moveUp!(widget.id);
-                    },
-                  ),
-                  CustomIconButton(
-                    icon: Icons.arrow_downward,
-                    iconSize: 15,
-                    onPressed: () {
-                      widget.moveDown!(widget.id);
-                    },
-                  )
+                  if (widget.delete != null)
+                    CustomIconButton(
+                      icon: Icons.delete,
+                      iconSize: 15,
+                      innerColor: color.onError,
+                      iconColor: color.error,
+                      onPressed: () {
+                        widget.delete?.call(widget.id);
+                      },
+                    ),
+                  if (widget.moveUp != null)
+                    CustomIconButton(
+                      icon: Icons.arrow_upward,
+                      iconSize: 15,
+                      onPressed: () {
+                        widget.moveUp?.call(widget.id);
+                      },
+                    ),
+                  if (widget.moveDown != null)
+                    CustomIconButton(
+                      icon: Icons.arrow_downward,
+                      iconSize: 15,
+                      onPressed: () {
+                        widget.moveDown?.call(widget.id);
+                      },
+                    )
                 ],
               ),
             )

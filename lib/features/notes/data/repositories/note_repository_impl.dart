@@ -10,7 +10,9 @@ import '../models/note_group_model.dart';
 class NoteRepositoryImpl implements NoteRepository {
   final NoteLocalDataSource localDataSource;
 
-  NoteRepositoryImpl({required this.localDataSource});
+  NoteRepositoryImpl({
+    required this.localDataSource,
+  });
 
   @override
   Future<Either<Failure, List<NoteEntity>>> getNotes() async {
@@ -25,10 +27,8 @@ class NoteRepositoryImpl implements NoteRepository {
   @override
   Future<Either<Failure, void>> addNote(NoteEntity note) async {
     try {
-      final notes = await localDataSource.getLastNotes();
-      final model = NoteModel.fromEntity(note);
-      notes.add(model);
-      await localDataSource.cacheNotes(notes);
+      final model = NoteModel.fromEntity(note).copyWith(isDirty: false);
+      await localDataSource.updateSingleNote(model);
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure());
@@ -38,17 +38,11 @@ class NoteRepositoryImpl implements NoteRepository {
   @override
   Future<Either<Failure, void>> updateNote(NoteEntity note) async {
     try {
-      final notes = await localDataSource.getLastNotes();
-      final index = notes.indexWhere((i) => i.id == note.id);
-      final model = NoteModel.fromEntity(note);
-      
-      if (index != -1) {
-        notes[index] = model;
-      } else {
-        notes.add(model);
-      }
-      
-      await localDataSource.cacheNotes(notes);
+      final model = NoteModel.fromEntity(note).copyWith(
+        isDirty: false,
+        lastModified: DateTime.now(),
+      );
+      await localDataSource.updateSingleNote(model);
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure());
@@ -59,8 +53,30 @@ class NoteRepositoryImpl implements NoteRepository {
   Future<Either<Failure, void>> deleteNote(String id) async {
     try {
       final notes = await localDataSource.getLastNotes();
-      notes.removeWhere((i) => i.id == id);
-      await localDataSource.cacheNotes(notes);
+      final index = notes.indexWhere((n) => n.id == id);
+      if (index != -1) {
+        final trashedNote = notes[index].copyWith(
+          isTrashed: true,
+          isDirty: false,
+          trashTimestamp: DateTime.now(),
+          lastModified: DateTime.now(),
+        );
+        await localDataSource.updateSingleNote(trashedNote);
+      }
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure());
+    }
+  }
+
+  @override
+  Future<Either<Failure, NoteEntity?>> getNoteById(String id) async {
+    try {
+      final notes = await localDataSource.getLastNotes();
+      final index = notes.indexWhere((n) => n.id == id);
+      if (index != -1) {
+        return Right(notes[index]);
+      }
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure());
@@ -120,5 +136,21 @@ class NoteRepositoryImpl implements NoteRepository {
     } catch (e) {
       return Left(CacheFailure());
     }
+  }
+
+  @override
+  Future<Either<Failure, void>> sync() async {
+    // Local-only: Sync is a no-op
+    return const Right(null);
+  }
+
+  @override
+  Stream<List<NoteEntity>> watchNotes() {
+    return localDataSource.watchNotes();
+  }
+
+  @override
+  Stream<List<NoteGroupEntity>> watchGroups() {
+    return localDataSource.watchGroups();
   }
 }

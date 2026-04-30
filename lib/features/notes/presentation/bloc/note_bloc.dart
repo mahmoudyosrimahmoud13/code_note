@@ -1,8 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/usecases/usecase.dart';
-import '../../domain/usecases/get_notes.dart';
-import '../../domain/repositories/note_repository.dart';
 import '../../domain/entities/block.dart';
+import '../../domain/entities/note.dart';
+import '../../domain/repositories/note_repository.dart';
+import '../../domain/usecases/get_notes.dart';
 import 'note_event.dart';
 import 'note_state.dart';
 
@@ -16,10 +18,11 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
   }) : super(NoteInitial()) {
     on<GetNotesEvent>((event, emit) async {
       emit(NoteLoading());
-      final result = await getNotes(NoParams());
-      result.fold(
-        (failure) => emit(const NoteError('Could not fetch notes')),
-        (notes) => emit(NoteLoaded(notes)),
+      await emit.forEach<List<NoteEntity>>(
+        repository.watchNotes(),
+        onData: (notes) => NoteLoaded(notes),
+        onError: (error, stackTrace) =>
+            const NoteError('Could not fetch notes'),
       );
     });
 
@@ -34,10 +37,12 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     on<UpdateNoteEvent>((event, emit) async {
       final currentState = state;
       if (currentState is NoteLoaded) {
-        final updatedNotes = currentState.notes.map((n) => n.id == event.note.id ? event.note : n).toList();
+        final updatedNotes = currentState.notes
+            .map((n) => n.id == event.note.id ? event.note : n)
+            .toList();
         emit(NoteLoaded(updatedNotes));
       }
-      
+
       final result = await repository.updateNote(event.note);
       result.fold(
         (failure) {
@@ -51,7 +56,8 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     on<DeleteNoteEvent>((event, emit) async {
       final currentState = state;
       if (currentState is NoteLoaded) {
-        final updatedNotes = currentState.notes.where((n) => n.id != event.id).toList();
+        final updatedNotes =
+            currentState.notes.where((n) => n.id != event.id).toList();
         emit(NoteLoaded(updatedNotes));
       }
 
@@ -64,6 +70,7 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
         (_) => null, // Already updated locally
       );
     });
+
     on<SearchNotesEvent>((event, emit) async {
       if (event.query.isEmpty) {
         add(GetNotesEvent());
@@ -77,7 +84,8 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
           final query = event.query.toLowerCase();
           final filteredNotes = notes.where((note) {
             final titleMatch = note.title.toLowerCase().contains(query);
-            final tagMatch = note.tags.any((tag) => tag.toLowerCase().contains(query));
+            final tagMatch =
+                note.tags.any((tag) => tag.toLowerCase().contains(query));
             final contentMatch = note.blocks.any((block) {
               if (block is NoteBlockEntity) {
                 return block.text?.toLowerCase().contains(query) ?? false;

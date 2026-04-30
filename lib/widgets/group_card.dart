@@ -9,7 +9,7 @@ import '../../features/notes/presentation/bloc/note_state.dart';
 import '../../features/notes/presentation/bloc/note_group_bloc.dart';
 import '../../features/notes/presentation/bloc/note_group_event.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:code_note/widgets/animated_icons.dart';
+import 'animated_icons.dart';
 
 class GroupCard extends StatefulWidget {
   final NoteGroupEntity group;
@@ -25,7 +25,8 @@ class GroupCard extends StatefulWidget {
   State<GroupCard> createState() => _GroupCardState();
 }
 
-class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMixin {
+class _GroupCardState extends State<GroupCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -58,18 +59,20 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
         if (state is NoteLoaded) {
           groupNotes = state.notes
               .where((n) => widget.group.noteIds.contains(n.id))
-              .where((n) => !n.isArchived && !n.isDeleted)
+              .where((n) => !n.isArchived && !n.isTrashed)
               .toList();
         }
 
         return DragTarget<NoteEntity>(
-          onWillAcceptWithDetails: (details) => !widget.group.noteIds.contains(details.data.id),
+          onWillAcceptWithDetails: (details) =>
+              !widget.group.noteIds.contains(details.data.id),
           onAcceptWithDetails: (details) {
             final note = details.data;
-            List<String> newNoteIds = List.from(widget.group.noteIds)..add(note.id);
+            List<String> newNoteIds = List.from(widget.group.noteIds)
+              ..add(note.id);
             context.read<NoteGroupBloc>().add(UpdateGroupEvent(
-              widget.group.copyWith(noteIds: newNoteIds),
-            ));
+                  widget.group.copyWith(noteIds: newNoteIds),
+                ));
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Note added to ${widget.group.name}'),
@@ -81,7 +84,7 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
           },
           builder: (context, candidateData, rejectedData) {
             final isHovering = candidateData.isNotEmpty;
-            
+
             return MouseRegion(
               onEnter: (_) => _controller.forward(),
               onExit: (_) => _controller.reverse(),
@@ -94,21 +97,21 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
                     duration: const Duration(milliseconds: 200),
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: isHovering 
-                        ? color.primaryContainer.withAlpha(150) 
-                        : color.surfaceContainerHighest.withAlpha(60),
+                      color: isHovering
+                          ? color.primaryContainer.withAlpha(150)
+                          : color.surfaceContainerHighest.withAlpha(60),
                       borderRadius: BorderRadius.circular(28),
                       border: Border.all(
-                        color: isHovering 
-                          ? color.primary 
-                          : color.outlineVariant.withAlpha(100),
+                        color: isHovering
+                            ? color.primary
+                            : color.outlineVariant.withAlpha(100),
                         width: isHovering ? 2 : 1,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: isHovering 
-                            ? color.primary.withAlpha(50) 
-                            : Colors.black.withAlpha(10),
+                          color: isHovering
+                              ? color.primary.withAlpha(50)
+                              : Colors.black.withAlpha(10),
                           blurRadius: isHovering ? 15 : 10,
                           offset: const Offset(0, 4),
                         )
@@ -127,12 +130,14 @@ class _GroupCardState extends State<GroupCard> with SingleTickerProviderStateMix
                             child: GridView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
-                              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
                                 crossAxisSpacing: 8,
                                 mainAxisSpacing: 8,
                               ),
-                              itemCount: groupNotes.length > 4 ? 4 : groupNotes.length,
+                              itemCount:
+                                  groupNotes.length > 4 ? 4 : groupNotes.length,
                               itemBuilder: (context, index) {
                                 final note = groupNotes[index];
                                 return _NoteMiniPreview(note: note);
@@ -199,7 +204,7 @@ class _NoteMiniPreview extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
-    
+
     // Try to find an image first
     final imageBlock = note.blocks.whereType<ImageBlockEntity>().firstOrNull;
     if (imageBlock?.imagePath != null) {
@@ -208,9 +213,9 @@ class _NoteMiniPreview extends StatelessWidget {
           color: color.surface,
           borderRadius: BorderRadius.circular(8),
           image: DecorationImage(
-            image: kIsWeb 
-              ? NetworkImage(imageBlock!.imagePath!) as ImageProvider
-              : FileImage(File(imageBlock!.imagePath!)),
+            image: kIsWeb
+                ? NetworkImage(imageBlock!.imagePath!) as ImageProvider
+                : FileImage(File(imageBlock!.imagePath!)),
             fit: BoxFit.cover,
           ),
           boxShadow: [
@@ -257,11 +262,26 @@ class _NoteMiniPreview extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Container(height: 3, width: 20, decoration: BoxDecoration(color: color.primary.withAlpha(120), borderRadius: BorderRadius.circular(2))),
+                Container(
+                    height: 3,
+                    width: 20,
+                    decoration: BoxDecoration(
+                        color: color.primary.withAlpha(120),
+                        borderRadius: BorderRadius.circular(2))),
                 const SizedBox(height: 4),
-                Container(height: 3, width: 14, decoration: BoxDecoration(color: color.outlineVariant.withAlpha(150), borderRadius: BorderRadius.circular(2))),
+                Container(
+                    height: 3,
+                    width: 14,
+                    decoration: BoxDecoration(
+                        color: color.outlineVariant.withAlpha(150),
+                        borderRadius: BorderRadius.circular(2))),
                 const SizedBox(height: 4),
-                Container(height: 3, width: 18, decoration: BoxDecoration(color: color.outlineVariant.withAlpha(100), borderRadius: BorderRadius.circular(2))),
+                Container(
+                    height: 3,
+                    width: 18,
+                    decoration: BoxDecoration(
+                        color: color.outlineVariant.withAlpha(100),
+                        borderRadius: BorderRadius.circular(2))),
               ],
             ),
         ],

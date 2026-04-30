@@ -7,10 +7,12 @@ class NavBar extends StatelessWidget {
     required this.addNote,
     required this.selectedIndex,
     required this.onIndexChanged,
+    this.showRemindersBadge = false,
   });
   final void Function() addNote;
   final int selectedIndex;
   final void Function(int) onIndexChanged;
+  final bool showRemindersBadge;
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +59,7 @@ class NavBar extends StatelessWidget {
               onTap: () => onIndexChanged(1),
               color: color,
               textTheme: textTheme,
+              showBadge: showRemindersBadge,
             ),
             _AddButton(
               onPressed: addNote,
@@ -66,8 +69,8 @@ class NavBar extends StatelessWidget {
               icon: Icons.archive_outlined,
               selectedIcon: Icons.archive_rounded,
               label: 'Archive',
-              isSelected: selectedIndex == 3,
-              onTap: () => onIndexChanged(3),
+              isSelected: selectedIndex == 2,
+              onTap: () => onIndexChanged(2),
               color: color,
               textTheme: textTheme,
             ),
@@ -75,8 +78,8 @@ class NavBar extends StatelessWidget {
               icon: Icons.delete_outline_rounded,
               selectedIcon: Icons.delete_rounded,
               label: 'Trash',
-              isSelected: selectedIndex == 4,
-              onTap: () => onIndexChanged(4),
+              isSelected: selectedIndex == 3,
+              onTap: () => onIndexChanged(3),
               color: color,
               textTheme: textTheme,
             ),
@@ -96,6 +99,7 @@ class _NavItem extends StatefulWidget {
     required this.onTap,
     required this.color,
     required this.textTheme,
+    this.showBadge = false,
   });
 
   final IconData icon;
@@ -105,6 +109,7 @@ class _NavItem extends StatefulWidget {
   final VoidCallback onTap;
   final ColorScheme color;
   final TextTheme textTheme;
+  final bool showBadge;
 
   @override
   State<_NavItem> createState() => _NavItemState();
@@ -163,28 +168,49 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AnimatedBuilder(
-              animation: _bounceAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _bounceAnimation.value,
-                  child: child,
-                );
-              },
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                transitionBuilder: (child, animation) {
-                  return ScaleTransition(scale: animation, child: child);
-                },
-                child: Icon(
-                  widget.isSelected ? widget.selectedIcon : widget.icon,
-                  key: ValueKey(widget.isSelected),
-                  size: 22,
-                  color: widget.isSelected
-                      ? widget.color.primary
-                      : widget.color.onSurface.withAlpha(150),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                AnimatedBuilder(
+                  animation: _bounceAnimation,
+                  builder: (context, child) {
+                    return Transform.scale(
+                      scale: _bounceAnimation.value,
+                      child: child,
+                    );
+                  },
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    transitionBuilder: (child, animation) {
+                      return ScaleTransition(scale: animation, child: child);
+                    },
+                    child: Icon(
+                      widget.isSelected ? widget.selectedIcon : widget.icon,
+                      key: ValueKey(widget.isSelected),
+                      size: 22,
+                      color: widget.isSelected
+                          ? widget.color.primary
+                          : widget.color.onSurface.withAlpha(150),
+                    ),
+                  ),
                 ),
-              ),
+                if (widget.showBadge)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      padding: const EdgeInsets.all(3),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      constraints: const BoxConstraints(
+                        minWidth: 8,
+                        minHeight: 8,
+                      ),
+                    ),
+                  ),
+              ],
             ),
             const SizedBox(height: 2),
             AnimatedDefaultTextStyle(

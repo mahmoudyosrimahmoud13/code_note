@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import '../../features/notes/domain/entities/block.dart';
 
 abstract class Block extends StatefulWidget {
@@ -23,7 +24,12 @@ abstract class Block extends StatefulWidget {
   String? get text => entity.text;
   
   ImageProvider? get imageProvider {
-    if (entity.imagePath == null) return null;
+    if (entity.imagePath == null || entity.imagePath!.isEmpty) return null;
+    
+    if (entity.imagePath!.startsWith('http')) {
+      return CachedNetworkImageProvider(entity.imagePath!);
+    }
+    
     if (kIsWeb) {
       return NetworkImage(entity.imagePath!);
     } else {

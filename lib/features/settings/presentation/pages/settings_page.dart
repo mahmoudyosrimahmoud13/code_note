@@ -1,13 +1,17 @@
+import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+
+import '../../../../core/util/image_helper.dart';
+import '../../../../widgets/user_avatar.dart';
+import '../../domain/entities/settings.dart';
 import '../bloc/settings_bloc.dart';
 import '../bloc/settings_event.dart';
 import '../bloc/settings_state.dart';
-import '../../domain/entities/settings.dart';
+import 'profile_edit_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -17,38 +21,26 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  late TextEditingController _nameController;
-  late TextEditingController _handleController;
-
-  @override
-  void initState() {
-    super.initState();
-    final state = context.read<SettingsBloc>().state;
-    if (state is SettingsLoaded) {
-      _nameController = TextEditingController(text: state.settings.userName);
-      _handleController = TextEditingController(text: state.settings.userHandle);
-    } else {
-      _nameController = TextEditingController();
-      _handleController = TextEditingController();
-    }
-  }
-
-  @override
-  void dispose() {
-    _nameController.dispose();
-    _handleController.dispose();
-    super.dispose();
-  }
+  // Settings page state
 
   Future<void> _pickImage(SettingsEntity settings) async {
     final picker = ImagePicker();
-    final image = await picker.pickImage(source: ImageSource.gallery);
+    final image = await picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 50,
+      maxWidth: 800,
+      maxHeight: 800,
+    );
     if (image != null && mounted) {
-      context.read<SettingsBloc>().add(UpdateSettingsEvent(
-        settings.copyWith(profileImagePath: image.path),
+      final settingsBloc = context.read<SettingsBloc>();
+      final persistentPath = await ImageHelper.persistImage(image.path);
+      if (!mounted) return;
+      settingsBloc.add(UpdateSettingsEvent(
+        settings.copyWith(profileImagePath: persistentPath),
       ));
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -70,6 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
           }
           if (state is SettingsLoaded) {
             final settings = state.settings;
+
             return Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -77,7 +70,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   end: Alignment.bottomRight,
                   colors: [
                     color.surface,
-                    color.primaryContainer.withAlpha(30),
+                    color.primaryContainer.withAlpha(30)
                   ],
                 ),
               ),
@@ -86,71 +79,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Profile Card
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: color.surfaceContainerHighest.withAlpha(100),
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(color: color.outlineVariant.withAlpha(50)),
-                      ),
-                      child: Column(
-                        children: [
-                          Center(
-                            child: Stack(
-                              children: [
-                                Hero(
-                                  tag: 'user_profile_photo',
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: color.primary, width: 3),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: color.primary.withAlpha(50),
-                                          blurRadius: 20,
-                                          spreadRadius: 5,
-                                        )
-                                      ],
-                                    ),
-                                    child: CircleAvatar(
-                                      radius: 60,
-                                      backgroundColor: color.primaryContainer,
-                                      backgroundImage: settings.profileImagePath != null
-                                          ? (kIsWeb 
-                                              ? NetworkImage(settings.profileImagePath!) 
-                                              : FileImage(File(settings.profileImagePath!))) as ImageProvider
-                                          : const AssetImage('assets/stocks/profile.jpg'),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  bottom: 0,
-                                  right: 0,
-                                  child: GestureDetector(
-                                    onTap: () => _pickImage(settings),
-                                    child: CircleAvatar(
-                                      backgroundColor: color.primary,
-                                      radius: 18,
-                                      child: const Icon(Icons.edit, size: 16, color: Colors.white),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          _buildModernTextField(_nameController, 'Display Name', Icons.person, (val) {
-                            context.read<SettingsBloc>().add(UpdateSettingsEvent(settings.copyWith(userName: val)));
-                          }, color),
-                          const SizedBox(height: 16),
-                          _buildModernTextField(_handleController, 'Handle', Icons.alternate_email, (val) {
-                            context.read<SettingsBloc>().add(UpdateSettingsEvent(settings.copyWith(userHandle: val)));
-                          }, color),
-                        ],
-                      ),
-                    ),
-
+                    _buildProfileCard(settings, color, textTheme),
                     const SizedBox(height: 32),
                     _buildSectionHeader('Appearance', textTheme, color),
                     const SizedBox(height: 16),
@@ -162,17 +91,15 @@ class _SettingsPageState extends State<SettingsPage> {
                       trailing: DropdownButton<String>(
                         value: settings.themeMode,
                         underline: const SizedBox(),
-                        items: ['light', 'dark', 'system'].map((String value) {
-                          return DropdownMenuItem<String>(
-                            value: value,
-                            child: Text(value.toUpperCase()),
-                          );
-                        }).toList(),
-                        onChanged: (val) {
-                          if (val != null) {
-                            context.read<SettingsBloc>().add(UpdateSettingsEvent(settings.copyWith(themeMode: val)));
-                          }
-                        },
+                        items: ['light', 'dark', 'system']
+                            .map((v) => DropdownMenuItem(
+                                value: v, child: Text(v.toUpperCase())))
+                            .toList(),
+                        onChanged: (v) => v != null
+                            ? context.read<SettingsBloc>().add(
+                                UpdateSettingsEvent(
+                                    settings.copyWith(themeMode: v)))
+                            : null,
                       ),
                       color: color,
                     ),
@@ -187,13 +114,22 @@ class _SettingsPageState extends State<SettingsPage> {
                         min: 0.8,
                         max: 1.5,
                         divisions: 7,
-                        onChanged: (val) {
-                          context.read<SettingsBloc>().add(UpdateSettingsEvent(settings.copyWith(fontSizeMultiplier: val)));
-                        },
+                        onChanged: (v) => context.read<SettingsBloc>().add(
+                            UpdateSettingsEvent(
+                                settings.copyWith(fontSizeMultiplier: v))),
                       ),
                       color: color,
                     ),
-
+                    const SizedBox(height: 32),
+                    _buildSectionHeader('Management', textTheme, color),
+                    const SizedBox(height: 16),
+                    _buildSettingTile(
+                        'Clear All Data',
+                        'Delete all local notes and settings',
+                        Icons.delete_forever_rounded,
+                        Colors.red,
+                        onTap: () => _showClearDataConfirmation(context),
+                        color: color),
                     const SizedBox(height: 32),
                     _buildSectionHeader('About', textTheme, color),
                     const SizedBox(height: 16),
@@ -202,13 +138,14 @@ class _SettingsPageState extends State<SettingsPage> {
                       'View source and contribute',
                       Icons.code_rounded,
                       Colors.purple,
-                      onTap: () => launchUrl(Uri.parse('https://github.com/mahmoudyosrimahmoud13/code_note')),
+                      onTap: () => launchUrl(Uri.parse(
+                          'https://github.com/mahmoudyosrimahmoud13/code_note')),
                       color: color,
                     ),
                     const SizedBox(height: 16),
                     _buildSettingTile(
                       'Version',
-                      '1.0.0 (Premium Build)',
+                      '1.2.0 (Open Source)',
                       Icons.info_rounded,
                       Colors.teal,
                       color: color,
@@ -225,89 +162,148 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Widget _buildModernTextField(TextEditingController controller, String label, IconData icon, Function(String) onChanged, ColorScheme color) {
-    return TextField(
-      controller: controller,
-      onChanged: onChanged,
-      decoration: InputDecoration(
-        labelText: label,
-        prefixIcon: Icon(icon, color: color.primary),
-        filled: true,
-        fillColor: color.surface.withAlpha(150),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(15),
-          borderSide: BorderSide(color: color.primary, width: 1),
-        ),
+  Widget _buildProfileCard(SettingsEntity settings, ColorScheme color, TextTheme textTheme) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: color.surfaceContainerHighest.withAlpha(100),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: color.outlineVariant.withAlpha(50)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Stack(
+                children: [
+                  Hero(
+                    tag: 'user_profile_photo',
+                    child: UserAvatar(
+                        imageUrl: settings.profileImagePath,
+                        seed: settings.userHandle,
+                        radius: 50),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: GestureDetector(
+                      onTap: () => _pickImage(settings),
+                      child: CircleAvatar(
+                          backgroundColor: color.primary,
+                          radius: 16,
+                          child: const Icon(Icons.camera_alt,
+                              size: 14, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(width: 20),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(settings.userName,
+                        style: textTheme.headlineSmall!
+                            .copyWith(fontWeight: FontWeight.bold)),
+                    Text('@${settings.userHandle}',
+                        style: textTheme.bodyLarge!
+                            .copyWith(color: color.onSurfaceVariant)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton.icon(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ProfileEditPage(settings: settings)),
+            ),
+            icon: const Icon(Icons.edit_rounded, size: 18),
+            label: const Text('Edit Profile'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size(double.infinity, 45),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSettingTile(String title, String subtitle, IconData icon, Color iconColor, {Widget? trailing, Widget? bottom, VoidCallback? onTap, required ColorScheme color}) {
+  Widget _buildSectionHeader(String title, TextTheme textTheme, ColorScheme color) {
+    return Text(title,
+        style: textTheme.titleMedium!.copyWith(
+          color: color.primary,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
+        ));
+  }
+
+  Widget _buildSettingTile(String title, String subtitle, IconData icon, Color iconColor,
+      {Widget? trailing, Widget? bottom, VoidCallback? onTap, required ColorScheme color}) {
     return Container(
       decoration: BoxDecoration(
-        color: color.surfaceContainerHighest.withAlpha(100),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.outlineVariant.withAlpha(50)),
+        color: color.surfaceContainerHighest.withAlpha(50),
+        borderRadius: BorderRadius.circular(24),
       ),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: iconColor.withAlpha(30),
-                      borderRadius: BorderRadius.circular(12),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(24),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      backgroundColor: iconColor.withAlpha(25),
+                      child: Icon(icon, color: iconColor),
                     ),
-                    child: Icon(icon, color: iconColor, size: 24),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                        Text(subtitle, style: TextStyle(color: color.onSurfaceVariant, fontSize: 13)),
-                      ],
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                          Text(subtitle, style: TextStyle(color: color.onSurfaceVariant, fontSize: 12)),
+                        ],
+                      ),
                     ),
-                  ),
-                  if (trailing != null) trailing,
+                    if (trailing != null) trailing,
+                  ],
+                ),
+                if (bottom != null) ...[
+                  const SizedBox(height: 12),
+                  bottom,
                 ],
-              ),
-              if (bottom != null) ...[
-                const SizedBox(height: 8),
-                bottom,
               ],
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionHeader(String title, TextTheme textTheme, ColorScheme color) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
-      child: Text(
-        title,
-        style: textTheme.titleMedium!.copyWith(
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-          color: color.primary.withAlpha(200),
-        ),
+  void _showClearDataConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear All Data?'),
+        content: const Text('This will delete all your notes and settings locally. This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            onPressed: () {
+              context.read<SettingsBloc>().add(ResetAllDataEvent());
+              Navigator.pop(context);
+            },
+            child: const Text('Clear Everything'),
+          ),
+        ],
       ),
     );
   }

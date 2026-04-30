@@ -1,9 +1,10 @@
 import 'package:equatable/equatable.dart';
+
 import '../../domain/entities/note.dart';
 
 abstract class NoteState extends Equatable {
   const NoteState();
-  
+
   @override
   List<Object> get props => [];
 }

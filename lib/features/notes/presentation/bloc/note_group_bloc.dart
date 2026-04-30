@@ -1,3 +1,4 @@
+import '../../domain/entities/note_group.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/repositories/note_repository.dart';
 import 'note_group_event.dart';
@@ -9,10 +10,11 @@ class NoteGroupBloc extends Bloc<NoteGroupEvent, NoteGroupState> {
   NoteGroupBloc({required this.repository}) : super(NoteGroupInitial()) {
     on<GetGroupsEvent>((event, emit) async {
       emit(NoteGroupLoading());
-      final result = await repository.getGroups();
-      result.fold(
-        (failure) => emit(const NoteGroupError('Could not fetch groups')),
-        (groups) => emit(NoteGroupLoaded(groups)),
+      await emit.forEach<List<NoteGroupEntity>>(
+        repository.watchGroups(),
+        onData: (groups) => NoteGroupLoaded(groups),
+        onError: (error, stackTrace) =>
+            const NoteGroupError('Could not fetch groups'),
       );
     });
 
@@ -45,7 +47,8 @@ class NoteGroupBloc extends Bloc<NoteGroupEvent, NoteGroupState> {
       if (currentState is NoteGroupLoaded) {
         for (final group in currentState.groups) {
           if (group.noteIds.contains(event.noteId)) {
-            final newNoteIds = List<String>.from(group.noteIds)..remove(event.noteId);
+            final newNoteIds = List<String>.from(group.noteIds)
+              ..remove(event.noteId);
             await repository.updateGroup(group.copyWith(noteIds: newNoteIds));
           }
         }

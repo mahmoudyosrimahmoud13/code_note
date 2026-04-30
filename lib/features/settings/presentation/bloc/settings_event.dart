@@ -17,3 +17,14 @@ class UpdateSettingsEvent extends SettingsEvent {
   @override
   List<Object?> get props => [settings];
 }
+
+class ResetAllDataEvent extends SettingsEvent {}
+
+class SwitchToCloudProfileEvent extends SettingsEvent {
+  final dynamic user; // Using dynamic to avoid circular import or just use the fields
+  const SwitchToCloudProfileEvent(this.user);
+  @override
+  List<Object?> get props => [user];
+}
+
+class SwitchToLocalProfileEvent extends SettingsEvent {}

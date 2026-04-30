@@ -1,6 +1,6 @@
-import 'package:code_note/widgets/block/block.dart';
-import 'package:code_note/widgets/custom_icon_button.dart';
-import 'package:code_note/widgets/language_drop_down.dart';
+import 'block.dart';
+import '../custom_icon_button.dart';
+import '../language_drop_down.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 import 'package:flutter_highlight/themes/monokai-sublime.dart';
@@ -94,11 +94,27 @@ class _CodeBlockState extends State<CodeBlock> {
     }
   }
 
-  void _shareBlock() {
-    NoteShareHelper.shareBlockAsFile(
-      widget.codeEntity,
-      'Code Block',
-      widget.codeEntity.language,
+  void _shareLocal() {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ListTile(
+            leading: const Icon(Icons.file_upload_outlined),
+            title: const Text('Share as File'),
+            onTap: () {
+              Navigator.pop(context);
+              NoteShareHelper.shareBlockAsFile(
+                widget.codeEntity,
+                'Code Block',
+                widget.codeEntity.language,
+              );
+            },
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
     );
   }
 
@@ -126,7 +142,7 @@ class _CodeBlockState extends State<CodeBlock> {
                 Flexible(
                   flex: 3,
                   child: LanguageDropDown(
-                    language: widget.codeEntity.language, 
+                    language: widget.codeEntity.language,
                     selectLanguage: (lang) {
                       if (lang != null) {
                         setState(() {
@@ -157,25 +173,28 @@ class _CodeBlockState extends State<CodeBlock> {
                         CustomIconButton(
                           icon: Icons.share,
                           iconSize: 18,
-                          onPressed: _shareBlock,
+                          onPressed: _shareLocal,
                         ),
-                        CustomIconButton(
-                          icon: Icons.delete,
-                          iconSize: 18,
-                          innerColor: color.onError,
-                          iconColor: color.error,
-                          onPressed: () => widget.delete!(widget.id),
-                        ),
-                        CustomIconButton(
-                          icon: Icons.arrow_upward,
-                          iconSize: 18,
-                          onPressed: () => widget.moveUp!(widget.id),
-                        ),
-                        CustomIconButton(
-                          icon: Icons.arrow_downward,
-                          iconSize: 18,
-                          onPressed: () => widget.moveDown!(widget.id),
-                        ),
+                        if (widget.delete != null)
+                          CustomIconButton(
+                            icon: Icons.delete,
+                            iconSize: 18,
+                            innerColor: color.onError,
+                            iconColor: color.error,
+                            onPressed: () => widget.delete?.call(widget.id),
+                          ),
+                        if (widget.moveUp != null)
+                          CustomIconButton(
+                            icon: Icons.arrow_upward,
+                            iconSize: 18,
+                            onPressed: () => widget.moveUp?.call(widget.id),
+                          ),
+                        if (widget.moveDown != null)
+                          CustomIconButton(
+                            icon: Icons.arrow_downward,
+                            iconSize: 18,
+                            onPressed: () => widget.moveDown?.call(widget.id),
+                          ),
                       ],
                     ),
                   ),

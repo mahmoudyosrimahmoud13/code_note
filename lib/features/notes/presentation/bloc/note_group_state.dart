@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+
 import '../../domain/entities/note_group.dart';
 
 abstract class NoteGroupState extends Equatable {

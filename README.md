@@ -1,132 +1,69 @@
 # CodeNote 🚀
 
-**CodeNote** is a powerful, cross-platform note-taking application inspired by the simplicity of **Google Keep** and the structural flexibility of **Jupyter Notebooks**. It is designed specifically for developers, students, and thinkers who need to capture code snippets, ideas, and visual data all in one place.
+**CodeNote** is a professional, developer-centric productivity suite that bridges the gap between note-taking and system-wide coding utilities. 
 
-## 🌟 The Vision
-
-The core objective of CodeNote is to provide a seamless experience for managing technical notes. Whether you're on Windows, Web, or Mobile, CodeNote ensures your code is formatted correctly, your images are accessible, and your thoughts are organized.
-
----
-
-## 📥 Download (Beta)
-
-Get the latest pre-built binaries for your platform:
-
-* **[🪟 Download for Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/beta/Release_windows_x86.zip)**
-* **[📱 Download for Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/beta/app-release.apk)**
-
-> [!NOTE]
-> Since this is a Beta release, you may need to "Allow from unknown sources" on Android or "Run anyway" on Windows (SmartScreen) as these binaries are not yet digitally signed.
+> [!IMPORTANT]
+> **Source Code Notice**: The code in this repository represents the **Community Edition (Local-Only)**. It is a strictly offline, privacy-first version designed for open-source contribution. For the complete experience with Cloud Sync and Messaging, please use the download links below.
 
 ---
 
-## ✨ New Features
+## 📥 Download (Full Version)
 
-### 🚀 Recent Enhancements
-*   **WhatsApp-Style Reactions**: Long-press any message to react with emojis (❤️, 👍, 😂, etc.) that sync in real-time.
-*   **Smart Chat Sorting**: Automatic reordering of private and group chats based on the latest activity.
-*   **Rich Group Previews**: Chat list now displays the sender's name and message snippet for groups.
-*   **Zero-Lag Loading**: Optimized data fetching with parallel user lookups for a smooth scrolling experience.
-*   **Auto-Save Inline Editing**: Code and note blocks now save automatically as you type with smart debouncing.
-*   **UI Polish**: Resolved context menu overflows and improved message status visibility (Blue/Green indicators).
+The **Full Version** includes all features listed below, including real-time messaging and cloud synchronization.
 
-### 💬 Real-time Messaging & Collaboration
-*   **Direct Chat**: Instant messaging with friends using Firebase real-time technology.
-*   **Group Chats**: Create collaborative groups, manage members, and assign admins.
-*   **Note Sharing**: Share any note directly into a chat with one tap.
-*   **Rich Media**: Support for image messages with full-screen previews and cached loading.
-
-### 🔄 Cloud Sync & Data Integrity
-*   **Automatic Sync**: Your notes, groups, and settings are automatically synced across all your devices via Firebase Firestore.
-*   **Offline First**: Comprehensive local caching using **Hive** ensure the app remains snappy and usable even without an internet connection.
-*   **Smart Conflict Resolution**: Efficiently merges changes and ensures your data is always safe.
-
-### 📝 Rich Block Editor
-*   **Markdown Blocks**: Full support for Markdown rendering within your notes.
-*   **Syntax Highlighting**: Optimized code blocks for various programming languages.
-*   **Dynamic Layout**: Drag, reorder, and move blocks to structure your thoughts exactly how you want.
-
-### 🔐 Secure Authentication
-*   **Google Sign-In**: Instant access with your Google account.
-*   **Email/Password**: Traditional secure registration and login.
-*   **Profile Management**: Update your name, handle, and profile picture seamlessly.
+*   **[📱 Download for Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/v1.1.0/app-release.apk)**
+*   **[🪟 Download for Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/v1.1.0/Release_windows_x86.zip)**
 
 ---
 
-## 📸 Screenshots
+## ✨ Full Feature Suite
 
-### 🏠 Home & Dashboard
+### 🛠️ Android OS Power User Features
+-   **"Open With" Support**: Open `.dart`, `.py`, `.js`, `.sql`, and 10+ other source file types directly from your file manager into CodeNote.
+-   **Automated Note Parsing**: The app automatically reads shared files, detects the programming language, and creates a formatted code note instantly.
+-   **System Share Target**: Share text, snippets, or URLs from any app (Chrome, WhatsApp, GitHub) directly to CodeNote to create a quick reference.
 
-The primary workspace featuring a masonry grid, **Pinned Notes**, and the new **Tag Cloud** for instant filtering.
+### 💬 Professional Messaging (Full Version Only)
+-   **Real-time Collaboration**: Powered by Firestore with sub-millisecond sync for messages and reactions.
+-   **Clickable Links**: All URLs in chat are automatically linkified and open in your external system browser.
+-   **Group Management**: Full control over group members, admin permissions, and rich media sharing.
 
-<p align="center">
-  <img src="screenshots/windows_home.png" width="450" alt="Windows Home"/>
-  <img src="screenshots/android_home.jpg" width="220" alt="Android Home"/>
-</p>
+### 📝 Developer-First Editor
+-   **Rich Block Architecture**: Mix Text, Markdown, and Code blocks in a single note.
+-   **Syntax Highlighting**: Industry-standard highlighting for all major programming languages.
+-   **OCR Integration**: Extract code or text from images using Google ML Kit.
 
----
-
-### 💬 Real-time Chat & Groups
-
-Experience seamless communication and collaboration.
-
-<p align="center">
-  <img src="screenshots/android_chat_list.jpg" width="220" alt="Chat List"/>
-  <img src="screenshots/android_chat_detail.jpg" width="220" alt="Chat Detail"/>
-  <img src="screenshots/android_group_info.jpg" width="220" alt="Group Info"/>
-</p>
-
----
-
-### 🔍 Search & Live Suggestions
-
-Advanced search logic with real-time suggestions matching titles and tags.
-
-<p align="center">
-  <img src="screenshots/windows_search.png" width="450" alt="Windows Search"/>
-  <img src="screenshots/android_search.jpg" width="220" alt="Android Search"/>
-</p>
+### 🔐 Security & Persistence
+-   **Offline-First Architecture**: Powered by **Hive**, ensuring your data is accessible even without an internet connection.
+-   **Cloud Sync (Full Version Only)**: Automatic reconciliation between local storage and Firebase Cloud for multi-device access.
+-   **QR Profile Sync**: Save and share high-resolution profile QR codes to connect with other developers instantly.
 
 ---
 
-### 📝 Note Details & Multi-Block Editing
+## 🏗️ Technical Architecture (Community Edition)
 
-A rich editor supporting **Text**, **Code**, **Image**, and **Markdown** blocks with syntax highlighting.
+The open-source codebase is built on **Clean Architecture** principles, optimized for a local-only environment.
 
-<p align="center">
-  <img src="screenshots/windows_note_details.png" width="450" alt="Windows Note"/>
-  <img src="screenshots/android_note_details.jpg" width="220" alt="Android Note"/>
-</p>
+-   **State Management**: BLoC (Business Logic Component).
+-   **Dependency Injection**: GetIt (Service Locator).
+-   **Local Database**: Hive (High-performance NoSQL).
+-   **UI UX**: Flutter Animate, Custom Block Factory.
 
----
-
-### ⚙️ User Settings & Personalization
-
-Customize your experience with **Theme Mode** (Dark/Light/System) and adjustable **Font Sizes**.
-
-<p align="center">
-  <img src="screenshots/windows_settings.png" width="450" alt="Windows Settings"/>
-  <img src="screenshots/android_settings.jpg" width="220" alt="Android Settings"/>
-</p>
+> [!TIP]
+> For a deep-dive into the local-only architecture and build infrastructure, check out our **[Technical Overview](PROJECT_OVERVIEW.md)**.
 
 ---
 
-## 🛠️ Built With
+## 🚀 Getting Started (Developers)
 
-*   **Flutter** - UI Framework
-*   **Firebase** - Cloud Firestore, Auth, Storage, and Real-time Messaging
-*   **Bloc** - State Management
-*   **Hive** - Fast, Lightweight Local Database
-*   **GetIt** - Dependency Injection
-
----
-
-## 🚀 Getting Started
-
-1.  Clone the repository: `git clone https://github.com/mahmoudyosrimahmoud13/code_note.git`
-2.  Install dependencies: `flutter pub get`
-3.  Configure Firebase (Download `google-services.json` and `GoogleService-Info.plist`).
-4.  Run the app: `flutter run`
+1.  **Clone**: `git clone https://github.com/mahmoudyosrimahmoud13/code_note.git`
+2.  **Environment**: Ensure you have **Flutter 3.22+** and **JDK 17** installed.
+3.  **Setup**: Run `flutter pub get` to install dependencies.
+4.  **Build**: 
+    ```powershell
+    # Generate the release APK (Community Edition)
+    flutter build apk --release
+    ```
 
 ---
 

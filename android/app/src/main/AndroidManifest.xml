@@ -1,11 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
     <uses-permission android:name="android.permission.VIBRATE"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
     <application
-        android:label="Code note"
+        android:label="CodeNote"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
@@ -28,6 +29,55 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+            <!-- PRO TIP: Professional Apps register as Share Targets -->
+            <!-- Intent filter for sharing text -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+
+            <!-- Intent filter for sharing files -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="*/*" />
+            </intent-filter>
+
+            <!-- FILE ASSOCIATION: "Open With" support for code files -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="file" />
+                <data android:scheme="content" />
+                <data android:host="*" />
+                <data android:mimeType="*/*" />
+                <!-- Registration for all supported extensions -->
+                <data android:pathPattern=".*\\.dart" />
+                <data android:pathPattern=".*\\.py" />
+                <data android:pathPattern=".*\\.js" />
+                <data android:pathPattern=".*\\.ts" />
+                <data android:pathPattern=".*\\.cpp" />
+                <data android:pathPattern=".*\\.cxx" />
+                <data android:pathPattern=".*\\.h" />
+                <data android:pathPattern=".*\\.hpp" />
+                <data android:pathPattern=".*\\.cs" />
+                <data android:pathPattern=".*\\.go" />
+                <data android:pathPattern=".*\\.java" />
+                <data android:pathPattern=".*\\.php" />
+                <data android:pathPattern=".*\\.ino" />
+                <data android:pathPattern=".*\\.sh" />
+                <data android:pathPattern=".*\\.kt" />
+                <data android:pathPattern=".*\\.sql" />
+                <data android:pathPattern=".*\\.json" />
+                <data android:pathPattern=".*\\.html" />
+                <data android:pathPattern=".*\\.css" />
+                <data android:pathPattern=".*\\.md" />
+                <data android:pathPattern=".*\\.txt" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

@@ -1,7 +1,8 @@
 import 'package:equatable/equatable.dart';
+
 import 'language.dart';
 
-enum BlockType { note, code, image }
+enum BlockType { note, code, image, markdown }
 
 abstract class BlockEntity extends Equatable {
   final String id;
@@ -39,6 +40,25 @@ class NoteBlockEntity extends BlockEntity {
     String? imagePath,
   }) {
     return NoteBlockEntity(
+      id: id ?? this.id,
+      text: text ?? this.text,
+    );
+  }
+}
+
+class MarkdownBlockEntity extends BlockEntity {
+  const MarkdownBlockEntity({
+    required super.id,
+    super.text,
+  }) : super(type: BlockType.markdown);
+
+  @override
+  MarkdownBlockEntity copyWith({
+    String? id,
+    String? text,
+    String? imagePath,
+  }) {
+    return MarkdownBlockEntity(
       id: id ?? this.id,
       text: text ?? this.text,
     );

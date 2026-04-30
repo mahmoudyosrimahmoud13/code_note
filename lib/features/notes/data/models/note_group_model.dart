@@ -1,4 +1,4 @@
-import 'package:code_note/features/notes/domain/entities/note_group.dart';
+import '../../domain/entities/note_group.dart';
 
 class NoteGroupModel extends NoteGroupEntity {
   const NoteGroupModel({

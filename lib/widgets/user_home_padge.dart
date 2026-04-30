@@ -1,10 +1,10 @@
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../features/settings/presentation/bloc/settings_bloc.dart';
 import '../features/settings/presentation/bloc/settings_state.dart';
 import '../features/settings/presentation/pages/settings_page.dart';
+import '../widgets/user_avatar.dart';
 
 class UserHomePadge extends StatelessWidget {
   const UserHomePadge({super.key});
@@ -45,14 +45,10 @@ class UserHomePadge extends StatelessWidget {
               children: [
                 Hero(
                   tag: 'user_profile_photo',
-                  child: CircleAvatar(
+                  child: UserAvatar(
+                    imageUrl: profilePath,
+                    seed: handle,
                     radius: size.height * 0.025,
-                    backgroundColor: color.primaryContainer,
-                    backgroundImage: profilePath != null
-                        ? (kIsWeb 
-                            ? NetworkImage(profilePath) 
-                            : FileImage(File(profilePath))) as ImageProvider
-                        : const AssetImage('assets/stocks/profile.jpg'),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -65,12 +61,14 @@ class UserHomePadge extends StatelessWidget {
                       Text(
                         name,
                         style: text.bodyLarge!.copyWith(
-                            color: color.onSurface, fontWeight: FontWeight.bold),
+                            color: color.onSurface,
+                            fontWeight: FontWeight.bold),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Text(
                         handle,
-                        style: text.bodySmall!.copyWith(color: color.onSurface.withAlpha(200)),
+                        style: text.bodySmall!
+                            .copyWith(color: color.onSurface.withAlpha(200)),
                         overflow: TextOverflow.ellipsis,
                       )
                     ],

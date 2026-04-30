@@ -10,6 +10,7 @@ class CustomIconButton extends StatefulWidget {
     this.innerColor,
     this.iconColor,
     this.iconSize,
+    this.showBadge = false,
     this.onPressed,
   });
 
@@ -20,6 +21,7 @@ class CustomIconButton extends StatefulWidget {
   final Color? innerColor;
   final Color? iconColor;
   final double? iconSize;
+  final bool showBadge;
 
   @override
   State<CustomIconButton> createState() => _CustomIconButtonState();
@@ -84,32 +86,55 @@ class _CustomIconButtonState extends State<CustomIconButton>
         },
         child: SizedBox(
           height: effectiveIconSize + 25,
-          child: ElevatedButton(
-            onPressed: null, // Handled by GestureDetector
-            style: ElevatedButton.styleFrom(
-              backgroundColor: widget.innerColor ?? color.surface,
-              disabledBackgroundColor: widget.innerColor ?? color.surface,
-              shape: CircleBorder(
-                side: BorderSide(
-                  width: 1,
-                  color: widget.borderColor ?? color.onSurface.withAlpha(80),
-                ),
-              ),
-              elevation: 0,
-            ),
-            child: widget.icon == null
-                ? Text(
-                    widget.text!,
-                    style: textTheme.bodyLarge!.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: widget.iconColor ?? color.primary,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              ElevatedButton(
+                onPressed: null, // Handled by GestureDetector
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.innerColor ?? color.surface,
+                  disabledBackgroundColor: widget.innerColor ?? color.surface,
+                  padding: EdgeInsets.zero,
+                  minimumSize: Size(effectiveIconSize + 25, effectiveIconSize + 25),
+                  shape: CircleBorder(
+                    side: BorderSide(
+                      width: 1,
+                      color: widget.borderColor ?? color.onSurface.withAlpha(80),
                     ),
-                  )
-                : Icon(
-                    widget.icon,
-                    color: widget.iconColor ?? color.primary,
-                    size: effectiveIconSize,
                   ),
+                  elevation: 0,
+                ),
+                child: widget.icon == null
+                    ? Text(
+                        widget.text!,
+                        style: textTheme.bodyLarge!.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: widget.iconColor ?? color.primary,
+                        ),
+                      )
+                    : Icon(
+                        widget.icon,
+                        color: widget.iconColor ?? color.primary,
+                        size: effectiveIconSize,
+                      ),
+              ),
+              if (widget.showBadge)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 10,
+                      minHeight: 10,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

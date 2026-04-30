@@ -1,14 +1,14 @@
 import 'dart:io';
 
-import 'package:code_note/helpers/helper_methods.dart';
-import 'package:code_note/features/notes/domain/entities/note.dart';
-import 'package:code_note/features/notes/domain/entities/block.dart';
-import 'package:code_note/features/notes/presentation/pages/note_page.dart';
-import 'package:code_note/features/notes/presentation/bloc/note_bloc.dart';
-import 'package:code_note/features/notes/presentation/bloc/note_event.dart';
-import 'package:code_note/features/notes/presentation/bloc/note_group_bloc.dart';
-import 'package:code_note/features/notes/presentation/bloc/note_group_event.dart';
-import 'package:code_note/widgets/animated_icons.dart';
+import '../helpers/helper_methods.dart';
+import '../features/notes/domain/entities/note.dart';
+import '../features/notes/domain/entities/block.dart';
+import '../features/notes/presentation/pages/note_page.dart';
+import '../features/notes/presentation/bloc/note_bloc.dart';
+import '../features/notes/presentation/bloc/note_event.dart';
+import '../features/notes/presentation/bloc/note_group_bloc.dart';
+import '../features/notes/presentation/bloc/note_group_event.dart';
+import 'animated_icons.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -34,7 +34,8 @@ class NoteCard extends StatefulWidget {
   State<NoteCard> createState() => _NoteCardState();
 }
 
-class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin {
+class _NoteCardState extends State<NoteCard>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _scaleAnimation;
 
@@ -60,11 +61,13 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
   String? get title => widget.note.title;
 
   String get body {
-    final noteBlock = widget.note.blocks.whereType<NoteBlockEntity>().firstOrNull;
+    final noteBlock =
+        widget.note.blocks.whereType<NoteBlockEntity>().firstOrNull;
     if (noteBlock?.text != null && noteBlock!.text!.isNotEmpty) {
       return noteBlock.text!;
     }
-    final codeBlock = widget.note.blocks.whereType<CodeBlockEntity>().firstOrNull;
+    final codeBlock =
+        widget.note.blocks.whereType<CodeBlockEntity>().firstOrNull;
     if (codeBlock?.text != null && codeBlock!.text!.isNotEmpty) {
       return codeBlock.text!;
     }
@@ -72,7 +75,8 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
   }
 
   ImageProvider? get imageProvider {
-    final imageBlock = widget.note.blocks.whereType<ImageBlockEntity>().firstOrNull;
+    final imageBlock =
+        widget.note.blocks.whereType<ImageBlockEntity>().firstOrNull;
     if (imageBlock?.imagePath != null) {
       if (kIsWeb) {
         return NetworkImage(imageBlock!.imagePath!);
@@ -119,7 +123,8 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
                       width: double.infinity,
                       height: size.height * 0.15,
                       decoration: BoxDecoration(
-                        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                        borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(24)),
                         image: DecorationImage(
                           image: imageProvider!,
                           fit: BoxFit.cover,
@@ -153,26 +158,32 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
                           Wrap(
                             spacing: 6,
                             runSpacing: 4,
-                            children: widget.note.tags.take(3).map((tag) => Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    color.secondaryContainer.withAlpha(150),
-                                    color.secondaryContainer.withAlpha(100),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                '#$tag',
-                                style: textTheme.labelSmall!.copyWith(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w600,
-                                  color: color.onSecondaryContainer,
-                                ),
-                              ),
-                            )).toList(),
+                            children: widget.note.tags
+                                .take(3)
+                                .map((tag) => Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            color.secondaryContainer
+                                                .withAlpha(150),
+                                            color.secondaryContainer
+                                                .withAlpha(100),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Text(
+                                        '#$tag',
+                                        style: textTheme.labelSmall!.copyWith(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: color.onSecondaryContainer,
+                                        ),
+                                      ),
+                                    ))
+                                .toList(),
                           ),
                         ],
                         const SizedBox(height: 12),
@@ -193,7 +204,9 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(Icons.access_time_rounded, size: 12, color: color.outline.withAlpha(150)),
+                                  Icon(Icons.access_time_rounded,
+                                      size: 12,
+                                      color: color.outline.withAlpha(150)),
                                   const SizedBox(width: 4),
                                   Flexible(
                                     child: Text(
@@ -211,15 +224,21 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
                             if (widget.note.reminder != null)
                               Flexible(
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      PulsingIcon(icon: Icons.notifications_active_rounded, size: 12, color: color.primary),
+                                      PulsingIcon(
+                                          icon: Icons
+                                              .notifications_active_rounded,
+                                          size: 12,
+                                          color: color.primary),
                                       const SizedBox(width: 2),
                                       Flexible(
                                         child: Text(
-                                          DateFormat.jm().format(widget.note.reminder!.dateTime),
+                                          DateFormat.jm().format(
+                                              widget.note.reminder!.dateTime),
                                           style: textTheme.labelSmall!.copyWith(
                                             color: color.primary,
                                             fontSize: 10,
@@ -232,8 +251,12 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
                                   ),
                                 ),
                               ),
-                            if (widget.note.blocks.any((b) => b is CodeBlockEntity))
-                              GlowingIcon(icon: Icons.code_rounded, size: 14, color: color.primary),
+                            if (widget.note.blocks
+                                .any((b) => b is CodeBlockEntity))
+                              GlowingIcon(
+                                  icon: Icons.code_rounded,
+                                  size: 14,
+                                  color: color.primary),
                           ],
                         ),
                       ],
@@ -252,7 +275,8 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
                         color: color.errorContainer.withAlpha(200),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(Icons.close_rounded, size: 12, color: color.onErrorContainer),
+                      child: Icon(Icons.close_rounded,
+                          size: 12, color: color.onErrorContainer),
                     ),
                     onPressed: widget.onRemoveFromGroup,
                     tooltip: 'Remove from Group',
@@ -268,20 +292,27 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
                       transitionBuilder: (child, animation) {
                         return RotationTransition(
                           turns: Tween(begin: 0.75, end: 1.0).animate(
-                            CurvedAnimation(parent: animation, curve: Curves.easeOutBack),
+                            CurvedAnimation(
+                                parent: animation, curve: Curves.easeOutBack),
                           ),
-                          child: ScaleTransition(scale: animation, child: child),
+                          child:
+                              ScaleTransition(scale: animation, child: child),
                         );
                       },
                       child: Icon(
-                        widget.note.isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                        widget.note.isPinned
+                            ? Icons.push_pin_rounded
+                            : Icons.push_pin_outlined,
                         key: ValueKey(widget.note.isPinned),
                         size: 18,
-                        color: widget.note.isPinned ? Colors.amber.shade600 : color.outline.withAlpha(150),
+                        color: widget.note.isPinned
+                            ? Colors.amber.shade600
+                            : color.outline.withAlpha(150),
                       ),
                     ),
                     onPressed: () {
-                      context.read<NoteBloc>().add(UpdateNoteEvent(widget.note.copyWith(isPinned: !widget.note.isPinned)));
+                      context.read<NoteBloc>().add(UpdateNoteEvent(widget.note
+                          .copyWith(isPinned: !widget.note.isPinned)));
                     },
                     tooltip: widget.note.isPinned ? 'Unpin Note' : 'Pin Note',
                   ),
@@ -313,20 +344,26 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
         child: Dismissible(
           key: ValueKey('dismiss_${widget.note.id}'),
           background: _buildDismissBackground(
-            color: widget.isTrashView 
-                ? color.primary 
+            color: widget.isTrashView
+                ? color.primary
                 : (widget.note.isArchived ? color.primary : color.secondary),
-            icon: widget.isTrashView 
-                ? Icons.restore_rounded 
-                : (widget.note.isArchived ? Icons.unarchive_rounded : Icons.archive_rounded),
+            icon: widget.isTrashView
+                ? Icons.restore_rounded
+                : (widget.note.isArchived
+                    ? Icons.unarchive_rounded
+                    : Icons.archive_rounded),
             alignment: Alignment.centerLeft,
-            onColor: widget.isTrashView 
-                ? color.onPrimary 
-                : (widget.note.isArchived ? color.onPrimary : color.onSecondary),
+            onColor: widget.isTrashView
+                ? color.onPrimary
+                : (widget.note.isArchived
+                    ? color.onPrimary
+                    : color.onSecondary),
           ),
           secondaryBackground: _buildDismissBackground(
             color: color.error,
-            icon: widget.isTrashView ? Icons.delete_forever_rounded : Icons.delete_rounded,
+            icon: widget.isTrashView
+                ? Icons.delete_forever_rounded
+                : Icons.delete_rounded,
             alignment: Alignment.centerRight,
             onColor: color.onError,
           ),
@@ -335,21 +372,28 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
               // Swipe Right: Positive Actions (Restore / Archive / Dearchive)
               if (widget.isTrashView) {
                 // Restore from Trash
-                context.read<NoteBloc>().add(UpdateNoteEvent(widget.note.copyWith(
-                  isDeleted: false,
-                )));
+                context
+                    .read<NoteBloc>()
+                    .add(UpdateNoteEvent(widget.note.copyWith(
+                      isTrashed: false,
+                      clearTrashTimestamp: true,
+                    )));
               } else {
                 if (widget.note.isArchived) {
                   // Dearchive: Back to Home
-                  context.read<NoteBloc>().add(UpdateNoteEvent(widget.note.copyWith(
-                    isArchived: false,
-                  )));
+                  context
+                      .read<NoteBloc>()
+                      .add(UpdateNoteEvent(widget.note.copyWith(
+                        isArchived: false,
+                      )));
                 } else {
                   // Archive from Home
-                  context.read<NoteBloc>().add(UpdateNoteEvent(widget.note.copyWith(
-                    isArchived: true,
-                    isPinned: false, // Usually archived notes are unpinned
-                  )));
+                  context
+                      .read<NoteBloc>()
+                      .add(UpdateNoteEvent(widget.note.copyWith(
+                        isArchived: true,
+                        isPinned: false, // Usually archived notes are unpinned
+                      )));
                 }
               }
             } else {
@@ -357,20 +401,26 @@ class _NoteCardState extends State<NoteCard> with SingleTickerProviderStateMixin
               if (widget.isTrashView) {
                 // Permanent Delete
                 context.read<NoteBloc>().add(DeleteNoteEvent(widget.note.id));
-                context.read<NoteGroupBloc>().add(RemoveNoteFromAllGroupsEvent(widget.note.id));
+                context
+                    .read<NoteGroupBloc>()
+                    .add(RemoveNoteFromAllGroupsEvent(widget.note.id));
               } else {
                 // Move to Trash
-                context.read<NoteBloc>().add(UpdateNoteEvent(widget.note.copyWith(
-                  isDeleted: true,
-                  isPinned: false,
-                )));
+                context
+                    .read<NoteBloc>()
+                    .add(UpdateNoteEvent(widget.note.copyWith(
+                      isTrashed: true,
+                      isPinned: false,
+                      trashTimestamp: DateTime.now(),
+                    )));
               }
             }
             if (widget.onDismissed != null) widget.onDismissed!();
           },
           child: InkWell(
             borderRadius: BorderRadius.circular(24),
-            onTap: widget.onTapOverride ?? () => navigateTo(toPage: NotePage(note: widget.note)),
+            onTap: widget.onTapOverride ??
+                () => navigateTo(toPage: NotePage(note: widget.note)),
             child: cardContent,
           ),
         ),
