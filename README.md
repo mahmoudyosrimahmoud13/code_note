@@ -7,12 +7,21 @@
 
 ---
 
-## 📥 Download (Full Version)
+## 📥 Download (Full Version) 🛜
 
 The **Full Version** includes all features listed below, including real-time messaging and cloud synchronization.
 
-*   **[📱 Download for Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/v1.1.0/app-release.apk)**
-*   **[🪟 Download for Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/v1.1.0/Release_windows_x86.zip)**
+*   **[📱 Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/app-release.apk)**
+*   **[🪟 Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/Release.zip)**
+
+---
+
+## 📥 Download (Community Version) Local only 🔒
+
+The **Full Version** includes all features listed below, including real-time messaging and cloud synchronization.
+
+*   **[📱 Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/community/CodeNote-community.apk)**
+*   **[🪟 Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/community/CodeNote_Windows_community.zip)**
 
 ---
 
