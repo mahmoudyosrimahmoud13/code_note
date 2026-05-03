@@ -19,9 +19,10 @@ The **Full Version** includes all features listed below, including real-time mes
 ## ✨ Full Feature Suite
 
 ### 🛠️ Android OS Power User Features
--   **"Open With" Support**: Open `.dart`, `.py`, `.js`, `.sql`, and 10+ other source file types directly from your file manager into CodeNote.
+-   **"Open With" Support**: Open source files directly from your file manager into CodeNote.
+    -   **Supported Extensions**: `.dart`, `.py`, `.js`, `.ts`, `.cpp`, `.cxx`, `.h`, `.hpp`, `.cs`, `.go`, `.java`, `.php`, `.ino`, `.sh`, `.kt`, `.sql`, `.json`, `.html`, `.css`, `.md`, `.txt`.
 -   **Automated Note Parsing**: The app automatically reads shared files, detects the programming language, and creates a formatted code note instantly.
--   **System Share Target**: Share text, snippets, or URLs from any app (Chrome, WhatsApp, GitHub) directly to CodeNote to create a quick reference.
+-   **System Share Target**: Share text, snippets, or files from any app (Chrome, WhatsApp, GitHub, File Manager) directly to CodeNote.
 
 ### 💬 Professional Messaging (Full Version Only)
 -   **Real-time Collaboration**: Powered by Firestore with sub-millisecond sync for messages and reactions.
@@ -30,13 +31,15 @@ The **Full Version** includes all features listed below, including real-time mes
 
 ### 📝 Developer-First Editor
 -   **Rich Block Architecture**: Mix Text, Markdown, and Code blocks in a single note.
--   **Syntax Highlighting**: Industry-standard highlighting for all major programming languages.
+-   **Syntax Highlighting**: Industry-standard highlighting for **20+ languages**:
+    -   *Python, C#, Dart, Go, Java, JavaScript, TypeScript, C++, PHP, Arduino, ARM/x86 Assembly, Bash, Django, HTML, CSS, Docker, Kotlin, SQL, PostgreSQL, JSON.*
 -   **OCR Integration**: Extract code or text from images using Google ML Kit.
 
 ### 🔐 Security & Persistence
 -   **Offline-First Architecture**: Powered by **Hive**, ensuring your data is accessible even without an internet connection.
--   **Cloud Sync (Full Version Only)**: Automatic reconciliation between local storage and Firebase Cloud for multi-device access.
+-   **Cloud Sync (Full Version Only)**: Automatic reconciliation between local storage and Firebase Cloud for multi-device access (Android, Windows, Web).
 -   **QR Profile Sync**: Save and share high-resolution profile QR codes to connect with other developers instantly.
+-   **Privacy Focused**: Disable Android Auto-Backup and manually clear all local/cloud data at any time.
 
 ---
 
