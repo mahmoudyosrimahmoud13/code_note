@@ -81,6 +81,26 @@ The open-source codebase is built on **Clean Architecture** principles, optimize
 
 ---
 
+## 🎨 App Posters
+
+<details>
+  <summary>Click to view screenshots & posters</summary>
+  <p align="center">
+    <img src="poster/1.jpg" width="24%" />
+    <img src="poster/2.jpg" width="24%" />
+    <img src="poster/3.jpg" width="24%" />
+    <img src="poster/4.jpg" width="24%" />
+  </p>
+  <p align="center">
+    <img src="poster/5.jpg" width="24%" />
+    <img src="poster/6.jpg" width="24%" />
+    <img src="poster/7.jpg" width="24%" />
+    <img src="poster/8.jpg" width="24%" />
+  </p>
+</details>
+
+---
+
 ## 📜 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
