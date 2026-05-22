@@ -1,6 +1,5 @@
 # CodeNote 🚀
 
-![CodeNote Mainboard](screenshots/mainboard.png)
 
 **CodeNote** is a professional, developer-centric productivity suite that bridges the gap between note-taking and system-wide coding utilities. 
 
