@@ -4,6 +4,10 @@
 
 **CodeNote** is a professional, developer-centric productivity suite that bridges the gap between note-taking and system-wide coding utilities. 
 
+<p align="center">
+  <img src="poster/1.jpg" width="100%" alt="CodeNote - The Ultimate Productivity Note app for Developers" />
+</p>
+
 > [!IMPORTANT]
 > **Source Code Notice**: The code in this repository represents the **Community Edition (Local-Only)**. It is a strictly offline, privacy-first version designed for open-source contribution. For the complete experience with Cloud Sync and Messaging, please use the download links below.
 
@@ -35,16 +39,40 @@ The **Full Version** includes all features listed below, including real-time mes
 -   **Automated Note Parsing**: The app automatically reads shared files, detects the programming language, and creates a formatted code note instantly.
 -   **System Share Target**: Share text, snippets, or files from any app (Chrome, WhatsApp, GitHub, File Manager) directly to CodeNote.
 
+<p align="center">
+  <img src="poster/6.jpg" width="80%" alt="Seamless Sharing Workflow" />
+</p>
+
 ### 💬 Professional Messaging (Full Version Only)
 -   **Real-time Collaboration**: Powered by Firestore with sub-millisecond sync for messages and reactions.
 -   **Clickable Links**: All URLs in chat are automatically linkified and open in your external system browser.
 -   **Group Management**: Full control over group members, admin permissions, and rich media sharing.
+
+<p align="center">
+  <img src="poster/5.jpg" width="80%" alt="Professional Messaging & Collaboration" />
+</p>
 
 ### 📝 Developer-First Editor
 -   **Rich Block Architecture**: Mix Text, Markdown, and Code blocks in a single note.
 -   **Syntax Highlighting**: Industry-standard highlighting for **20+ languages**:
     -   *Python, C#, Dart, Go, Java, JavaScript, TypeScript, C++, PHP, Arduino, ARM/x86 Assembly, Bash, Django, HTML, CSS, Docker, Kotlin, SQL, PostgreSQL, JSON.*
 -   **OCR Integration**: Extract code or text from images using Google ML Kit.
+
+<p align="center">
+  <img src="poster/8.jpg" width="32%" alt="Jupyter-Inspired Blocks" />
+  <img src="poster/3.jpg" width="32%" alt="Syntax Highlighting" />
+  <img src="poster/7.jpg" width="32%" alt="OCR Scan & Extract" />
+</p>
+
+### 🗂️ Note Organization & Tagging
+-   **Unified Workspace**: Seamlessly mix text, Markdown, and code blocks.
+-   **Smart Tagging**: Organize your knowledge with a powerful, custom tag system.
+-   **Instant Access**: Find any project, snippet, or idea in milliseconds.
+
+<p align="center">
+  <img src="poster/2.jpg" width="48%" alt="Organization Workspace" />
+  <img src="poster/4.jpg" width="48%" alt="Tagging and Grouping" />
+</p>
 
 ### 🔐 Security & Persistence
 -   **Offline-First Architecture**: Powered by **Hive**, ensuring your data is accessible even without an internet connection.
@@ -78,26 +106,6 @@ The open-source codebase is built on **Clean Architecture** principles, optimize
     # Generate the release APK (Community Edition)
     flutter build apk --release
     ```
-
----
-
-## 🎨 App Posters
-
-<details>
-  <summary>Click to view screenshots & posters</summary>
-  <p align="center">
-    <img src="poster/1.jpg" width="24%" />
-    <img src="poster/2.jpg" width="24%" />
-    <img src="poster/3.jpg" width="24%" />
-    <img src="poster/4.jpg" width="24%" />
-  </p>
-  <p align="center">
-    <img src="poster/5.jpg" width="24%" />
-    <img src="poster/6.jpg" width="24%" />
-    <img src="poster/7.jpg" width="24%" />
-    <img src="poster/8.jpg" width="24%" />
-  </p>
-</details>
 
 ---
 
