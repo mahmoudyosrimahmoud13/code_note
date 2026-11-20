@@ -201,7 +201,7 @@ class MiniAppServer {
     String? proxyUrl,
   }) {
     // Safe inside a <script> tag: no "</script>" can sneak through.
-    String js(Object? v) => json.encode(v).replaceAll('<', r'<');
+    String js(Object? v) => json.encode(v).replaceAll('<', r'\u003c');
     return '''<script>
 (function () {
   var data = ${js(data)};
