@@ -3,6 +3,18 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.5.1] - 2026-11-20
+
+### Fixed
+- **CodeNote now starts on every Linux setup.** On systems without a Documents folder helper (some minimal or non-GNOME desktops) it stopped at the startup screen. Your notes stay in the same place.
+- **Markdown blocks use the full width** of the note again, instead of being squeezed into the middle.
+- **Dark logos are visible in dark mode:** Bash, ARM, Lua, Gradle and Erlang now sit on a small light tile.
+- **Ask your notes lists only relevant sources** and leaves out notes that barely match.
+- The startup error message now explains the real cause instead of always blaming a second window.
+
+### Docs
+- New README posters and screenshots, taken from the real 1.5.0 app.
+
 ## [1.5.0] - 2026-11-20
 
 ### New

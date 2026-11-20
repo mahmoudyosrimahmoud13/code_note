@@ -4,10 +4,10 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 
 import '../../constants/app_info.dart';
 import '../../core/services/log_service.dart';
+import '../../core/util/image_helper.dart';
 import '../notes/data/models/note_group_model.dart';
 import '../notes/data/models/note_model.dart';
 import '../notes/domain/entities/block.dart';
@@ -131,7 +131,7 @@ class BackupService {
     final images = (data['images'] as Map?)?.cast<String, dynamic>() ?? const {};
     if (images.isNotEmpty && !kIsWeb) {
       final dir = Directory(p.join(
-          (await getApplicationDocumentsDirectory()).path, 'persistent_images'));
+          (await imagesBaseDir()).path, 'persistent_images'));
       await dir.create(recursive: true);
       for (final entry in images.entries) {
         final target = File(p.join(dir.path, p.basename(entry.key)));

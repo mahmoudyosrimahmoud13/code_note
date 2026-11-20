@@ -25,7 +25,9 @@ void main() async {
   try {
     LogService().log("App: [STEP] Initializing Hive and Dependencies...");
     final appDocumentDir = await getApplicationSupportDirectory();
-    await Hive.initFlutter(appDocumentDir.path);
+    // Same folder as before; Hive.init avoids asking for a Documents folder,
+    // which some Linux setups don't have.
+    Hive.init(appDocumentDir.path);
     await di.init();
     LogService().log("App: [SUCCESS] Dependencies initialized.");
   } catch (e) {
@@ -68,9 +70,12 @@ class StartupErrorApp extends StatelessWidget {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
-                  const Text(
-                    'This usually means CodeNote is already open in another window. '
-                    'Close this one and use that window. Your notes are safe.',
+                  Text(
+                    error.toLowerCase().contains('lock')
+                        ? 'CodeNote seems to be open in another window. '
+                            'Close this one and use that window. Your notes are safe.'
+                        : 'Something on this computer stopped CodeNote from opening its data folder. '
+                            'Your notes have not been changed. Please report the message below on GitHub.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 20),

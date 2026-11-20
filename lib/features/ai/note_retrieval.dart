@@ -50,6 +50,10 @@ class NoteRetrieval {
       for (final n in notes)
         if (!n.isTrashed) (note: n, score: score(n, q)),
     ]..removeWhere((e) => e.score == 0);
+    if (scored.isEmpty) return const [];
+    // Keep only notes that match reasonably well compared with the best one.
+    final best = scored.map((e) => e.score).reduce((a, b) => a > b ? a : b);
+    scored.removeWhere((e) => e.score * 3 < best);
     scored.sort((a, b) {
       final c = b.score.compareTo(a.score);
       return c != 0 ? c : b.note.lastModified.compareTo(a.note.lastModified);

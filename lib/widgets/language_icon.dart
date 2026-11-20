@@ -77,6 +77,16 @@ class LanguageIcon extends StatelessWidget {
     Language.django,
   };
 
+  /// Dark logos with their own details (Bash's prompt, Lua's moon): shown
+  /// on a small light tile in dark mode instead of being recolored.
+  static const _lightTile = <Language>{
+    Language.bash,
+    Language.armAssembly,
+    Language.lua,
+    Language.gradle,
+    Language.erlang,
+  };
+
   static bool hasLogo(Language language) => _withLogo.contains(language);
 
   @override
@@ -85,7 +95,7 @@ class LanguageIcon extends StatelessWidget {
         color: Theme.of(context).colorScheme.onSurfaceVariant);
     if (!_withLogo.contains(language)) return fallback;
     final dark = Theme.of(context).brightness == Brightness.dark;
-    return Image.asset(
+    final image = Image.asset(
       'assets/languages/${language.name}.png',
       width: size,
       height: size,
@@ -95,6 +105,22 @@ class LanguageIcon extends StatelessWidget {
           : null,
       colorBlendMode: BlendMode.srcIn,
       errorBuilder: (_, __, ___) => fallback,
+    );
+    if (!dark || !_lightTile.contains(language)) return image;
+    final pad = size * 0.1;
+    return Container(
+      width: size,
+      height: size,
+      padding: EdgeInsets.all(pad),
+      decoration: BoxDecoration(
+        color: const Color(0xFFECEAF6),
+        borderRadius: BorderRadius.circular(size * 0.22),
+      ),
+      child: Image.asset(
+        'assets/languages/${language.name}.png',
+        filterQuality: FilterQuality.medium,
+        errorBuilder: (_, __, ___) => fallback,
+      ),
     );
   }
 }

@@ -83,6 +83,11 @@ class _MarkdownBlockState extends State<MarkdownBlock> {
           ),
           AnimatedSwitcher(
             duration: const Duration(milliseconds: 200),
+            // Default layout centers and shrinks the child; keep it full width.
+            layoutBuilder: (current, previous) => Stack(
+              alignment: Alignment.topLeft,
+              children: [...previous, if (current != null) current],
+            ),
             child: _isEditing
                 ? TextField(
                     key: const ValueKey('editing'),
@@ -98,8 +103,10 @@ class _MarkdownBlockState extends State<MarkdownBlock> {
                     style: monoStyle(context, size: 13.5),
                     keyboardType: TextInputType.multiline,
                   )
-                : Material(
+                : SizedBox(
                     key: const ValueKey('preview'),
+                    width: double.infinity,
+                    child: Material(
                     color: color.surfaceContainerLow,
                     borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
                     child: InkWell(
@@ -131,6 +138,7 @@ class _MarkdownBlockState extends State<MarkdownBlock> {
                         ),
                       ),
                     ),
+                  ),
                   ),
           ),
         ],

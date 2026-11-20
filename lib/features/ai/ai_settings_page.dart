@@ -147,8 +147,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                           const SizedBox(width: 10),
                           Expanded(
                             child: Text(
-                              'CodeNote stays local-only. Only the code block you ask about is sent, '
-                              'only when you tap an AI button, and only to the service you pick here. '
+                              'CodeNote stays local-only. Only the code block you ask about (or, for Ask your notes, '
+                              'the few notes that match your question) is sent, only when you ask, '
+                              'and only to the service you pick here. '
                               'With Ollama, nothing leaves your computer. Your key is stored on this device only.',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),

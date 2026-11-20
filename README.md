@@ -44,46 +44,80 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 ## Features
 
 ### Notes made of blocks
-- **Text, code, markdown and image blocks** in any order, in one note.
-- **Code blocks** with highlighting for 58 languages, each with its logo, plus line numbers and the JetBrains Mono font.
+
+<p align="center"><img src="poster/4.jpg" width="100%" alt="58 languages with their logos" /></p>
+
+- **Text, code, markdown and image blocks** in any order, in one note. Drag the handle to reorder them.
+- **Code blocks** with highlighting for **58 languages**, each with its logo, plus line numbers and the JetBrains Mono font. Search the language list by name or by file extension.
 - **Run HTML, CSS and JS** right from a note with the ▶ button.
-- **Templates** for bug reports, dev logs, LeetCode, meetings, API endpoints and snippets, or save your own.
 - **A symbol bar** while you type code: `{}` `()` `[]` `""` `;` `=>` and an indent key, inserted where your cursor is.
 - **Markdown** with a live preview. Tap to edit, tap away to see it rendered.
 - **Scan text from a photo** (Android and iOS) and drop it in as a text or code block.
 
-### Organized your way
-- **Groups** (folders). Drag a note onto a group to move it there.
-- **Tags**, with one-tap tag filters on the home screen.
-- **Pin** important notes to the top. **Archive** what you don't need every day.
-- **Search** across titles, tags, text and code.
-- **Trash** keeps deleted notes for 30 days, then removes them and their images for good. Every swipe has **Undo**.
-- **Reminders** that pop up as real notifications.
+### Start from a template
+
+<p align="center"><img src="poster/5.jpg" width="100%" alt="Templates" /></p>
+
+- **Bug report, daily dev log, LeetCode problem, meeting notes, API endpoint, snippet with notes.**
+- Today's date is filled in for you.
+- **Save any note as a template** from its ⋯ menu.
 
 ### AI that respects your privacy
+
+<p align="center"><img src="poster/3.jpg" width="100%" alt="AI that explains your code" /></p>
+
 - **✨ Explain code, find bugs, suggest improvements** on any code block, and **save the answer into the note**.
-- **Ask your notes:** ask a question and get an answer from your own notes, with the notes it used.
-- Use **Claude**, any **OpenAI-compatible** API, or run fully offline with **Ollama** or **LM Studio**. CodeNote finds your local models automatically.
-- Off until you set it up. Only the block you ask about is sent, and your key never leaves the device.
+
+<p align="center"><img src="poster/2.jpg" width="100%" alt="Ask your notes" /></p>
+
+- **Ask your notes:** ask a question in plain words and get an answer from your own notes, with links to the notes it used. Save the answer as a note.
+
+<p align="center"><img src="poster/8.jpg" width="100%" alt="Local AI models found automatically" /></p>
+
+- Use **Claude**, any **OpenAI-compatible** API, or run fully offline with **Ollama** or **LM Studio**. CodeNote **finds your local models automatically**.
+- Off until you set it up. Only what you ask about is sent, and your key never leaves the device.
+
+### Built for developers
+
+<p align="center"><img src="poster/6.jpg" width="100%" alt="Command palette" /></p>
+
+- **Command palette (Ctrl+K):** every action, note and folder from the keyboard. Plus **Ctrl+N** new note and **Ctrl+F** search.
+- **GitHub Gist:** import any gist as a note, or upload a note as a gist and get the link.
+- **Share code as an image** with nice backgrounds, ready for X, LinkedIn or Discord.
+- **Share into CodeNote** on Android: share text, a link, a photo or a code file from any app. Files like `.py`, `.dart`, `.js`, `.sql` become code blocks with the right language. `.md` becomes markdown.
+- **Open with CodeNote** for source files from your file manager.
+- **Share out** a note as text, as a `.txt`, or as a source file (`.py`, `.dart`, ...).
+
+### Organized your way
+
+<p align="center"><img src="poster/7.jpg" width="100%" alt="Light and dark, desktop and phone" /></p>
+
+- **Folders that show what's inside:** each folder card previews its notes, code and images.
+- **Tags**, with one-tap tag filters. On wide screens, a **sidebar** with your folders and tags.
+- **Pin** important notes to the top. **Archive** what you don't need every day.
+- **Search** across titles, tags, text and code.
+- **Reminders** that pop up as real notifications.
+- **Trash** keeps deleted notes for 30 days, then removes them and their images for good. Every swipe has **Undo**.
+- **Light, dark or system theme**, and adjustable text size.
 
 ### Your notes are safe
 - **Backup and restore:** every note, folder and image in one `.codenote` file. Restoring merges and never deletes.
 - **Daily backup to a folder** (Windows, Linux): point it at Dropbox, Google Drive, Syncthing or a Git repo to sync between computers.
 - **Update check:** you hear about new versions, and can turn it off.
 
-### Built for developers
-- **Command palette (Ctrl+K):** every action, note and folder from the keyboard. Plus **Ctrl+N** new note and **Ctrl+F** search.
-- **Share code as an image** with nice backgrounds, ready for X, LinkedIn or Discord.
-- **GitHub Gist:** import any gist as a note, or upload a note as a gist.
-- **Share into CodeNote** on Android: share text, a link, a photo or a code file from any app. Files like `.py`, `.dart`, `.js`, `.sql` become code blocks with the right language. `.md` becomes markdown.
-- **Open with CodeNote** for source files from your file manager.
-- **Share out** a note as text, as a `.txt`, or as a source file (`.py`, `.dart`, ...).
-- **Light, dark or system theme**, and adjustable text size.
+### Screenshots
 
 <p align="center">
-  <img src="poster/8.jpg" width="32%" alt="Blocks" />
-  <img src="poster/3.jpg" width="32%" alt="Syntax highlighting" />
-  <img src="poster/7.jpg" width="32%" alt="Scan text" />
+  <img src="docs/screenshots/home-dark.png" width="49%" alt="Home, dark" />
+  <img src="docs/screenshots/home-light.png" width="49%" alt="Home, light" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/ask-dark.png" width="49%" alt="Ask your notes" />
+  <img src="docs/screenshots/note-light.png" width="49%" alt="A note with code" />
+</p>
+<p align="center">
+  <img src="docs/screenshots/phone-home-dark.png" width="24%" alt="Phone, dark" />
+  <img src="docs/screenshots/phone-home-light.png" width="24%" alt="Phone, light" />
 </p>
 
 ---
