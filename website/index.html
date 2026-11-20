@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>CodeNote: the notebook for developers</title>
-<meta name="description" content="Text, code, markdown and images in one note. 58 languages, AI that explains your code, and everything stays on your device. Free and open source for Android, Windows, Linux and macOS.">
+<meta name="description" content="Text, code, markdown and images in one note. 58 languages, Python that works like Jupyter, sandboxed code runs, AI that explains your code, and everything stays on your device. Free and open source for Android, Windows, Linux and macOS.">
 <meta property="og:title" content="CodeNote: the notebook for developers">
 <meta property="og:description" content="Text, code, markdown and images in one note. Free, open source, local-only.">
 <meta property="og:image" content="https://mahmoudyosrimahmoud13.github.io/code_note/img/og.jpg">
@@ -217,6 +217,39 @@ footer a { color: var(--muted); }
 .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s ease, transform .6s ease; }
 .reveal.in { opacity: 1; transform: none; }
 @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } .cursor { animation: none; } html { scroll-behavior: auto; } }
+
+/* run code: notebook mock */
+.nb { font-family: var(--mono); font-size: 13px; }
+.nb .cell { margin: 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); overflow: hidden; }
+.nb .cell.main { border-color: color-mix(in srgb, var(--accent) 55%, var(--line)); }
+.nb .head { display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--muted); border-bottom: 1px solid var(--line); font-size: 12.5px; }
+.nb .head .chip { margin-left: auto; color: var(--accent); border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent); border-radius: 999px; padding: 1px 8px; font-size: 11.5px; }
+.nb .head .play { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; color: var(--mint); border: 2px solid var(--mint); font-size: 9px; }
+.nb pre { margin: 0; padding: 10px 14px; line-height: 1.65; color: var(--text); white-space: pre; overflow: hidden; }
+.nb .k { color: var(--violet); } .nb .s { color: var(--mint); } .nb .c { color: var(--subtle); } .nb .f { color: var(--accent); }
+.nb .out { border-top: 1px solid var(--line); padding: 10px 14px 14px; background: var(--code); }
+.nb .out .st { color: var(--mint); font-size: 12px; margin-bottom: 8px; } .nb .out .st b { color: var(--muted); font-weight: 500; }
+.nb table { border-collapse: collapse; width: 100%; font-size: 12px; }
+.nb th, .nb td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--line); color: var(--muted); }
+.nb th { color: var(--text); font-weight: 600; }
+.nb .bars { display: flex; align-items: flex-end; gap: 10px; height: 74px; margin-top: 12px; padding: 0 4px; border-bottom: 1px solid var(--line); }
+.nb .bars i { flex: 1; border-radius: 5px 5px 0 0; background: linear-gradient(var(--accent), var(--violet)); opacity: .85; }
+.sb { padding: 18px; font-size: 14px; }
+.sb .row { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.sb .row:last-child { border-bottom: 0; }
+.sb .row b { display: block; color: var(--text); font-weight: 650; }
+.sb .row span { color: var(--muted); font-size: 13.5px; }
+.sb .ok { color: var(--mint); font-family: var(--mono); font-weight: 700; }
+.sb .sw { margin-left: auto; flex: none; width: 38px; height: 22px; border-radius: 999px; background: var(--surface2); border: 1px solid var(--line); position: relative; }
+.sb .sw::after { content: ''; position: absolute; left: 3px; top: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--subtle); }
+.soon { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-family: var(--mono); font-size: 11px; font-weight: 600;
+  vertical-align: 2px; color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 55%, transparent); white-space: nowrap; }
+.nb .bars { height: 54px; }
+.feature > * { min-width: 0; }
+.nb pre { overflow-x: auto; }
+.key:has(.soon) { flex-wrap: wrap; }
+.key .soon { display: block; margin: 6px 0 0; width: fit-content; }
+.key kbd + kbd { margin-left: 2px; }
 </style>
 </head>
 <body>
@@ -227,6 +260,7 @@ footer a { color: var(--muted); }
     <div class="links">
       <a href="#how">How it works</a>
       <a href="#features">Features</a>
+      <a href="#run">Run code</a>
       <a href="#ai">AI</a>
       <a href="#languages">Languages</a>
       <a href="#phone">Phone</a>
@@ -244,7 +278,7 @@ footer a { color: var(--muted); }
     <div>
       <span class="pill"><i></i>Free · Open source · Local-only</span>
       <h1>The notebook for people who <span class="grad">write code.</span></h1>
-      <p class="lead">Text, code, markdown and images in one note, with real highlighting for 58 languages and an AI that explains your code. Everything stays on your device.</p>
+      <p class="lead">Text, code, markdown and images in one note, with real highlighting for 58 languages. Run Python like Jupyter, plus Bash, Node.js and Dart, all in a sandbox. Everything stays on your device.</p>
       <div class="cta">
         <a class="btn primary" href="#download">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v12M6 11l6 6 6-6M5 20h14"/></svg>
@@ -345,7 +379,7 @@ footer a { color: var(--muted); }
     </div>
 
     <div class="cards">
-      <div class="card reveal"><h3><span class="ic">▶</span>Run HTML, CSS, JS</h3><p>Notes with web code get a play button that shows the result live.</p></div>
+      <div class="card reveal"><h3><span class="ic">▶</span>Web preview</h3><p>Notes with HTML, CSS and JS get a play button that shows the page live.</p></div>
       <div class="card reveal"><h3><span class="ic">⏰</span>Real reminders</h3><p>Reminders pop up as system notifications, even when the app is closed.</p></div>
       <div class="card reveal"><h3><span class="ic">⇅</span>GitHub Gist</h3><p>Paste a gist link to turn it into a note, or upload a note as a gist.</p></div>
       <div class="card reveal"><h3><span class="ic">▣</span>Code as an image</h3><p>Share a code block as a clean picture for X, LinkedIn or Discord.</p></div>
@@ -353,6 +387,86 @@ footer a { color: var(--muted); }
       <div class="card reveal"><h3><span class="ic">⟳</span>Daily backup</h3><p>On desktop, save a backup every day to Dropbox, Drive, Syncthing or a Git repo.</p></div>
       <div class="card reveal"><h3><span class="ic">⌕</span>Scan text</h3><p>Turn a photo of code or text into a block (Android and iOS).</p></div>
       <div class="card reveal"><h3><span class="ic">◐</span>Light and dark</h3><p>Follows your system, or pick one. Adjustable text size.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="run">
+  <div class="wrap">
+    <div class="label">// <b>run code</b></div>
+    <h2>Run it right in the note.</h2>
+    <p class="lead">Python, Bash, Node.js, TypeScript and Dart run inside your notes, in a sandbox that keeps them away from the rest of your files. Python, Node.js and Dart run on Windows, Linux and macOS; Bash runs on Android too.</p>
+
+    <div class="feature reveal">
+      <div class="text">
+        <h3>Python that works like Jupyter</h3>
+        <p>The Python blocks of a note share one kernel, so a <code>df</code> made in one block is there in the next. Every block gets a ▶ button, and <b>Run note</b> runs them all in order.</p>
+        <ul>
+          <li><b>Rich output</b> from any library: pandas tables, matplotlib and seaborn plots, images, HTML, the same way Jupyter shows them</li>
+          <li><b>In [n]</b> counters, <b>Interrupt</b> that keeps your variables, and <b>Restart kernel</b></li>
+          <li><code>%pip install</code> and <code>!commands</code> in any block, and <code>input()</code> works too</li>
+          <li><b>Save the output</b> under the block: text, tables and plots become blocks of the note</li>
+          <li><b>Open Jupyter notebooks</b> (<code>.ipynb</code>) as notes: cells become blocks, and saved outputs and plots come along<span class="soon" data-since="1.8.1">coming in 1.8.1</span></li>
+          <li><b>Jupyter shortcuts:</b> <kbd>Shift</kbd> <kbd>Enter</kbd> runs and moves on, <kbd>Esc</kbd> then <kbd>A</kbd> / <kbd>B</kbd> / <kbd>D</kbd> <kbd>D</kbd> / <kbd>M</kbd> like in Jupyter<span class="soon" data-since="1.8.1">coming in 1.8.1</span></li>
+        </ul>
+      </div>
+      <div class="shot"><div class="win">
+        <div class="bar"><i></i><i></i><i></i><span>pandas cookbook</span></div>
+        <div class="nb" aria-hidden="true">
+          <div class="cell">
+            <div class="head">Python<span class="chip">kernel · shared</span><span class="play">▶</span></div>
+<pre><span class="k">import</span> pandas <span class="k">as</span> pd
+df = pd.<span class="f">read_csv</span>(<span class="s">"orders.csv"</span>)</pre>
+          </div>
+          <div class="cell main">
+            <div class="head">Python<span class="play">▶</span></div>
+<pre>df.<span class="f">groupby</span>(<span class="s">"city"</span>).orders.<span class="f">sum</span>()  <span class="c"># df from the block above</span></pre>
+            <div class="out">
+              <div class="st">● In [2] <b>done · 0.4s</b></div>
+              <table><tr><th>city</th><th>orders</th></tr><tr><td>Cairo</td><td>1,982</td></tr><tr><td>Alexandria</td><td>1,604</td></tr><tr><td>Giza</td><td>1,377</td></tr></table>
+              <div class="bars"><i style="height:100%"></i><i style="height:81%"></i><i style="height:69%"></i></div>
+            </div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="feature flip reveal">
+      <div class="text">
+        <h3>Everything runs in a sandbox</h3>
+        <p>Each folder of notes gets its own sandbox folder. Scripts start there, and their home, temp and cache folders all point there. Anything they download stays there until you choose <b>Save a copy</b>.</p>
+        <ul>
+          <li><b>Android and macOS:</b> the system keeps CodeNote in its own space</li>
+          <li><b>Linux:</b> bubblewrap hides your home folder and drives from scripts</li>
+          <li><b>Windows:</b> scripts get their own folder, and running code needs your OK first</li>
+          <li>On Windows and Linux, runtimes download from their <b>official sources</b> into the sandbox, never into your system (macOS uses the ones you have). Update packages, or clear everything, from Settings</li>
+          <li><b>Expose sandbox</b>, off by default: when you trust the code, let it reach your own files (Linux, Windows)<span class="soon" data-since="1.8.1">coming in 1.8.1</span></li>
+        </ul>
+      </div>
+      <div class="shot"><div class="win">
+        <div class="bar"><i></i><i></i><i></i><span>Settings · Runtimes and sandbox</span></div>
+        <div class="sb" aria-hidden="true">
+          <div class="row"><span class="ok">✓</span><div><b>Fully sandboxed</b><span>Scripts see the system read-only and only their own sandbox folder.</span></div></div>
+          <div class="row"><span class="ok">py</span><div><b>Python 3.13</b><span>CodeNote's own Python, in the sandbox. 42 packages · Check for updates</span></div></div>
+          <div class="row"><span class="ok">js</span><div><b>Node.js LTS</b><span>From nodejs.org. npm packages stay in the sandbox.</span></div></div>
+          <div class="row"><span class="ok">$_</span><div><b>Terminal</b><span>A shell that starts in the sandbox folder.</span></div></div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="cards">
+      <div class="card reveal"><h3><span class="ic">⇄</span>Backend + frontend</h3><p>Notes in one folder share a sandbox. Run a FastAPI server in one note and the web page in another can call it.</p></div>
+      <div class="card reveal"><h3><span class="ic">↧</span>Run a whole folder</h3><p>Set the order, skip steps, and mark the <b>main</b> block that runs last and keeps running. Runs keep going when you leave the note.</p></div>
+      <div class="card reveal"><h3><span class="ic">▦</span>Mini apps</h3><p>An HTML note is a small app that can save its data. Try the Snake game in the demos.</p></div>
+      <div class="card reveal"><h3><span class="ic">◎</span>Demos to start from</h3><p>A YouTube downloader with every option, a FastAPI backend, a pandas cookbook and a PyTorch model.</p></div>
+      <div class="card reveal"><h3><span class="ic">≡</span>Live progress</h3><p>Package downloads show a progress bar, and a ring on ▶ shows what's still running.</p></div>
+      <div class="card reveal"><h3><span class="ic">⧉</span>Share as .codenote</h3><p>Send a note or a whole folder as one file: blocks, images, run order and saved app data.</p></div>
+      <div class="card reveal"><h3><span class="ic">$</span>Bash everywhere</h3><p>Bash and shell blocks run on Linux, macOS and Android. On Windows CodeNote downloads BusyBox for you.</p></div>
+      <div class="card reveal"><h3><span class="ic">◫</span>Open .ipynb</h3><p>Open a notebook from Jupyter, Colab or Kaggle and it becomes a note you can run. <span class="soon" data-since="1.8.1">coming in 1.8.1</span></p></div>
+      <div class="card reveal"><h3><span class="ic">↵</span>Double-click to open</h3><p>Double-click a <code>.codenote</code> file and it opens in CodeNote, even when CodeNote is already open. <span class="soon" data-since="1.8.1">coming in 1.8.1</span></p></div>
+      <div class="card reveal"><h3><span class="ic">⌗</span>Sandbox folder</h3><p>Open the sandbox in your file manager from Settings, to see what your scripts made. <span class="soon" data-since="1.8.1">coming in 1.8.1</span></p></div>
+      <div class="card reveal"><h3><span class="ic">&gt;_</span>Terminal</h3><p>A shell that starts in the note's sandbox folder, one tap away from any run.</p></div>
+      <div class="card reveal"><h3><span class="ic">◇</span>Dart and TypeScript</h3><p>The Dart SDK and TypeScript run straight from a block. On Windows and Linux CodeNote downloads them once.</p></div>
     </div>
   </div>
 </section>
@@ -508,6 +622,10 @@ footer a { color: var(--muted); }
       <div class="card key"><span>New note</span><span><kbd>Ctrl</kbd> <kbd>N</kbd></span></div>
       <div class="card key"><span>Search</span><span><kbd>Ctrl</kbd> <kbd>F</kbd></span></div>
       <div class="card key"><span>Close</span><span><kbd>Esc</kbd></span></div>
+      <div class="card key"><span>Run, move on<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>Shift</kbd> <kbd>Enter</kbd></span></div>
+      <div class="card key"><span>Run block<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>Ctrl</kbd> <kbd>Enter</kbd></span></div>
+      <div class="card key"><span>Block mode<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>Esc</kbd></span></div>
+      <div class="card key"><span>Stop · restart<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>I</kbd><kbd>I</kbd> · <kbd>0</kbd><kbd>0</kbd></span></div>
     </div>
   </div>
 </section>
@@ -581,6 +699,8 @@ footer a { color: var(--muted); }
     ['c', '+ code block (python)\n'],
     ['p', '$ '], ['', 'codenote ask "how did I fix CORS?"\n'],
     ['v', '→ found it in 2 notes\n'],
+    ['p', '$ '], ['', 'codenote run "pandas cookbook"\n'],
+    ['v', '→ In [3] done · sandboxed\n'],
     ['p', '$ '], ['', 'codenote whereis notes\n'],
     ['v', '→ this device only\n']
   ];
@@ -634,6 +754,10 @@ footer a { color: var(--muted); }
     .then(function (rel) {
       var v = (rel.tag_name || '').replace(/^v/, '');
       if (v) {
+        // Features marked "coming in x.y.z" lose the mark once that version is out.
+        var num = function (s) { return s.split('.').map(function (n) { return parseInt(n, 10) || 0; }); };
+        var atLeast = function (a, b) { a = num(a); b = num(b); for (var i = 0; i < 3; i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); } return true; };
+        document.querySelectorAll('.soon[data-since]').forEach(function (el) { if (atLeast(v, el.dataset.since)) el.remove(); });
         document.getElementById('hero-version').textContent = 'v' + v;
         document.getElementById('dl-version').textContent = '// v' + v;
       }

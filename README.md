@@ -68,8 +68,11 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
   - **Windows:** a private folder only, so running code is off until you allow it.
 - **Files stay in the sandbox** until you press **Save a copy**.
 - **Built-in terminal**, and **Settings → Runtimes and sandbox** to download Python, Node.js, Dart or Bash from their official sources and to install or update Python and npm packages.
-- **Share as `.codenote`:** one note, a folder or everything in one file, with images and app data.
+- **Share as `.codenote`:** one note, a folder or everything in one file, with images and app data. *(Coming in 1.8.1: double-click a `.codenote` file to open it.)*
 - **Mini apps:** web page notes can save data (`localStorage` just works). Try the **Snake** game, the **youtube-downloader** folder (yt-dlp with all the options) and **fastapi-todo**.
+- **Open Jupyter notebooks** *(coming in 1.8.1)*: open an `.ipynb` from Jupyter, Colab or Kaggle and it becomes a note. Markdown cells become Markdown blocks, code cells become code blocks, and saved outputs and plots come along. Use **Ctrl+K → Open a Jupyter notebook**, or "Open with" from your file manager.
+- **Jupyter keyboard shortcuts** *(coming in 1.8.1)*: **Shift+Enter** runs and moves to the next block, **Ctrl+Enter** runs and stays, **Alt+Enter** runs and adds a block below. **Esc** selects the block, then **A / B** add a block above or below, **D D** deletes, **M** makes it Markdown, **I I** stops the code and **0 0** restarts the kernel.
+- **Expose sandbox** *(coming in 1.8.1)*: off by default. When you trust the code, let it read and change your own files (Linux, Windows). Plus **Open the sandbox folder** in your file manager.
 
 ### Start from a template
 
@@ -142,6 +145,8 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 ## What's new
 
 See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.8.0: Python works like Jupyter (shared variables, plots, tables and rich output from any library), a pandas cookbook and PyTorch demo, and a fix for the Linux sandbox.
+
+**Coming in 1.8.1:** open Jupyter notebooks (`.ipynb`) as notes, Jupyter keyboard shortcuts, an **Expose sandbox** setting (off by default), double-click `.codenote` files to open them, and a clearer `%pip install`.
 
 ---
 
