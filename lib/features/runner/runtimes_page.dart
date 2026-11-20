@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../constants/themes.dart';
 import '../../widgets/brand.dart';
@@ -23,6 +24,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
 
   SandboxLevel? _level;
   bool _allowed = false;
+  bool _exposed = false;
   String? _pyVersion;
   String? _pyPath;
   bool _pyDownloaded = false;
@@ -67,6 +69,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
     sb.recheck();
     final level = await sb.level();
     final allowed = await sb.folderSandboxAllowed();
+    final exposed = await sb.exposed();
     final py = await rt.pythonForRuns();
     final version = await rt.pythonVersion();
     final downloaded = await rt.isPythonDownloaded();
@@ -85,6 +88,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
       _dartDownloaded = dartD;
       _level = level;
       _allowed = allowed;
+      _exposed = exposed;
       _pyPath = py;
       _pyVersion = version;
       _pyDownloaded = downloaded;
@@ -425,7 +429,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
         ),
       _ => (Icons.block_rounded, 'Not available', "This device can't run code."),
     };
-    final good = _level == SandboxLevel.system || _level == SandboxLevel.bubblewrap;
+    final good = (_level == SandboxLevel.system || _level == SandboxLevel.bubblewrap) && !_exposed;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -433,7 +437,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
           Row(children: [
             Icon(icon, color: good ? tokens.success : tokens.pin),
             const SizedBox(width: 10),
-            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+            Expanded(child: Text(_exposed ? 'Sandbox exposed: code can reach your files' : title, style: Theme.of(context).textTheme.titleMedium)),
           ]),
           const SizedBox(height: 8),
           Text(body),
@@ -474,9 +478,69 @@ class _RuntimesPageState extends State<RuntimesPage> {
           ],
           if (_level == SandboxLevel.unavailable)
             Text('iPhone and iPad don\'t allow apps to run code.', style: TextStyle(color: color.error)),
+          if (_level != null && _level != SandboxLevel.unavailable) ...[
+            const Divider(height: 28),
+            _exposeSwitch(),
+          ],
         ]),
       ),
     );
+  }
+
+  /// Settings > Expose sandbox: off by default.
+  Widget _exposeSwitch() {
+    final tokens = context.tokens;
+    final desktop = Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+    final String subtitle;
+    if (!Sandbox.canExpose) {
+      subtitle = Platform.isAndroid
+          ? "Not possible on Android: the system keeps CodeNote in its own space."
+          : "Not possible on macOS: Apple's App Sandbox keeps CodeNote in its own folder.";
+    } else if (Platform.isWindows) {
+      subtitle = 'Off by default. On Windows code can already reach your files (see above); turning this on also '
+          'gives scripts \$CODENOTE_HOME, the path of your own folder.';
+    } else {
+      subtitle = 'Off by default. When on, code can read and change your own files (home folder, USB drives), '
+          'not only its sandbox folder. ~ still means the sandbox; your real home is in \$CODENOTE_HOME. '
+          'Only for code you trust. Applies to code you start after changing it.';
+    }
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        secondary: Icon(_exposed ? Icons.lock_open_rounded : Icons.lock_outline_rounded,
+            color: _exposed ? tokens.pin : tokens.subtle),
+        title: const Text('Expose sandbox'),
+        subtitle: Text(subtitle),
+        value: _exposed,
+        onChanged: !Sandbox.canExpose
+            ? null
+            : (v) async {
+                if (v &&
+                    !await _confirm(
+                        'Expose the sandbox?',
+                        'Code you run will be able to read, change and delete your own files, not only the files in '
+                            'its sandbox folder. A bad script could damage them. Turn this on only for code you trust, '
+                            'and turn it off again when you are done.',
+                        'Expose')) {
+                  return;
+                }
+                await sb.setExposed(v);
+                await _refresh(packages: false);
+              },
+      ),
+      if (desktop)
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            onPressed: () async {
+              final dir = await sb.root();
+              await launchUrl(Uri.directory(dir.path));
+            },
+            icon: const Icon(Icons.folder_open_rounded),
+            label: const Text('Open the sandbox folder'),
+          ),
+        ),
+    ]);
   }
 
   Widget _pythonCard() {

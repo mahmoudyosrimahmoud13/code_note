@@ -77,6 +77,11 @@
                 <data android:pathPattern=".*\\.css" />
                 <data android:pathPattern=".*\\.md" />
                 <data android:pathPattern=".*\\.txt" />
+                <!-- CodeNote's own share files (Android needs extra patterns
+                     for paths that have dots before the name) -->
+                <data android:pathPattern=".*\\.codenote" />
+                <data android:pathPattern=".*\\..*\\.codenote" />
+                <data android:pathPattern=".*\\..*\\..*\\.codenote" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

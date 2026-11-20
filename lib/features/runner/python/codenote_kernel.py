@@ -37,9 +37,43 @@ def _input(prompt=""):
 builtins.input = _input
 
 
-def _sh(cmd):
-    """Runs a shell command for `!cmd` and `%pip ...` lines."""
-    subprocess.run(cmd, shell=True, check=False)
+def _sh(cmd, pip=False):
+    """Runs a shell command for `!cmd` and `%pip ...` lines.
+
+    The command can't read the kernel's input (that's how CodeNote talks to
+    the kernel). For `%pip`, a quiet install shows a ticking "still working"
+    line so a long download never looks stuck, and the end says how it went.
+    Interrupt stops the command too."""
+    import time
+    quiet = pip and any(a in ("-q", "--quiet", "-qq") for a in cmd.split())
+    start = time.time()
+    if pip:
+        print("pip: " + cmd.split(" -m pip ", 1)[-1], flush=True)
+    proc = subprocess.Popen(cmd, shell=True, stdin=subprocess.DEVNULL)
+    ticked = False
+    try:
+        while True:
+            try:
+                code = proc.wait(timeout=2)
+                break
+            except subprocess.TimeoutExpired:
+                if quiet:
+                    sys.stdout.write(f"\rpip is downloading and installing… {int(time.time() - start)}s")
+                    sys.stdout.flush()
+                    ticked = True
+    except BaseException:
+        proc.kill()
+        proc.wait()
+        if ticked:
+            print(flush=True)
+        raise
+    if pip:
+        took = int(time.time() - start)
+        end = "\r" if ticked else ""
+        if code == 0:
+            print(f"{end}✓ pip finished in {took}s", flush=True)
+        else:
+            print(f"{end}✗ pip stopped with exit code {code} after {took}s", flush=True)
 
 
 _magic = re.compile(r"^(\s*)(!|%pip\s|%pip$)(.*)$")
@@ -54,8 +88,9 @@ def _expand(source):
             out.append(line)
             continue
         indent, kind, rest = m.groups()
-        cmd = rest if kind == "!" else f'"{sys.executable}" -m pip {rest.strip()}'
-        out.append(f"{indent}__codenote_sh__({cmd!r})")
+        pip = kind != "!"
+        cmd = rest if not pip else f'"{sys.executable}" -m pip {rest.strip()}'
+        out.append(f"{indent}__codenote_sh__({cmd!r}, {pip!r})")
     return "\n".join(out)
 
 

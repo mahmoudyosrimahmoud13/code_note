@@ -17,6 +17,7 @@ import '../../features/notes/domain/entities/language.dart';
 import '../../helpers/helper_methods.dart';
 import '../../features/runner/code_runner.dart';
 import '../../features/runner/note_scope.dart';
+import '../../features/runner/notebook_focus.dart';
 import '../../features/runner/run_manager.dart';
 import '../../features/runner/run_panel.dart';
 import '../../features/runner/rich_output_view.dart';
@@ -48,6 +49,10 @@ class CodeBlock extends Block {
 class _CodeBlockState extends State<CodeBlock> {
   late final CodeController _controller;
   final FocusNode _focusNode = FocusNode();
+
+  /// Focus on the block itself, not the code: Jupyter's command mode,
+  /// where single keys (A, B, D D, M…) act on the block.
+  final FocusNode _blockFocus = FocusNode(debugLabel: 'code block', skipTraversal: true);
   late Language _language;
 
   /// How many digits the biggest line number has. The gutter grows when
@@ -95,9 +100,128 @@ class _CodeBlockState extends State<CodeBlock> {
     _digits = _digitsFor(_controller.text);
     _controller.addListener(_onTextChanged);
     // Only show the symbol bar while editing.
-    _focusNode.addListener(() {
-      if (mounted) setState(() {});
-    });
+    _focusNode.addListener(_onFocus);
+    _blockFocus.addListener(_onFocus);
+    NotebookFocus.register(widget.id, _focusFromNote);
+  }
+
+  void _onFocus() {
+    if (mounted) setState(() {});
+  }
+
+  /// Another block (or the note) moves the keyboard here.
+  void _focusFromNote(bool edit) {
+    if (!mounted) return;
+    Scrollable.ensureVisible(context,
+        duration: const Duration(milliseconds: 160), alignment: 0.15, curve: Curves.easeOut);
+    (edit ? _focusNode : _blockFocus).requestFocus();
+  }
+
+  LogicalKeyboardKey? _lastKey;
+  DateTime? _lastKeyAt;
+
+  /// True on the second press of [key] in a row (D D, I I, 0 0).
+  bool _twice(LogicalKeyboardKey key) {
+    final now = DateTime.now();
+    final hit = _lastKey == key &&
+        _lastKeyAt != null &&
+        now.difference(_lastKeyAt!) < const Duration(milliseconds: 800);
+    _lastKey = hit ? null : key;
+    _lastKeyAt = now;
+    return hit;
+  }
+
+  /// Runs the block if it can run and has code (Shift+Enter on an empty or
+  /// non-runnable block just moves on, like Jupyter).
+  void _runIfPossible() {
+    if (_controller.text.trim().isEmpty || !_runnable(context)) return;
+    _run();
+  }
+
+  /// Jupyter-style shortcuts. See [notebookShortcuts].
+  KeyEventResult _onKey(FocusNode node, KeyEvent event) {
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+    final primary = FocusManager.instance.primaryFocus;
+    final inCode = primary == _focusNode;
+    final selected = primary == _blockFocus;
+    // The answer box under the output and other fields keep their keys.
+    if (!inCode && !selected) return KeyEventResult.ignored;
+
+    final keys = HardwareKeyboard.instance;
+    final key = event.logicalKey;
+    final enter = key == LogicalKeyboardKey.enter || key == LogicalKeyboardKey.numpadEnter;
+    final ctrl = keys.isControlPressed || keys.isMetaPressed;
+    final notebook = NoteScope.of(context)?.notebook;
+
+    if (enter && keys.isShiftPressed && !ctrl && !keys.isAltPressed) {
+      _runIfPossible();
+      if (notebook != null) {
+        notebook.next(widget.id);
+      } else {
+        _blockFocus.requestFocus();
+      }
+      return KeyEventResult.handled;
+    }
+    if (enter && ctrl) {
+      _runIfPossible();
+      return KeyEventResult.handled;
+    }
+    if (enter && keys.isAltPressed) {
+      _runIfPossible();
+      notebook?.insert(widget.id, above: false);
+      return KeyEventResult.handled;
+    }
+
+    if (inCode) {
+      if (key == LogicalKeyboardKey.escape) {
+        _blockFocus.requestFocus();
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored;
+    }
+
+    // Command mode: the block is selected, the cursor isn't in the code.
+    if (ctrl || keys.isAltPressed) return KeyEventResult.ignored;
+    if (enter) {
+      _focusNode.requestFocus();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.escape) {
+      _blockFocus.unfocus();
+      return KeyEventResult.handled;
+    }
+    if (key == LogicalKeyboardKey.keyA) {
+      notebook?.insert(widget.id, above: true);
+    } else if (key == LogicalKeyboardKey.keyB) {
+      notebook?.insert(widget.id, above: false);
+    } else if (key == LogicalKeyboardKey.keyD) {
+      if (_twice(key)) {
+        if (notebook != null) {
+          notebook.delete(widget.id);
+        } else {
+          widget.delete?.call(widget.id);
+        }
+      }
+    } else if (key == LogicalKeyboardKey.keyM) {
+      notebook?.toMarkdown(widget.id);
+    } else if (key == LogicalKeyboardKey.arrowUp || key == LogicalKeyboardKey.keyK) {
+      notebook?.previous(widget.id);
+    } else if (key == LogicalKeyboardKey.arrowDown || key == LogicalKeyboardKey.keyJ) {
+      notebook?.next(widget.id);
+    } else if (key == LogicalKeyboardKey.keyI) {
+      if (_twice(key)) RunManager.instance.sessionFor(widget.id)?.stop();
+    } else if (key == LogicalKeyboardKey.digit0 || key == LogicalKeyboardKey.numpad0) {
+      if (_twice(LogicalKeyboardKey.digit0)) {
+        final noteId = NoteScope.of(context)?.noteId;
+        if (noteId != null) {
+          RunManager.instance.restartKernel(noteId);
+          showMessage(message: 'Python kernel restarted. Variables are cleared.');
+        }
+      }
+    } else {
+      return KeyEventResult.ignored;
+    }
+    return KeyEventResult.handled;
   }
 
   void _onTextChanged() {
@@ -123,7 +247,11 @@ class _CodeBlockState extends State<CodeBlock> {
   void dispose() {
     _controller.removeListener(_onTextChanged);
     _controller.dispose();
+    NotebookFocus.unregister(widget.id, _focusFromNote);
+    _focusNode.removeListener(_onFocus);
+    _blockFocus.removeListener(_onFocus);
     _focusNode.dispose();
+    _blockFocus.dispose();
     super.dispose();
   }
 
@@ -287,14 +415,23 @@ class _CodeBlockState extends State<CodeBlock> {
     final color = Theme.of(context).colorScheme;
     final tokens = context.tokens;
     final editing = _focusNode.hasFocus;
+    final selected = _blockFocus.hasPrimaryFocus;
 
-    return Container(
+    return Focus(
+      focusNode: _blockFocus,
+      onKeyEvent: _onKey,
+      child: Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: tokens.codeBackground,
         borderRadius: BorderRadius.circular(AppBrand.radius),
         border: Border.all(
-          color: editing ? color.primary.withAlpha(160) : color.outlineVariant,
+          color: editing
+              ? color.primary.withAlpha(160)
+              : selected
+                  ? color.tertiary
+                  : color.outlineVariant,
+          width: selected ? 2 : 1,
         ),
       ),
       clipBehavior: Clip.antiAlias,
@@ -505,6 +642,7 @@ class _CodeBlockState extends State<CodeBlock> {
           ),
         ],
       ),
+    ),
     );
   }
 }

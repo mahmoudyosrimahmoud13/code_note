@@ -9,6 +9,7 @@ import '../../../../constants/themes.dart';
 import '../../../../core/services/log_service.dart';
 import '../../../../core/services/log_viewer_page.dart';
 import '../../../../core/services/sharing_service.dart';
+import '../../../../core/services/open_files_service.dart';
 import '../../../../core/services/update_dialog.dart';
 import '../../../../core/services/update_service.dart';
 import '../../../../injection_container.dart' as di;
@@ -88,6 +89,10 @@ class _HomePageState extends State<HomePage> {
     // Clear out notes that sat in the trash for more than 30 days.
     context.read<NoteBloc>().add(PurgeOldTrashEvent());
     SharingService().init(context);
+    // Desktop: .codenote files opened from the file manager.
+    OpenFilesService.instance.start((path) {
+      if (mounted) SharingService().openFile(context, path);
+    });
     LogService().log('HomePage: ready (local-only).');
     _startReminders();
     // Daily backup to the chosen folder (Windows, Linux), if turned on.
@@ -149,6 +154,7 @@ class _HomePageState extends State<HomePage> {
     _reminderTimer?.cancel();
     _searchController.dispose();
     SharingService().dispose();
+    OpenFilesService.instance.stop();
     super.dispose();
   }
 

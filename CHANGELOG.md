@@ -3,6 +3,18 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.8.1] - 2026-11-20
+
+### New
+- **Jupyter keyboard shortcuts** in code blocks: Shift+Enter runs and moves to the next block (adds one at the end), Ctrl+Enter runs and stays, Alt+Enter runs and adds a block below. Esc selects the block (command mode), where A / B add a block above / below, D D deletes, M turns it into Markdown, ↑ ↓ (or K J) move between blocks, I I stops the code and 0 0 restarts the Python kernel. The full list is in the note's ⋮ menu under Keyboard shortcuts.
+- **Expose sandbox** (Settings > Runtimes and sandbox, off by default): lets code you trust read and change your own files, not only its sandbox folder. Your real home folder is in `$CODENOTE_HOME`. Asks before turning on, and the sandbox card says when it's on. Linux and Windows; Android and macOS keep CodeNote in its own space. Also new: **Open the sandbox folder** in your file manager.
+- **Double-click a .codenote file** to open it in CodeNote: on Linux (installed .deb), Windows and Android. If CodeNote is already open, the file goes to that window.
+- **Share menu:** "CodeNote file (.codenote)" is now the first choice in a note's share sheet.
+
+### Fixed
+- `%pip install --quiet …` no longer looks stuck: a ticking line shows it's still downloading, and the end says "✓ pip finished" or why it stopped. Interrupt also stops the download.
+- Shell commands in Python blocks (`!cmd`, `%pip`) can't read the kernel's own input anymore.
+
 ## [1.8.0] - 2026-11-20
 
 ### New

@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'constants/themes.dart';
 import 'core/services/log_service.dart';
+import 'core/services/open_files_service.dart';
 import 'features/notes/presentation/bloc/note_bloc.dart';
 import 'features/notes/presentation/bloc/note_event.dart';
 import 'features/notes/presentation/bloc/note_group_bloc.dart';
@@ -18,8 +19,10 @@ import 'helpers/helper_methods.dart';
 import 'widgets/brand.dart';
 import 'injection_container.dart' as di;
 
-void main() async {
+void main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Files to open (double-clicked .codenote files, "Open with").
+  OpenFilesService.instance.launchArgs = args;
   LogService().log("App: [START] Local-Only version started.");
 
   try {

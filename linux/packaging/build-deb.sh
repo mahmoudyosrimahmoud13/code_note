@@ -21,7 +21,8 @@ PKG="$ROOT/build/deb/codenote_${VERSION}_amd64"
 
 rm -rf "$PKG"
 mkdir -p "$PKG/DEBIAN" "$PKG/opt/codenote" "$PKG/usr/bin" \
-         "$PKG/usr/share/applications" "$PKG/usr/share/icons/hicolor/512x512/apps"
+         "$PKG/usr/share/applications" "$PKG/usr/share/icons/hicolor/512x512/apps" \
+         "$PKG/usr/share/mime/packages"
 
 # The app itself
 cp -r "$BUNDLE/." "$PKG/opt/codenote/"
@@ -41,8 +42,22 @@ Icon=$APP_ID
 Terminal=false
 Categories=Development;Utility;TextEditor;
 Keywords=notes;code;snippets;markdown;
+MimeType=application/x-codenote;
 StartupWMClass=code_note
 DESKTOP
+
+# .codenote files: a file type the system knows, so double-clicking one
+# opens CodeNote (the system refreshes its file types after install).
+cat > "$PKG/usr/share/mime/packages/$APP_ID.xml" <<MIME
+<?xml version="1.0" encoding="UTF-8"?>
+<mime-info xmlns="http://www.freedesktop.org/standards/shared-mime-info">
+  <mime-type type="application/x-codenote">
+    <comment>CodeNote file</comment>
+    <glob pattern="*.codenote"/>
+    <icon name="$APP_ID"/>
+  </mime-type>
+</mime-info>
+MIME
 
 INSTALLED_KB=$(du -sk "$PKG" | cut -f1)
 cat > "$PKG/DEBIAN/control" <<CONTROL

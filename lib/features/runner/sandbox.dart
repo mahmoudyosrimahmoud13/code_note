@@ -32,6 +32,7 @@ class Sandbox {
 
   static const _boxName = 'appBox';
   static const _allowKey = 'ALLOW_FOLDER_SANDBOX';
+  static const _exposeKey = 'EXPOSE_SANDBOX';
 
   Directory? _root;
   String? _bwrap;
@@ -131,6 +132,34 @@ class Sandbox {
   Future<bool> folderSandboxAllowed() async => (await _box()).get(_allowKey) == true;
   Future<void> setFolderSandboxAllowed(bool allowed) async => (await _box()).put(_allowKey, allowed);
 
+  /// Settings > Expose sandbox (off by default): code may also read and
+  /// change the person's own files (home folder and drives), not only its
+  /// sandbox folder. Possible where CodeNote isn't locked in by the system.
+  static bool get canExpose => !kIsWeb && (Platform.isLinux || Platform.isWindows);
+
+  bool? _exposed;
+
+  Future<bool> exposed() async {
+    if (!canExpose) return false;
+    if (_exposed != null) return _exposed!;
+    try {
+      return _exposed = (await _box()).get(_exposeKey) == true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> setExposed(bool value) async {
+    await (await _box()).put(_exposeKey, value);
+    _exposed = value;
+  }
+
+  /// The person's real home folder, for [exposed] runs.
+  static String? get userHome {
+    final home = Platform.environment[Platform.isWindows ? 'USERPROFILE' : 'HOME'];
+    return home == null || home.isEmpty ? null : home;
+  }
+
   /// True when scripts may run now. Null means it needs the person's OK.
   Future<bool?> canRun() async {
     switch (await level()) {
@@ -165,6 +194,9 @@ class Sandbox {
       'PYTHONUNBUFFERED': '1',
       'PIP_DISABLE_PIP_VERSION_CHECK': '1',
       'CODENOTE_SANDBOX': home.path,
+      // Expose sandbox is on: where the person's own files are. HOME still
+      // points to the sandbox so caches and packages stay inside it.
+      if (await exposed() && userHome != null) 'CODENOTE_HOME': userHome!,
       'PATH': [...extraPath, systemPath].where((e) => e.isNotEmpty).join(sep),
     };
     if (Platform.isWindows) {
@@ -215,6 +247,7 @@ class Sandbox {
     final cache = p.join(rootDir, 'cache');
     await Directory(cache).create(recursive: true);
     final home = Platform.environment['HOME'];
+    final expose = await exposed();
     final hide = <String>{
       '/home',
       '/root',
@@ -225,7 +258,14 @@ class Sandbox {
       if (home != null && home.isNotEmpty && home != '/') home,
     };
     final hidden = <String>[];
+    final shared = <String>[];
     for (final dir in hide) {
+      if (expose) {
+        // Expose sandbox: the person's files are visible and writable.
+        if (shared.any((h) => p.isWithin(h, dir))) continue;
+        if (await Directory(dir).exists()) shared.add(dir);
+        continue;
+      }
       // Skip a folder inside one already hidden (it's gone anyway).
       if (hidden.any((h) => p.isWithin(h, dir))) continue;
       if (await Directory(dir).exists()) hidden.add(dir);
@@ -236,6 +276,7 @@ class Sandbox {
       '--proc', '/proc',
       '--tmpfs', '/tmp',
       for (final dir in hidden) ...['--tmpfs', dir],
+      for (final dir in shared) ...['--bind', dir, dir],
       // Shared caches and runtimes live in the sandbox root.
       '--ro-bind', rootDir, rootDir,
       for (final dir in readOnly) ...['--ro-bind', dir, dir],

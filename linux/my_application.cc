@@ -97,6 +97,23 @@ static gboolean my_application_local_command_line(GApplication* application, gch
      return TRUE;
   }
 
+  // CodeNote is already running: hand the files (double-clicked .codenote
+  // files) to it through a small inbox folder it watches, then bring its
+  // window to the front. Each file name goes into its own *.path file.
+  if (g_application_get_is_remote(application) && self->dart_entrypoint_arguments != nullptr) {
+    g_autofree gchar* inbox = g_build_filename(g_get_tmp_dir(), "codenote-open", nullptr);
+    g_mkdir_with_parents(inbox, 0700);
+    for (int i = 0; self->dart_entrypoint_arguments[i] != nullptr; i++) {
+      const gchar* arg = self->dart_entrypoint_arguments[i];
+      if (arg[0] == '-') continue;
+      g_autofree gchar* full = g_canonicalize_filename(arg, nullptr);
+      g_autofree gchar* name =
+          g_strdup_printf("%" G_GINT64_FORMAT "-%d.path", g_get_real_time(), i);
+      g_autofree gchar* file = g_build_filename(inbox, name, nullptr);
+      g_file_set_contents(file, full, -1, nullptr);
+    }
+  }
+
   g_application_activate(application);
   *exit_status = 0;
 

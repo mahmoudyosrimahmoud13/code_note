@@ -113,9 +113,30 @@ class SharingService {
     _openAndSave(context, note);
   }
 
+  /// Opens a file given to CodeNote by the system: a `.codenote` file is
+  /// imported, a code file becomes a note (desktop "Open with" and
+  /// double-click).
+  void openFile(BuildContext context, String path) => _createNoteFromFile(context, path);
+
+  static Future<bool> _looksLikeCodenote(String path) async {
+    try {
+      final file = File(path);
+      if (await file.length() < 20) return false;
+      final raf = await file.open();
+      final head = await raf.read(2048);
+      await raf.close();
+      final text = String.fromCharCodes(head);
+      return text.trimLeft().startsWith('{') && text.contains('codenote-backup');
+    } catch (_) {
+      return false;
+    }
+  }
+
   void _createNoteFromFile(BuildContext context, String path) async {
     // A .codenote file: import its notes, folders, images and app data.
-    if (path.toLowerCase().endsWith('.codenote')) {
+    // Android sometimes hands over a copy without the file name, so the
+    // contents are checked too.
+    if (path.toLowerCase().endsWith('.codenote') || await _looksLikeCodenote(path)) {
       final messenger = ScaffoldMessenger.maybeOf(context);
       try {
         final summary = await CodenoteFiles.importBytes(await File(path).readAsBytes());

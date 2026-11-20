@@ -18,6 +18,7 @@ import '../../../reminders/reminder_service.dart';
 import '../../../templates/templates.dart';
 import '../../../gist/gist_page.dart';
 import '../../../backup/codenote_files.dart';
+import '../../../runner/notebook_focus.dart';
 import '../../../miniapps/mini_app_storage.dart';
 import '../../../runner/note_scope.dart';
 import '../../../runner/sandbox.dart';
@@ -25,6 +26,7 @@ import '../../../runner/code_runner.dart';
 import '../../../runner/run_manager.dart';
 import '../../../runner/running_indicator.dart';
 import '../../domain/entities/block.dart';
+import '../../domain/entities/language.dart';
 import '../../domain/entities/note.dart';
 import '../bloc/note_bloc.dart';
 import '../bloc/note_event.dart';
@@ -315,6 +317,65 @@ class _NotePageState extends State<NotePage> {
       ));
   }
 
+  // ---------- Jupyter-style keyboard moves between code blocks ----------
+
+  late final _notebook = NotebookActions(
+    next: _nbNext,
+    previous: _nbPrevious,
+    insert: _nbInsert,
+    toMarkdown: _nbToMarkdown,
+    delete: _nbDelete,
+  );
+
+  String? _nbNeighbour(String id, int step) {
+    final index = _blocks.indexWhere((b) => b.id == id);
+    if (index == -1) return null;
+    for (var i = index + step; i >= 0 && i < _blocks.length; i += step) {
+      if (_blocks[i] is CodeBlockEntity) return _blocks[i].id;
+    }
+    return null;
+  }
+
+  void _nbNext(String id) {
+    final next = _nbNeighbour(id, 1);
+    if (next != null) {
+      NotebookFocus.focus(next, edit: false);
+    } else {
+      _nbInsert(id, above: false);
+    }
+  }
+
+  void _nbPrevious(String id) {
+    final previous = _nbNeighbour(id, -1);
+    if (previous != null) NotebookFocus.focus(previous, edit: false);
+  }
+
+  void _nbInsert(String id, {required bool above}) {
+    final index = _blocks.indexWhere((b) => b.id == id);
+    final current = index == -1 ? null : _blocks[index];
+    final block = CodeBlockEntity(
+      id: _uuid.v4(),
+      text: '',
+      language: current is CodeBlockEntity ? current.language : Language.python,
+    );
+    setState(() => _blocks.insert(index == -1 ? _blocks.length : (above ? index : index + 1), block));
+    _changed();
+    NotebookFocus.focus(block.id);
+  }
+
+  void _nbToMarkdown(String id) {
+    final index = _blocks.indexWhere((b) => b.id == id);
+    if (index == -1) return;
+    setState(() => _blocks[index] = MarkdownBlockEntity(id: _uuid.v4(), text: _blocks[index].text ?? ''));
+    _changed();
+  }
+
+  void _nbDelete(String id) {
+    final next = _nbNeighbour(id, 1) ?? _nbNeighbour(id, -1);
+    _deleteBlock(id);
+    if (next != null) NotebookFocus.focus(next, edit: false);
+  }
+
   /// Puts [block] right after the block with [afterId] (AI answers).
   void _insertAfter(String afterId, BlockEntity block) {
     final index = _blocks.indexWhere((b) => b.id == afterId);
@@ -536,6 +597,15 @@ class _NotePageState extends State<NotePage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
+              leading: const Icon(Icons.inventory_2_outlined),
+              title: const Text('CodeNote file (.codenote)'),
+              subtitle: const Text('Everything: blocks, images, run order and app data. Opens in CodeNote.'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                CodenoteFiles.shareNote(context, _currentNote());
+              },
+            ),
+            ListTile(
               leading: const Icon(Icons.copy_rounded),
               title: const Text('Copy as text'),
               onTap: () {
@@ -690,6 +760,8 @@ class _NotePageState extends State<NotePage> {
                     exportNoteToGist(context, _currentNote());
                   case 'codenote':
                     CodenoteFiles.shareNote(context, _currentNote());
+                  case 'shortcuts':
+                    showNotebookShortcuts(context);
                   case 'appdata':
                     _resetAppData();
                   case 'archive':
@@ -741,6 +813,14 @@ class _NotePageState extends State<NotePage> {
                   ),
                 ),
                 const PopupMenuItem(
+                  value: 'shortcuts',
+                  child: ListTile(
+                    leading: Icon(Icons.keyboard_outlined),
+                    title: Text('Keyboard shortcuts'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
                   value: 'gist',
                   child: ListTile(
                     leading: Icon(Icons.upload_rounded),
@@ -777,6 +857,7 @@ class _NotePageState extends State<NotePage> {
           spaceKey: _spaceKey(),
           title: _titleController.text,
           isWebPage: CodeRunner.isWebPageNote(_blocks),
+          notebook: _notebook,
           child: Column(
           children: [
             Expanded(
