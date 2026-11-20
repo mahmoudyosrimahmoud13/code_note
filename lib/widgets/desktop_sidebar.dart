@@ -108,7 +108,7 @@ class DesktopSidebar extends StatelessWidget {
                 ),
                 const SizedBox(width: 6),
                 IconButton.filledTonal(
-                  tooltip: 'Search (Ctrl+K)',
+                  tooltip: 'Search (Ctrl+F)',
                   onPressed: onSearch,
                   icon: const Icon(Icons.search_rounded),
                 ),

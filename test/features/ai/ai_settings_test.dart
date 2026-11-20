@@ -33,4 +33,17 @@ void main() {
     expect(p, contains('Python'));
     expect(p, contains('print(1)'));
   });
+
+  test('LM Studio and other local servers need no key', () {
+    const lm = AiSettings(
+      enabled: true,
+      provider: AiProvider.openAiCompatible,
+      baseUrl: 'http://localhost:1234',
+    );
+    expect(lm.isLocal, isTrue);
+    expect(lm.isReady, isTrue);
+    const cloud = AiSettings(enabled: true, provider: AiProvider.openAiCompatible);
+    expect(cloud.isLocal, isFalse);
+    expect(cloud.isReady, isFalse);
+  });
 }

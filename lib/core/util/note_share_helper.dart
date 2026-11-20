@@ -135,6 +135,39 @@ class NoteShareHelper {
     );
   }
 
+  /// Saves [bytes] as [fileName]: a Save dialog on desktop, the share sheet
+  /// on phones (so it can go to Files, Drive, email, etc.).
+  /// Returns where it was saved on desktop, or null.
+  static Future<String?> saveOrShareBytes(
+    Uint8List bytes, {
+    required String fileName,
+    required String mimeType,
+    required String typeLabel,
+    String? shareText,
+  }) async {
+    final ext = fileName.contains('.') ? fileName.split('.').last : '';
+    if (PlatformHelper.isDesktopOrWeb) {
+      final location = await getSaveLocation(
+        suggestedName: fileName,
+        acceptedTypeGroups: [
+          XTypeGroup(label: typeLabel, extensions: ext.isEmpty ? null : [ext]),
+        ],
+      );
+      if (location == null) return null;
+      await XFile.fromData(bytes, name: fileName, mimeType: mimeType)
+          .saveTo(location.path);
+      return location.path;
+    }
+    final dir = await getTemporaryDirectory();
+    final file = File('${dir.path}/$fileName');
+    await file.writeAsBytes(bytes, flush: true);
+    await Share.shareXFiles(
+      [XFile(file.path, name: fileName, mimeType: mimeType)],
+      text: shareText,
+    );
+    return null;
+  }
+
   static void copyToClipboard(String text) {
     Clipboard.setData(ClipboardData(text: text));
   }

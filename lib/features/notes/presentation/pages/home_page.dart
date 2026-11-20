@@ -7,9 +7,16 @@ import '../../../../constants/themes.dart';
 import '../../../../core/services/log_service.dart';
 import '../../../../core/services/log_viewer_page.dart';
 import '../../../../core/services/sharing_service.dart';
+import '../../../../core/services/update_dialog.dart';
+import '../../../../core/services/update_service.dart';
+import '../../../../injection_container.dart' as di;
+import '../../../backup/backup_service.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../../widgets/brand.dart';
+import '../../../../widgets/command_palette.dart';
 import '../../../../widgets/desktop_sidebar.dart';
+import '../../../ai/ai_settings_page.dart';
+import '../../../backup/backup_page.dart';
 import '../../../../widgets/group_card.dart';
 import '../../../../widgets/home_grid_view.dart';
 import '../../../../widgets/home_navigation_bar.dart';
@@ -69,6 +76,13 @@ class _HomePageState extends State<HomePage> {
     context.read<NoteBloc>().add(PurgeOldTrashEvent());
     SharingService().init(context);
     LogService().log('HomePage: ready (local-only).');
+    // Daily backup to the chosen folder (Windows, Linux), if turned on.
+    di.sl<BackupService>().runDailyBackupIfDue();
+    // Look for a newer version a few seconds after start (once a day).
+    Future.delayed(const Duration(seconds: 3), () async {
+      final update = await UpdateService.instance.checkInBackground();
+      if (update != null && mounted) showUpdateDialog(context, update);
+    });
   }
 
   @override
@@ -207,8 +221,8 @@ class _HomePageState extends State<HomePage> {
         const SingleActivator(LogicalKeyboardKey.keyN, meta: true): _addNote,
         const SingleActivator(LogicalKeyboardKey.keyF, control: true): _openSearch,
         const SingleActivator(LogicalKeyboardKey.keyF, meta: true): _openSearch,
-        const SingleActivator(LogicalKeyboardKey.keyK, control: true): _openSearch,
-        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _openSearch,
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): _openPalette,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _openPalette,
         const SingleActivator(LogicalKeyboardKey.escape): () {
           if (_isSearching) setState(_closeSearch);
         },
@@ -271,6 +285,83 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _openSearch() => setState(() => _isSearching = true);
+
+  void _openPage(Widget page) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => page));
+
+  /// Ctrl+K: every action, note and folder in one searchable list.
+  void _openPalette() {
+    final noteState = context.read<NoteBloc>().state;
+    final groupState = context.read<NoteGroupBloc>().state;
+    final notes = noteState is NoteLoaded
+        ? (noteState.notes.where((n) => !n.isTrashed).toList()
+          ..sort((a, b) => b.lastModified.compareTo(a.lastModified)))
+        : <NoteEntity>[];
+    final groups = groupState is NoteGroupLoaded ? groupState.groups : <NoteGroupEntity>[];
+    final settingsBloc = context.read<SettingsBloc>();
+
+    showCommandPalette(context, [
+      PaletteItem(label: 'New note', icon: Icons.add_rounded, hint: 'Ctrl+N', run: _addNote, keywords: 'create write'),
+      PaletteItem(label: 'New folder', icon: Icons.create_new_folder_outlined, run: _createGroup, keywords: 'group create'),
+      PaletteItem(label: 'Search notes', icon: Icons.search_rounded, hint: 'Ctrl+F', run: _openSearch, keywords: 'find grep'),
+      for (final view in HomeView.values)
+        PaletteItem(
+          label: 'Go to ${view.path}',
+          icon: Icons.arrow_forward_rounded,
+          run: () => _select(view),
+          keywords: view.name,
+        ),
+      PaletteItem(label: 'Backup and restore', icon: Icons.cloud_upload_outlined, run: () => _openPage(const BackupPage()), keywords: 'export import save sync'),
+      PaletteItem(label: 'AI assistant settings', icon: Icons.auto_awesome_outlined, run: () => _openPage(const AiSettingsPage()), keywords: 'claude ollama openai model key'),
+      PaletteItem(
+        label: 'Switch light / dark theme',
+        icon: Icons.contrast_rounded,
+        keywords: 'mode appearance',
+        run: () {
+          final st = settingsBloc.state;
+          if (st is! SettingsLoaded) return;
+          final dark = st.settings.themeMode == 'dark' ||
+              (st.settings.themeMode == 'system' &&
+                  MediaQuery.platformBrightnessOf(context) == Brightness.dark);
+          settingsBloc.add(UpdateSettingsEvent(
+              st.settings.copyWith(themeMode: dark ? 'light' : 'dark')));
+        },
+      ),
+      PaletteItem(label: 'Check for updates', icon: Icons.system_update_alt_rounded, run: () async {
+        try {
+          final update = await UpdateService.instance.check();
+          if (!mounted) return;
+          if (update == null) {
+            ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("You're on the newest version.")));
+          } else {
+            showUpdateDialog(context, update);
+          }
+        } catch (_) {}
+      }),
+      PaletteItem(label: 'Settings', icon: Icons.settings_outlined, run: () => _openPage(const SettingsPage()), keywords: 'preferences profile'),
+      for (final g in groups)
+        PaletteItem(
+          label: '${g.name}/',
+          icon: Icons.folder_outlined,
+          group: 'Folders',
+          hint: '${g.noteIds.length}',
+          run: () => _openGroup(g),
+        ),
+      for (final n in notes)
+        PaletteItem(
+          label: n.title.trim().isEmpty ? 'Untitled' : n.title.trim(),
+          icon: n.isPinned ? Icons.push_pin_outlined : Icons.description_outlined,
+          group: 'Notes',
+          hint: n.tags.isEmpty ? null : '#${n.tags.first}',
+          keywords: [
+            ...n.tags,
+            for (final b in n.blocks.take(3)) (b.text ?? '').split('\n').first,
+          ].join(' '),
+          run: () => _openPage(NotePage(note: n)),
+        ),
+    ]);
+  }
 
   void _openGroup(NoteGroupEntity group) => Navigator.push(
         context,
@@ -518,9 +609,14 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           IconButton(
-            tooltip: 'Search (Ctrl+K)',
+            tooltip: 'Search (Ctrl+F)',
             icon: const Icon(Icons.search_rounded),
             onPressed: _openSearch,
+          ),
+          IconButton(
+            tooltip: 'Commands (Ctrl+K)',
+            icon: const Icon(Icons.keyboard_command_key_rounded),
+            onPressed: _openPalette,
           ),
           if (_view == HomeView.notes && !wide)
             IconButton(

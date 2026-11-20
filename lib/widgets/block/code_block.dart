@@ -7,6 +7,7 @@ import 'package:uuid/uuid.dart';
 import '../../constants/themes.dart';
 import '../../features/ai/ai_explain_sheet.dart';
 import '../../features/ai/ai_service.dart';
+import '../../features/notes/presentation/widgets/code_image_sheet.dart';
 import '../../core/util/code_languages.dart';
 import '../../core/util/note_share_helper.dart';
 import '../../features/notes/domain/entities/block.dart';
@@ -188,6 +189,21 @@ class _CodeBlockState extends State<CodeBlock> {
                 ),
               ],
               extraActions: [
+                BlockAction(
+                  label: 'Share as image',
+                  icon: Icons.image_outlined,
+                  onTap: () {
+                    if (_controller.text.trim().isEmpty) {
+                      showMessage(message: 'Write some code first.');
+                      return;
+                    }
+                    showCodeImageSheet(
+                      context,
+                      code: _controller.text,
+                      language: _language,
+                    );
+                  },
+                ),
                 BlockAction(
                   label: 'Share as file',
                   icon: Icons.ios_share_rounded,

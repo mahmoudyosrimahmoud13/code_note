@@ -7,6 +7,9 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../constants/app_info.dart';
 import '../../../ai/ai_settings_page.dart';
+import '../../../backup/backup_page.dart';
+import '../../../../core/services/update_dialog.dart';
+import '../../../../core/services/update_service.dart';
 import '../../../../constants/themes.dart';
 
 import '../../../../core/util/image_helper.dart';
@@ -153,6 +156,20 @@ class _SettingsPageState extends State<SettingsPage> {
                         onTap: () => _showClearDataConfirmation(context),
                         color: color),
                     const SizedBox(height: 32),
+                    _buildSectionHeader('Backup', textTheme, color),
+                    const SizedBox(height: 16),
+                    _buildSettingTile(
+                      'Backup and restore',
+                      'Save all notes to one file, restore anywhere, daily backups',
+                      Icons.cloud_upload_outlined,
+                      color.primary,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const BackupPage()),
+                      ),
+                      color: color,
+                    ),
+                    const SizedBox(height: 32),
                     _buildSectionHeader('AI assistant', textTheme, color),
                     const SizedBox(height: 16),
                     _buildSettingTile(
@@ -165,6 +182,34 @@ class _SettingsPageState extends State<SettingsPage> {
                         MaterialPageRoute(builder: (_) => const AiSettingsPage()),
                       ),
                       color: color,
+                    ),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader('Updates', textTheme, color),
+                    const SizedBox(height: 16),
+                    FutureBuilder<bool>(
+                      future: UpdateService.instance.isEnabled(),
+                      builder: (context, snap) => _buildSettingTile(
+                        'Check for updates',
+                        'Once a day, asks GitHub if a newer version exists. Sends no notes.',
+                        Icons.system_update_alt_rounded,
+                        color.primary,
+                        trailing: Switch(
+                          value: snap.data ?? true,
+                          onChanged: (v) async {
+                            await UpdateService.instance.setEnabled(v);
+                            setState(() {});
+                          },
+                        ),
+                        bottom: Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () => _checkForUpdatesNow(context),
+                            icon: const Icon(Icons.refresh_rounded, size: 18),
+                            label: const Text('Check now'),
+                          ),
+                        ),
+                        color: color,
+                      ),
                     ),
                     const SizedBox(height: 32),
                     _buildSectionHeader('About', textTheme, color),
@@ -330,6 +375,27 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _checkForUpdatesNow(BuildContext context) async {
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(const SnackBar(content: Text('Checking…')));
+    try {
+      final update = await UpdateService.instance.check();
+      if (!context.mounted) return;
+      messenger.removeCurrentSnackBar();
+      if (update == null) {
+        messenger.showSnackBar(SnackBar(
+            content: Text("You're on the newest version (v$appVersion).")));
+      } else {
+        await showUpdateDialog(context, update);
+      }
+    } catch (_) {
+      messenger
+        ..removeCurrentSnackBar()
+        ..showSnackBar(const SnackBar(
+            content: Text("Couldn't reach GitHub. Check your internet connection.")));
+    }
   }
 
   void _showClearDataConfirmation(BuildContext context) {

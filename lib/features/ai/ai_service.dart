@@ -52,8 +52,19 @@ class AiSettings {
     return url.endsWith('/') ? url.substring(0, url.length - 1) : url;
   }
 
+  /// Local servers (LM Studio, etc.) don't need a key.
+  bool get isLocal {
+    final host = Uri.tryParse(effectiveBaseUrl)?.host ?? '';
+    return host == 'localhost' ||
+        host == '127.0.0.1' ||
+        host.startsWith('192.168.') ||
+        host.startsWith('10.') ||
+        host.endsWith('.local');
+  }
+
   /// Ready to send requests.
-  bool get isReady => enabled && (!provider.needsKey || apiKey.trim().isNotEmpty);
+  bool get isReady =>
+      enabled && (!provider.needsKey || isLocal || apiKey.trim().isNotEmpty);
 
   AiSettings copyWith({
     bool? enabled,
@@ -139,6 +150,23 @@ extension AiActionInfo on AiAction {
   }
 }
 
+/// A model found running on this computer (or the address you entered).
+class LocalModel {
+  const LocalModel({
+    required this.name,
+    required this.runner,
+    required this.provider,
+    required this.baseUrl,
+  });
+
+  final String name;
+
+  /// "Ollama" or "LM Studio".
+  final String runner;
+  final AiProvider provider;
+  final String baseUrl;
+}
+
 class AiService {
   AiService._();
   static final AiService instance = AiService._();
@@ -187,6 +215,70 @@ class AiService {
           ? "Couldn't reach Ollama at ${s.effectiveBaseUrl}. Is it running?"
           : "Couldn't reach ${s.provider.label}. Check your internet connection.");
     }
+  }
+
+  /// Looks for local AI runners and lists their installed models.
+  /// Checks Ollama and LM Studio at their usual addresses, plus [extraUrl]
+  /// (for example another computer on your network). Quick and silent:
+  /// anything that doesn't answer within 2 seconds is skipped.
+  Future<List<LocalModel>> discoverLocalModels({String? extraUrl}) async {
+    String clean(String u) => u.endsWith('/') ? u.substring(0, u.length - 1) : u;
+    final ollamaUrls = {
+      'http://localhost:11434',
+      if (extraUrl != null && extraUrl.trim().isNotEmpty) clean(extraUrl.trim()),
+    };
+    final lmStudioUrls = {'http://localhost:1234'};
+
+    Future<List<LocalModel>> ollama(String base) async {
+      try {
+        final res = await http
+            .get(Uri.parse('$base/api/tags'))
+            .timeout(const Duration(seconds: 2));
+        if (res.statusCode != 200) return const [];
+        final models = (json.decode(res.body)['models'] as List? ?? const []);
+        return [
+          for (final m in models.whereType<Map>())
+            if ((m['name'] ?? '').toString().isNotEmpty)
+              LocalModel(
+                name: m['name'].toString(),
+                runner: 'Ollama',
+                provider: AiProvider.ollama,
+                baseUrl: base,
+              ),
+        ];
+      } catch (_) {
+        return const [];
+      }
+    }
+
+    Future<List<LocalModel>> lmStudio(String base) async {
+      try {
+        final res = await http
+            .get(Uri.parse('$base/v1/models'))
+            .timeout(const Duration(seconds: 2));
+        if (res.statusCode != 200) return const [];
+        final models = (json.decode(res.body)['data'] as List? ?? const []);
+        return [
+          for (final m in models.whereType<Map>())
+            if ((m['id'] ?? '').toString().isNotEmpty &&
+                !m['id'].toString().contains('embed'))
+              LocalModel(
+                name: m['id'].toString(),
+                runner: 'LM Studio',
+                provider: AiProvider.openAiCompatible,
+                baseUrl: base,
+              ),
+        ];
+      } catch (_) {
+        return const [];
+      }
+    }
+
+    final results = await Future.wait([
+      for (final u in ollamaUrls) ollama(u),
+      for (final u in lmStudioUrls) lmStudio(u),
+    ]);
+    return results.expand((r) => r).toList();
   }
 
   /// A tiny request to check the settings work.

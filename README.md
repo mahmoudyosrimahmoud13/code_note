@@ -58,7 +58,19 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 - **Trash** keeps deleted notes for 30 days, then removes them and their images for good. Every swipe has **Undo**.
 - **Reminders** list for notes you need to come back to.
 
+### AI that respects your privacy
+- **✨ Explain code, find bugs, suggest improvements** on any code block, and **save the answer into the note**.
+- Use **Claude**, any **OpenAI-compatible** API, or run fully offline with **Ollama** or **LM Studio**. CodeNote finds your local models automatically.
+- Off until you set it up. Only the block you ask about is sent, and your key never leaves the device.
+
+### Your notes are safe
+- **Backup and restore:** every note, folder and image in one `.codenote` file. Restoring merges and never deletes.
+- **Daily backup to a folder** (Windows, Linux): point it at Dropbox, Google Drive, Syncthing or a Git repo to sync between computers.
+- **Update check:** you hear about new versions, and can turn it off.
+
 ### Built for developers
+- **Command palette (Ctrl+K):** every action, note and folder from the keyboard. Plus **Ctrl+N** new note and **Ctrl+F** search.
+- **Share code as an image** with nice backgrounds, ready for X, LinkedIn or Discord.
 - **Share into CodeNote** on Android: share text, a link, a photo or a code file from any app. Files like `.py`, `.dart`, `.js`, `.sql` become code blocks with the right language. `.md` becomes markdown.
 - **Open with CodeNote** for source files from your file manager.
 - **Share out** a note as text, as a `.txt`, or as a source file (`.py`, `.dart`, ...).
@@ -72,15 +84,9 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ---
 
-## What's new in 1.2.0
+## What's new
 
-- **Faster:** each note is saved on its own instead of rewriting every note on each keystroke, and the app no longer slows down the longer it runs.
-- **No lost edits:** your last keystrokes are saved when you leave a note, and archiving or trashing from inside a note keeps your latest changes.
-- **Delete forever actually deletes** (it used to only move the note to the trash again). Trash empties itself after 30 days.
-- **Shared items are saved right away**, shared photos are no longer ignored, and `.md` and `.txt` files open as text.
-- **New look with a terminal personality:** prompt-style headers, `// comment` section labels, code previews on cards, a real code font, quieter block controls (one `⋯` menu instead of a row of big buttons), labeled toolbar, new onboarding.
-- **Accessible:** every icon button has a label for screen readers and a tooltip.
-- **Builds for Android, Windows, Linux (.deb and .tar.gz) and macOS** on every push, with signed Android releases that update cleanly.
+See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.4.0: backup and restore, share code as an image, the command palette, update checks, and automatic local AI model discovery.
 
 ---
 
@@ -113,8 +119,9 @@ The build checks all three and stops with a clear message if they don't match.
 ### Releasing
 
 1. Update the version in `pubspec.yaml` and `lib/constants/app_info.dart`.
-2. Commit, then tag and push: `git tag v1.2.0 && git push --tags`.
-3. GitHub Actions builds all four platforms and publishes a release with the files.
+2. Add a `## [x.y.z]` section to `CHANGELOG.md`. It becomes the release notes (the build stops if it's missing).
+3. Commit, then tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+4. GitHub Actions builds all platforms and publishes the release with install steps, all files and `SHA256SUMS.txt`.
 
 ### Android signing (once, by the maintainer)
 

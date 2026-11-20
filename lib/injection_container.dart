@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'features/backup/backup_service.dart';
 import 'features/notes/data/datasources/note_local_data_source.dart';
 import 'features/notes/data/repositories/note_repository_impl.dart';
 import 'features/notes/domain/repositories/note_repository.dart';
@@ -44,6 +45,9 @@ Future<void> init() async {
   sl.registerLazySingleton<NoteLocalDataSource>(
     () => NoteLocalDataSourceImpl(box: sl(instanceName: 'notesBox')),
   );
+
+  //! Backup
+  sl.registerLazySingleton(() => BackupService(sl()));
 
   //! Features - Settings
   // Bloc

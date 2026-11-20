@@ -53,6 +53,10 @@ jobs:
             echo "::error::Tag ${GITHUB_REF#refs/tags/} does not match pubspec version $name"
             exit 1
           fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]] && ! grep -q "^## \[$name\]" CHANGELOG.md; then
+            echo "::error::CHANGELOG.md needs a '## [$name]' section for the release notes"
+            exit 1
+          fi
           echo "version=$name" >> "$GITHUB_OUTPUT"
 
   test:
@@ -210,10 +214,18 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           path: dist
           merge-multiple: true
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum CodeNote-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Release notes from CHANGELOG.md
+        run: bash .github/scripts/release-notes.sh "${{ needs.version.outputs.version }}" > notes.md
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -221,4 +233,5 @@ jobs:
           gh release create "${GITHUB_REF#refs/tags/}" dist/* \
             --repo "$GITHUB_REPOSITORY" \
             --title "CodeNote ${{ needs.version.outputs.version }}" \
-            --generate-notes
+            --notes-file notes.md \
+            --latest

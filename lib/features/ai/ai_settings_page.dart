@@ -19,6 +19,9 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
   String? _testResult;
   bool _testOk = false;
 
+  List<LocalModel>? _localModels;
+  bool _scanning = false;
+
   final _keyController = TextEditingController();
   final _modelController = TextEditingController();
   final _urlController = TextEditingController();
@@ -35,6 +38,36 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
         _urlController.text = s.baseUrl;
         _loading = false;
       });
+      _scan();
+    });
+  }
+
+  /// Finds Ollama and LM Studio models on this computer.
+  Future<void> _scan() async {
+    setState(() => _scanning = true);
+    final found = await AiService.instance.discoverLocalModels(
+      extraUrl: _settings.provider == AiProvider.ollama ? _urlController.text : null,
+    );
+    if (!mounted) return;
+    setState(() {
+      _localModels = found;
+      _scanning = false;
+    });
+  }
+
+  Future<void> _useLocal(LocalModel m) async {
+    _modelController.text = m.name;
+    _urlController.text =
+        m.baseUrl == m.provider.defaultBaseUrl ? '' : m.baseUrl;
+    await _save(_current.copyWith(
+      provider: m.provider,
+      model: m.name,
+      baseUrl: _urlController.text,
+      enabled: true,
+    ));
+    setState(() {
+      _testOk = true;
+      _testResult = 'Using ${m.name} from ${m.runner}. Nothing leaves this computer.';
     });
   }
 
@@ -123,6 +156,51 @@ class _AiSettingsPageState extends State<AiSettingsPage> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Text('// local models',
+                            style: monoStyle(context,
+                                size: 12, weight: FontWeight.w700, color: color.primary)),
+                        const Spacer(),
+                        TextButton.icon(
+                          onPressed: _scanning ? null : _scan,
+                          icon: _scanning
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(strokeWidth: 2))
+                              : const Icon(Icons.radar_rounded, size: 18),
+                          label: Text(_scanning ? 'Looking…' : 'Scan again'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    if (_localModels != null && _localModels!.isEmpty && !_scanning)
+                      Text(
+                        'No local models found. Install Ollama (ollama.com) or LM Studio, '
+                        'download a model, then tap Scan again.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: tokens.subtle),
+                      )
+                    else if (_localModels != null)
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          for (final m in _localModels!)
+                            ChoiceChip(
+                              avatar: Icon(Icons.memory_rounded,
+                                  size: 16, color: tokens.success),
+                              label: Text('${m.name} · ${m.runner}'),
+                              selected: _settings.provider == m.provider &&
+                                  _settings.effectiveModel == m.name,
+                              onSelected: (_) => _useLocal(m),
+                            ),
+                        ],
+                      ),
                     const SizedBox(height: 24),
                     Text('// provider',
                         style: monoStyle(context,
