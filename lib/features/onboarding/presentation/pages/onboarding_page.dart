@@ -5,12 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../constants/themes.dart';
 import '../../../../widgets/brand.dart';
-import '../../../notes/presentation/bloc/note_bloc.dart';
-import '../../../notes/presentation/bloc/note_event.dart';
-import '../../../notes/presentation/bloc/note_group_bloc.dart';
-import '../../../notes/presentation/bloc/note_group_event.dart';
-import '../../../notes/presentation/bloc/note_state.dart';
-import '../../demo_content.dart';
+import '../../sample_notes.dart';
 import '../../../settings/presentation/bloc/settings_bloc.dart';
 import '../../../settings/presentation/bloc/settings_event.dart';
 import '../../../settings/presentation/bloc/settings_state.dart';
@@ -69,19 +64,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   /// First launch only: add sample notes and folders, unless notes already
   /// exist (for example after updating from an older version).
-  void _addDemoContent() {
-    final noteBloc = context.read<NoteBloc>();
-    final state = noteBloc.state;
-    if (state is NoteLoaded && state.notes.isNotEmpty) return;
-    final demo = DemoContent.build();
-    for (final note in demo.notes) {
-      noteBloc.add(AddNoteEvent(note));
-    }
-    final groupBloc = context.read<NoteGroupBloc>();
-    for (final group in demo.groups) {
-      groupBloc.add(AddGroupEvent(group));
-    }
-  }
+  void _addDemoContent() => addSampleNotes(context, onlyIfEmpty: true);
 
   void _next() {
     if (_page == _pages.length - 1) {

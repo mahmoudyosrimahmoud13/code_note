@@ -7,6 +7,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../constants/app_info.dart';
 import '../../../ai/ai_settings_page.dart';
+import '../../../onboarding/sample_notes.dart';
+import '../../../../helpers/helper_methods.dart';
 import '../../../backup/backup_page.dart';
 import '../../../../core/services/update_dialog.dart';
 import '../../../../core/services/update_service.dart';
@@ -148,6 +150,20 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 32),
                     _buildSectionHeader('Management', textTheme, color),
                     const SizedBox(height: 16),
+                    _buildSettingTile(
+                        'Add sample notes',
+                        'Example notes for code, Markdown, web pages and cheat sheets. Notes you already have are kept',
+                        Icons.auto_stories_outlined,
+                        color.primary,
+                        onTap: () {
+                          final added = addSampleNotes(context);
+                          showMessage(
+                              message: added == 0
+                                  ? 'You already have all the sample notes.'
+                                  : 'Added $added sample notes.');
+                        },
+                        color: color),
+                    const SizedBox(height: 12),
                     _buildSettingTile(
                         'Clear All Data',
                         'Delete all local notes and settings',

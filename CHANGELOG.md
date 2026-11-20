@@ -3,6 +3,15 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.5.2] - 2026-11-20
+
+### Fixed
+- **Line numbers in code blocks no longer break apart.** From line 10 on, numbers like 42 were split onto two rows ("4" then "2"), so the number column ran far below the code. It was worse with bigger text. The column now grows to fit the longest number, and follows your text size.
+
+### New
+- **14 more sample notes:** a web page you can run with ▶, LeetCode Two Sum, a dev log, JavaScript, TypeScript, Go, C++, Kotlin, Docker, GitHub Actions, Linux ports, regex and Big-O cheat sheets, and a JSON example. New `interview` and `devops` folders.
+- **Settings → Add sample notes** adds them any time. Notes you already have are kept and never copied twice.
+
 ## [1.5.1] - 2026-11-20
 
 ### Fixed

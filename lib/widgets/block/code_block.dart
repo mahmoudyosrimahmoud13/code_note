@@ -40,6 +40,21 @@ class _CodeBlockState extends State<CodeBlock> {
   final FocusNode _focusNode = FocusNode();
   late Language _language;
 
+  /// How many digits the biggest line number has. The gutter grows when
+  /// it changes (9 to 10 lines, 99 to 100), so numbers never wrap.
+  int _digits = 1;
+
+  /// flutter_code_editor takes 16 px for the error column and 16 px for
+  /// the folding column out of the gutter width, even when both are
+  /// hidden. Without adding them back, the numbers get almost no room and
+  /// two-digit numbers wrap onto two rows.
+  static const _hiddenGutterColumns = 32.0;
+  static const _gutterMargin = 8.0;
+  static const _gutterFontSize = 12.0;
+
+  static int _digitsFor(String text) =>
+      ('\n'.allMatches(text).length + 1).toString().length;
+
   /// Symbols that are slow to reach on a phone keyboard.
   /// The second value is how far to step back so the cursor lands inside.
   static const _symbols = <(String, int)>[
@@ -66,14 +81,36 @@ class _CodeBlockState extends State<CodeBlock> {
       text: widget.text ?? '',
       language: languageInfo(_language).mode,
     );
+    _digits = _digitsFor(_controller.text);
+    _controller.addListener(_onTextChanged);
     // Only show the symbol bar while editing.
     _focusNode.addListener(() {
       if (mounted) setState(() {});
     });
   }
 
+  void _onTextChanged() {
+    final digits = _digitsFor(_controller.text);
+    if (digits != _digits && mounted) setState(() => _digits = digits);
+  }
+
+  /// Width of the line number column: enough for the widest number, at
+  /// least two digits so it doesn't jump at line 10.
+  double _gutterWidth(BuildContext context) {
+    final style = monoStyle(context, size: _gutterFontSize);
+    final painter = TextPainter(
+      text: TextSpan(text: '0' * (_digits < 2 ? 2 : _digits), style: style),
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout();
+    final width = painter.width;
+    painter.dispose();
+    return _hiddenGutterColumns + _gutterMargin + width + 6;
+  }
+
   @override
   void dispose() {
+    _controller.removeListener(_onTextChanged);
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -231,12 +268,13 @@ class _CodeBlockState extends State<CodeBlock> {
               textStyle: monoStyle(context, size: 13.5),
               padding: const EdgeInsets.only(bottom: 12, right: 8),
               gutterStyle: GutterStyle(
-                width: 44,
-                margin: 8,
+                width: _gutterWidth(context),
+                margin: _gutterMargin,
                 showFoldingHandles: false,
                 showErrors: false,
                 textStyle: monoStyle(context,
-                    size: 12, color: tokens.subtle.withAlpha(150)),
+                    size: _gutterFontSize,
+                    color: tokens.subtle.withAlpha(150)),
               ),
               onChanged: (_) => _notify(),
             ),

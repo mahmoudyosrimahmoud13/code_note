@@ -1,4 +1,5 @@
 import 'package:code_note/core/util/code_languages.dart';
+import 'package:code_note/features/notes/domain/entities/block.dart';
 import 'package:code_note/features/notes/domain/entities/language.dart';
 import 'package:code_note/features/onboarding/demo_content.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,5 +40,22 @@ void main() {
       expect(ids.containsAll(group.noteIds), isTrue);
     }
     expect(demo.notes.where((n) => n.isPinned), isNotEmpty);
+  });
+
+  test('sample notes have unique titles and code in every code block', () {
+    final demo = DemoContent.build();
+    final titles = demo.notes.map((n) => n.title.toLowerCase()).toList();
+    expect(titles.toSet().length, titles.length);
+    for (final note in demo.notes) {
+      for (final block in note.blocks.whereType<CodeBlockEntity>()) {
+        expect(block.text?.trim(), isNotEmpty, reason: note.title);
+      }
+    }
+  });
+
+  test('a sample note sits in at most one folder', () {
+    final demo = DemoContent.build();
+    final all = [for (final g in demo.groups) ...g.noteIds];
+    expect(all.toSet().length, all.length);
   });
 }
