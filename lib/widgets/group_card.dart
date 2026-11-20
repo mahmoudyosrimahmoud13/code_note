@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../constants/themes.dart';
+import '../core/util/markdown_preview.dart';
 import '../features/notes/domain/entities/block.dart';
 import '../features/notes/domain/entities/note.dart';
 import '../features/notes/domain/entities/note_group.dart';
@@ -231,9 +232,14 @@ class _MiniNotePreview extends StatelessWidget {
       );
     }
 
-    final text = note.blocks
-        .map((b) => b is ImageBlockEntity ? '' : (b.text ?? '').trim())
-        .firstWhere((t) => t.isNotEmpty, orElse: () => '');
+    BlockEntity? textBlock;
+    for (final b in note.blocks) {
+      if (b is! ImageBlockEntity && (b.text ?? '').trim().isNotEmpty) {
+        textBlock = b;
+        break;
+      }
+    }
+    final text = (textBlock?.text ?? '').trim();
     return Container(
       padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
@@ -252,12 +258,14 @@ class _MiniNotePreview extends StatelessWidget {
                   ?.copyWith(fontWeight: FontWeight.w700, fontSize: 9.5)),
           const SizedBox(height: 2),
           Expanded(
-            child: Text(
-              text,
-              overflow: TextOverflow.fade,
-              style: TextStyle(
-                  fontSize: 8, height: 1.3, color: color.onSurfaceVariant),
-            ),
+            child: textBlock is MarkdownBlockEntity
+                ? ClipRect(child: MarkdownPreviewText(text, maxLines: 6, fontSize: 8))
+                : Text(
+                    text,
+                    overflow: TextOverflow.fade,
+                    style: TextStyle(
+                        fontSize: 8, height: 1.3, color: color.onSurfaceVariant),
+                  ),
           ),
         ],
       ),

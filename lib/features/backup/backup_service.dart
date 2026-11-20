@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import '../../constants/app_info.dart';
 import '../../core/services/log_service.dart';
 import '../../core/util/image_helper.dart';
+import '../miniapps/mini_app_storage.dart';
 import '../notes/data/models/note_group_model.dart';
 import '../notes/data/models/note_model.dart';
 import '../notes/domain/entities/block.dart';
@@ -109,6 +110,7 @@ class BackupService {
       'notes': [for (final n in notes) NoteModel.fromEntity(n).toJson()],
       'groups': [for (final g in groups) NoteGroupModel.fromEntity(g).toJson()],
       'images': images,
+      'appData': await MiniAppStorage.instance.exportAll(),
     };
     return Uint8List.fromList(utf8.encode(json.encode(data)));
   }
@@ -173,6 +175,12 @@ class BackupService {
       } else {
         kept++;
       }
+    }
+
+    // Saved data of runnable notes (mini apps). Kept if this device has some.
+    final appData = data['appData'];
+    if (appData is Map) {
+      await MiniAppStorage.instance.importAll(Map<String, dynamic>.from(appData));
     }
 
     // 3. Merge folders: add missing ones, combine the notes inside.

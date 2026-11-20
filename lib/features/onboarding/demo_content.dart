@@ -3,6 +3,7 @@ import '../notes/domain/entities/block.dart';
 import '../notes/domain/entities/language.dart';
 import '../notes/domain/entities/note.dart';
 import '../notes/domain/entities/note_group.dart';
+import 'runner_demos.dart';
 
 /// Sample notes and folders created on first launch, so the app isn't
 /// empty and every feature has an example. People can delete them anytime.
@@ -46,7 +47,8 @@ class DemoContent {
 - Swipe a note **right to archive**, **left to trash**. Every swipe has Undo.
 - Tap a **#tag** on the home screen to filter.
 - In a code block, tap the language name to pick from 58 languages.
-- Notes with HTML, CSS or JS get a **▶** button that runs them.
+- Notes with HTML, CSS or JS get a **▶** button that runs them, and Python or Bash blocks run with their own **▶**.
+- Press **▶ Run folder** on a folder to start everything in it (see **youtube-downloader** and **fastapi-todo**).
 - Press **Ctrl+K** on a computer for every action.
 - Want these examples back later? **Settings → Add sample notes**.
 
@@ -479,13 +481,14 @@ Binary search: **O(log n)** on a sorted list.'''),
       ),
     ];
 
+    final runnable = RunnerDemos.build();
     return (
       notes: [
         startHere, webDemo, rust, twoSum, git, devLog, python, javascript,
         typescript, flutter, go, cpp, sql, kotlin, markdown, docker,
-        actions, linux, regex, json, bigO,
+        actions, linux, regex, json, bigO, ...runnable.notes,
       ],
-      groups: groups,
+      groups: [...groups, ...runnable.groups],
     );
   }
 }

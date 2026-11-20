@@ -17,6 +17,9 @@ import '../../../../widgets/note_navigation_bar.dart';
 import '../../../reminders/reminder_service.dart';
 import '../../../templates/templates.dart';
 import '../../../gist/gist_page.dart';
+import '../../../miniapps/mini_app_storage.dart';
+import '../../../runner/note_scope.dart';
+import '../../../runner/sandbox.dart';
 import '../../domain/entities/block.dart';
 import '../../domain/entities/note.dart';
 import '../bloc/note_bloc.dart';
@@ -115,6 +118,40 @@ class _NotePageState extends State<NotePage> {
       _tags.isEmpty &&
       _reminder == null &&
       _blocks.every((b) => b is! ImageBlockEntity && (b.text ?? '').trim().isEmpty);
+
+  /// This note's sandbox: shared with the other notes in its folder.
+  String _spaceKey() {
+    final state = context.read<NoteGroupBloc>().state;
+    String? folderId = widget.groupId;
+    if (state is NoteGroupLoaded) {
+      for (final g in state.groups) {
+        if (g.noteIds.contains(widget.note.id)) {
+          folderId = g.id;
+          break;
+        }
+      }
+    }
+    return Sandbox.keyFor(noteId: widget.note.id, folderId: folderId);
+  }
+
+  Future<void> _resetAppData() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Reset saved app data?'),
+        content: const Text(
+            'Everything this page saved (scores, settings, lists) is deleted. The note itself stays.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(c, true), child: const Text('Reset')),
+        ],
+      ),
+    );
+    if (ok != true) return;
+    await MiniAppStorage.instance.clear(widget.note.id);
+    messenger.showSnackBar(const SnackBar(content: Text('Saved app data cleared.'), persist: false));
+  }
 
   Future<void> _saveAsTemplate() async {
     final messenger = ScaffoldMessenger.of(context);
@@ -269,6 +306,18 @@ class _NotePageState extends State<NotePage> {
     if (index == -1) return;
     final couldPreview = WebPreview.canPreview(_blocks);
     _blocks[index] = updated;
+    // Only one main block per note: picking a new one clears the old one.
+    if (updated is CodeBlockEntity && updated.runRole == RunRole.main) {
+      var demoted = false;
+      for (var i = 0; i < _blocks.length; i++) {
+        final b = _blocks[i];
+        if (i != index && b is CodeBlockEntity && b.runRole == RunRole.main) {
+          _blocks[i] = b.copyWith(runRole: RunRole.normal);
+          demoted = true;
+        }
+      }
+      if (demoted) setState(() {});
+    }
     // Rebuild only when the ▶ preview button should appear or disappear.
     if (couldPreview != WebPreview.canPreview(_blocks)) setState(() {});
     _changed();
@@ -542,7 +591,7 @@ class _NotePageState extends State<NotePage> {
               IconButton(
                 tooltip: 'Run preview (HTML, CSS, JS)',
                 icon: Icon(Icons.play_arrow_rounded, color: tokens.success),
-                onPressed: () => WebPreview.open(context, _currentNote()),
+                onPressed: () => WebPreview.open(context, _currentNote(), spaceKey: _spaceKey()),
               ),
             IconButton(
               tooltip: _reminder == null ? 'Add reminder' : 'Edit reminder',
@@ -574,6 +623,8 @@ class _NotePageState extends State<NotePage> {
                     _saveAsTemplate();
                   case 'gist':
                     exportNoteToGist(context, _currentNote());
+                  case 'appdata':
+                    _resetAppData();
                   case 'archive':
                     _toggleArchive();
                   case 'trash':
@@ -605,6 +656,15 @@ class _NotePageState extends State<NotePage> {
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
+                if (WebPreview.canPreview(_blocks))
+                  const PopupMenuItem(
+                    value: 'appdata',
+                    child: ListTile(
+                      leading: Icon(Icons.restart_alt_rounded),
+                      title: Text('Reset saved app data'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
                 const PopupMenuItem(
                   value: 'gist',
                   child: ListTile(
@@ -637,7 +697,11 @@ class _NotePageState extends State<NotePage> {
             const SizedBox(width: 4),
           ],
         ),
-        body: Column(
+        body: NoteScope(
+          noteId: widget.note.id,
+          spaceKey: _spaceKey(),
+          title: _titleController.text,
+          child: Column(
           children: [
             Expanded(
               child: Align(
@@ -817,6 +881,7 @@ class _NotePageState extends State<NotePage> {
                   : null,
             ),
           ],
+        ),
         ),
       ),
     );

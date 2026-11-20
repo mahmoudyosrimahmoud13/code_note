@@ -65,13 +65,27 @@ class MarkdownBlockEntity extends BlockEntity {
   }
 }
 
+/// What "Run folder" does with a code block.
+enum RunRole {
+  /// Runs in order with the note's other blocks.
+  normal,
+
+  /// The note's primary block: Run folder runs only this one.
+  main,
+
+  /// Never started by Run folder (still runs with its own ▶).
+  skip,
+}
+
 class CodeBlockEntity extends BlockEntity {
   final Language language;
+  final RunRole runRole;
 
   const CodeBlockEntity({
     required super.id,
     super.text,
     this.language = Language.python,
+    this.runRole = RunRole.normal,
   }) : super(type: BlockType.code);
 
   @override
@@ -80,16 +94,18 @@ class CodeBlockEntity extends BlockEntity {
     String? text,
     String? imagePath,
     Language? language,
+    RunRole? runRole,
   }) {
     return CodeBlockEntity(
       id: id ?? this.id,
       text: text ?? this.text,
       language: language ?? this.language,
+      runRole: runRole ?? this.runRole,
     );
   }
 
   @override
-  List<Object?> get props => [id, text, language, type];
+  List<Object?> get props => [id, text, language, type, runRole];
 }
 
 class ImageBlockEntity extends BlockEntity {

@@ -49,6 +49,7 @@ class DesktopSidebar extends StatelessWidget {
     this.onNewFromTemplate,
     this.onAskNotes,
     this.onGist,
+    this.onTerminal,
   });
 
   final List<SidebarView> views;
@@ -67,6 +68,7 @@ class DesktopSidebar extends StatelessWidget {
   final VoidCallback? onNewFromTemplate;
   final VoidCallback? onAskNotes;
   final VoidCallback? onGist;
+  final VoidCallback? onTerminal;
 
   @override
   Widget build(BuildContext context) {
@@ -142,6 +144,11 @@ class DesktopSidebar extends StatelessWidget {
                   Expanded(
                     child: _ToolButton(
                         icon: Icons.download_rounded, label: 'gist', onTap: onGist!),
+                  ),
+                if (onTerminal != null)
+                  Expanded(
+                    child: _ToolButton(
+                        icon: Icons.terminal_rounded, label: 'shell', onTap: onTerminal!),
                   ),
               ],
             ),
@@ -401,6 +408,7 @@ class _ToolButton extends StatelessWidget {
       message: switch (label) {
         'template' => 'New from template',
         'ask' => 'Ask your notes (AI)',
+        'shell' => 'Terminal (sandboxed)',
         _ => 'Import from GitHub Gist',
       },
       child: InkWell(

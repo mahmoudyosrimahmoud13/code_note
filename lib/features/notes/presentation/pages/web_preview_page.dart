@@ -9,6 +9,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 import '../../domain/entities/block.dart';
 import '../../domain/entities/language.dart';
 import '../../domain/entities/note.dart';
+import '../../../miniapps/mini_app_server.dart';
 
 /// Live preview for notes with HTML, CSS and JavaScript blocks.
 class WebPreview {
@@ -57,30 +58,58 @@ $script
 </html>''';
   }
 
-  /// Opens the preview: inside the app on phones, in the browser on desktop.
-  static Future<void> open(BuildContext context, NoteEntity note) async {
+  /// Runs the note: inside the app on phones, in the browser on desktop.
+  /// Pages can save data with localStorage or codenote.storage; it's kept
+  /// per note by CodeNote.
+  static Future<void> open(BuildContext context, NoteEntity note, {String? spaceKey}) async {
     final doc = buildDocument(note.title.isEmpty ? 'Preview' : note.title, note.blocks);
+    final messenger = ScaffoldMessenger.of(context);
+    final url = kIsWeb ? null : await MiniAppServer.instance.serve(note.id, doc, spaceKey: spaceKey);
+    if (!context.mounted) return;
+    if (url == null) {
+      messenger.showSnackBar(const SnackBar(
+        content: Text("Running without saving: CodeNote couldn't start its local page server."),
+        persist: false,
+      ));
+    }
     if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => _WebPreviewPage(title: note.title, html: doc)),
+        MaterialPageRoute(
+            builder: (_) => _WebPreviewPage(
+                title: note.title,
+                url: url,
+                html: MiniAppServer.injectBridge(doc, MiniAppServer.bridgeScript(data: const {})))),
       );
       return;
     }
-    final dir = await getTemporaryDirectory();
-    final file = File('${dir.path}/codenote-preview.html');
-    await file.writeAsString(doc, flush: true);
-    final ok = await launchUrl(Uri.file(file.path));
-    if (!ok && context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Couldn't open a browser for the preview.")));
+    Uri target;
+    if (url != null) {
+      target = url;
+    } else {
+      final dir = await getTemporaryDirectory();
+      final file = File('${dir.path}/codenote-preview.html');
+      await file.writeAsString(
+          MiniAppServer.injectBridge(doc, MiniAppServer.bridgeScript(data: const {})),
+          flush: true);
+      target = Uri.file(file.path);
+    }
+    final ok = await launchUrl(target);
+    if (!ok) {
+      messenger.showSnackBar(
+          const SnackBar(content: Text("Couldn't open a browser for the preview."), persist: false));
     }
   }
 }
 
 class _WebPreviewPage extends StatefulWidget {
-  const _WebPreviewPage({required this.title, required this.html});
+  const _WebPreviewPage({required this.title, required this.url, required this.html});
   final String title;
+
+  /// The page on CodeNote's local server, so it can save data.
+  final Uri? url;
+
+  /// Fallback when the server isn't available.
   final String html;
 
   @override
@@ -89,8 +118,22 @@ class _WebPreviewPage extends StatefulWidget {
 
 class _WebPreviewPageState extends State<_WebPreviewPage> {
   late final WebViewController _controller = WebViewController()
-    ..setJavaScriptMode(JavaScriptMode.unrestricted)
-    ..loadHtmlString(widget.html);
+    ..setJavaScriptMode(JavaScriptMode.unrestricted);
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  void _load() {
+    final url = widget.url;
+    if (url != null) {
+      _controller.loadRequest(url);
+    } else {
+      _controller.loadHtmlString(widget.html);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -101,11 +144,11 @@ class _WebPreviewPageState extends State<_WebPreviewPage> {
           IconButton(
             tooltip: 'Run again',
             icon: const Icon(Icons.refresh_rounded),
-            onPressed: () => _controller.loadHtmlString(widget.html),
+            onPressed: _load,
           ),
         ],
       ),
-      body: WebViewWidget(controller: _controller),
+      body: SafeArea(top: false, child: WebViewWidget(controller: _controller)),
     );
   }
 }

@@ -17,6 +17,10 @@ import '../../../reminders/reminder_service.dart';
 import '../../../templates/templates.dart';
 import '../../../ai/ask_notes_page.dart';
 import '../../../gist/gist_page.dart';
+import '../../../runner/run_manager.dart';
+import '../../../runner/runtimes_page.dart';
+import '../../../runner/sandbox.dart';
+import '../../../runner/terminal_page.dart';
 import '../../domain/repositories/note_repository.dart';
 import 'package:intl/intl.dart';
 import '../../../../helpers/helper_methods.dart';
@@ -369,6 +373,12 @@ class _HomePageState extends State<HomePage> {
       PaletteItem(label: 'New from template', icon: Icons.dashboard_customize_outlined, run: _addFromTemplate, keywords: 'template bug devlog leetcode meeting api snippet'),
       PaletteItem(label: 'Ask your notes', icon: Icons.forum_outlined, run: () => _openPage(const AskNotesPage()), keywords: 'ai question chat search'),
       PaletteItem(label: 'Import from GitHub Gist', icon: Icons.download_rounded, run: () => _openPage(const GistPage()), keywords: 'gist github import export'),
+      if (Sandbox.supported) ...[
+        PaletteItem(label: 'Terminal', icon: Icons.terminal_rounded, run: () => _openPage(const TerminalPage()), keywords: 'shell bash console command line'),
+        PaletteItem(label: 'Runtimes and sandbox', icon: Icons.tune_rounded, run: () => _openPage(const RuntimesPage()), keywords: 'python pip packages bash install update sandbox'),
+        if (RunManager.instance.running.isNotEmpty)
+          PaletteItem(label: 'Stop all running code (${RunManager.instance.running.length})', icon: Icons.stop_circle_outlined, run: RunManager.instance.stopAll, keywords: 'kill server'),
+      ],
       PaletteItem(label: 'New folder', icon: Icons.create_new_folder_outlined, run: _createGroup, keywords: 'group create'),
       PaletteItem(label: 'Search notes', icon: Icons.search_rounded, hint: 'Ctrl+F', run: _openSearch, keywords: 'find grep'),
       for (final view in HomeView.values)
@@ -482,6 +492,7 @@ class _HomePageState extends State<HomePage> {
       onNewFromTemplate: _addFromTemplate,
       onAskNotes: () => _openPage(const AskNotesPage()),
       onGist: () => _openPage(const GistPage()),
+      onTerminal: Sandbox.supported ? () => _openPage(const TerminalPage()) : null,
       onSearch: _openSearch,
       onOpenSettings: () => Navigator.push(
           context, MaterialPageRoute(builder: (_) => const SettingsPage())),

@@ -13,6 +13,10 @@ import '../../core/util/note_share_helper.dart';
 import '../../features/notes/domain/entities/block.dart';
 import '../../features/notes/domain/entities/language.dart';
 import '../../helpers/helper_methods.dart';
+import '../../features/runner/code_runner.dart';
+import '../../features/runner/note_scope.dart';
+import '../../features/runner/run_manager.dart';
+import '../../features/runner/run_panel.dart';
 import '../language_drop_down.dart';
 import 'block.dart';
 import 'block_frame.dart';
@@ -77,6 +81,7 @@ class _CodeBlockState extends State<CodeBlock> {
   void initState() {
     super.initState();
     _language = widget.codeEntity.language;
+    _runRole = widget.codeEntity.runRole;
     _controller = CodeController(
       text: widget.text ?? '',
       language: languageInfo(_language).mode,
@@ -118,8 +123,32 @@ class _CodeBlockState extends State<CodeBlock> {
 
   void _notify() {
     widget.onChanged?.call(
-      widget.codeEntity.copyWith(text: _controller.text, language: _language),
+      widget.codeEntity.copyWith(text: _controller.text, language: _language, runRole: _runRole),
     );
+  }
+
+  /// What Run folder does with this block (see [RunRole]).
+  RunRole _runRole = RunRole.normal;
+
+  @override
+  void didUpdateWidget(covariant CodeBlock oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Another block became the note's main block, so this one isn't any more.
+    final role = widget.codeEntity.runRole;
+    if (role != oldWidget.codeEntity.runRole && role != _runRole) {
+      setState(() => _runRole = role);
+    }
+  }
+
+  void _setRunRole(RunRole role) {
+    setState(() => _runRole = _runRole == role ? RunRole.normal : role);
+    _notify();
+    showMessage(
+        message: switch (_runRole) {
+      RunRole.main => 'Main block: Run folder runs only this block in this note.',
+      RunRole.skip => 'Run folder will skip this block. Its own ▶ still works.',
+      RunRole.normal => 'Run folder runs this block in order again.',
+    });
   }
 
   /// Puts [symbol] where the cursor is (not at the end of the code),
@@ -164,6 +193,35 @@ class _CodeBlockState extends State<CodeBlock> {
     }
   }
 
+  void _run() {
+    final scope = NoteScope.of(context);
+    if (scope == null) return;
+    final code = _controller.text;
+    if (code.trim().isEmpty) {
+      showMessage(message: 'Write some code first.');
+      return;
+    }
+    RunManager.instance.run(
+      blockId: widget.id,
+      title: scope.title,
+      spaceKey: scope.spaceKey,
+      language: _language,
+      code: code,
+    );
+  }
+
+  void _saveOutput(String output) {
+    final text = output.trimRight();
+    if (text.isEmpty) return;
+    const limit = 20000;
+    final cut = text.length > limit ? '${text.substring(text.length - limit)}\n…' : text;
+    widget.onInsertAfter!(
+      widget.id,
+      MarkdownBlockEntity(id: const Uuid().v4(), text: '**Output**\n\n```text\n$cut\n```'),
+    );
+    showMessage(message: 'Output saved under the code block.');
+  }
+
   void _copy() {
     Clipboard.setData(ClipboardData(text: _controller.text));
     HapticFeedback.lightImpact();
@@ -197,7 +255,8 @@ class _CodeBlockState extends State<CodeBlock> {
               icon: Icons.code_rounded,
               leading: Align(
                 alignment: Alignment.centerLeft,
-                child: LanguageDropDown(
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                 LanguageDropDown(
                   language: _language,
                   selectLanguage: (lang) {
                     if (lang == null) return;
@@ -208,8 +267,34 @@ class _CodeBlockState extends State<CodeBlock> {
                     _notify();
                   },
                 ),
+                 if (_runRole != RunRole.normal && CodeRunner.canRun(_language))
+                   Padding(
+                     padding: const EdgeInsets.only(left: 4),
+                     child: Tooltip(
+                       message: _runRole == RunRole.main
+                           ? 'Main block: Run folder runs only this one in this note'
+                           : 'Run folder skips this block',
+                       child: Text(_runRole == RunRole.main ? '★ main' : 'skip',
+                           style: monoStyle(context,
+                               size: 11.5,
+                               color: _runRole == RunRole.main ? tokens.pin : tokens.subtle)),
+                     ),
+                   ),
+                ]),
               ),
               quickActions: [
+                if (CodeRunner.canRun(_language) && NoteScope.of(context) != null)
+                  ListenableBuilder(
+                    listenable: RunManager.instance,
+                    builder: (context, _) {
+                      final running = RunManager.instance.sessionFor(widget.id)?.running ?? false;
+                      return BlockQuickAction(
+                        icon: running ? Icons.stop_rounded : Icons.play_arrow_rounded,
+                        tooltip: running ? 'Stop' : 'Run in the sandbox',
+                        onPressed: running ? () => RunManager.instance.sessionFor(widget.id)?.stop() : _run,
+                      );
+                    },
+                  ),
                 PopupMenuButton<AiAction>(
                   tooltip: 'Ask AI about this code',
                   icon: const Text('✨', style: TextStyle(fontSize: 16)),
@@ -226,6 +311,18 @@ class _CodeBlockState extends State<CodeBlock> {
                 ),
               ],
               extraActions: [
+                if (CodeRunner.canRun(_language)) ...[
+                  BlockAction(
+                    label: _runRole == RunRole.main ? 'Unset main block' : '★ Set as main block',
+                    icon: Icons.star_outline_rounded,
+                    onTap: () => _setRunRole(RunRole.main),
+                  ),
+                  BlockAction(
+                    label: _runRole == RunRole.skip ? 'Run with the folder again' : 'Skip when running the folder',
+                    icon: Icons.block_rounded,
+                    onTap: () => _setRunRole(RunRole.skip),
+                  ),
+                ],
                 BlockAction(
                   label: 'Share as image',
                   icon: Icons.image_outlined,
@@ -327,6 +424,17 @@ class _CodeBlockState extends State<CodeBlock> {
                     ),
                   ))
                 : const SizedBox(width: double.infinity),
+          ),
+          ListenableBuilder(
+            listenable: RunManager.instance,
+            builder: (context, _) {
+              final session = RunManager.instance.sessionFor(widget.id);
+              if (session == null) return const SizedBox.shrink();
+              return RunPanel(
+                session: session,
+                onSaveOutput: widget.onInsertAfter == null ? null : _saveOutput,
+              );
+            },
           ),
         ],
       ),

@@ -9,6 +9,9 @@ import '../bloc/note_group_event.dart';
 import '../bloc/note_group_state.dart';
 import '../../../../widgets/home_grid_view.dart';
 import 'note_page.dart';
+import 'web_preview_page.dart';
+import '../../../runner/run_manager.dart';
+import '../../../runner/sandbox.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../../constants/themes.dart';
 import '../../../../widgets/brand.dart';
@@ -55,6 +58,7 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
             title: Text('~/${currentGroup.name}/',
                 style: monoStyle(context, size: 17, weight: FontWeight.w700)),
             actions: [
+              _RunFolderButton(group: currentGroup),
               IconButton(
                 tooltip: 'Rename group',
                 icon: const Icon(Icons.edit_outlined),
@@ -321,6 +325,66 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
           ),
         ],
       ),
+    );
+  }
+}
+
+
+/// ▶ Runs every note in the folder in its shared sandbox: code first
+/// (setup blocks, then servers), then opens the folder's web pages.
+class _RunFolderButton extends StatelessWidget {
+  const _RunFolderButton({required this.group});
+  final NoteGroupEntity group;
+
+  List<NoteEntity> _notes(BuildContext context) {
+    final st = context.read<NoteBloc>().state;
+    if (st is! NoteLoaded) return const [];
+    return st.notes.where((n) => group.noteIds.contains(n.id) && !n.isTrashed).toList();
+  }
+
+  Future<void> _run(BuildContext context) async {
+    final notes = _notes(context);
+    final pages = notes.where((n) => WebPreview.canPreview(n.blocks)).toList();
+    final spaceKey = Sandbox.keyFor(noteId: '', folderId: group.id);
+    final messenger = ScaffoldMessenger.of(context);
+    if (RunManager.runnable(notes).isEmpty && pages.isEmpty) {
+      messenger.showSnackBar(const SnackBar(
+          content: Text('Nothing to run here. Add Python, Bash or web code to a note.'), persist: false));
+      return;
+    }
+    messenger.showSnackBar(SnackBar(
+        content: Text('Running ~/${group.name}/ …'), persist: false, duration: const Duration(seconds: 2)));
+    final problem = await RunManager.instance.runFolder(notes, spaceKey);
+    if (problem != null) {
+      messenger.showSnackBar(SnackBar(content: Text(problem), persist: false));
+      return;
+    }
+    if (pages.isEmpty || !context.mounted) return;
+    // Give servers a moment to start before the pages call them.
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!context.mounted) return;
+    final phone = Theme.of(context).platform == TargetPlatform.android ||
+        Theme.of(context).platform == TargetPlatform.iOS;
+    for (final page in phone ? pages.take(1) : pages) {
+      if (!context.mounted) return;
+      await WebPreview.open(context, page, spaceKey: spaceKey);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListenableBuilder(
+      listenable: RunManager.instance,
+      builder: (context, _) {
+        final notes = _notes(context);
+        final running = RunManager.instance.folderRunning(notes);
+        return IconButton(
+          tooltip: running ? 'Stop everything in this folder' : 'Run folder (code, then web pages)',
+          icon: Icon(running ? Icons.stop_circle_outlined : Icons.play_arrow_rounded,
+              color: running ? Theme.of(context).colorScheme.error : context.tokens.success),
+          onPressed: () => running ? RunManager.instance.stopFolder(notes) : _run(context),
+        );
+      },
     );
   }
 }

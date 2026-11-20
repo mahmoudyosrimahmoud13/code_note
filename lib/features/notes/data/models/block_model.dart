@@ -3,6 +3,7 @@ import '../../domain/entities/language.dart';
 
 class BlockModel extends BlockEntity {
   final Language? language;
+  final RunRole runRole;
 
   const BlockModel({
     required super.id,
@@ -10,20 +11,24 @@ class BlockModel extends BlockEntity {
     super.imagePath,
     required super.type,
     this.language,
+    this.runRole = RunRole.normal,
   });
 
   factory BlockModel.fromEntity(BlockEntity entity) {
     Language? language;
+    var runRole = RunRole.normal;
     if (entity is CodeBlockEntity) {
       language = entity.language;
+      runRole = entity.runRole;
     }
-    
+
     return BlockModel(
       id: entity.id,
       text: entity.text,
       imagePath: entity.imagePath,
       type: entity.type,
       language: language,
+      runRole: runRole,
     );
   }
 
@@ -39,12 +44,19 @@ class BlockModel extends BlockEntity {
       );
     }
 
+    // Older notes have no runRole: they run normally.
+    final runRole = RunRole.values.firstWhere(
+      (r) => r.name == json['runRole'],
+      orElse: () => RunRole.normal,
+    );
+
     return BlockModel(
       id: json['id'],
       text: json['text'],
       imagePath: json['imagePath'],
       type: type,
       language: language,
+      runRole: runRole,
     );
   }
 
@@ -55,6 +67,7 @@ class BlockModel extends BlockEntity {
       'imagePath': imagePath,
       'type': type.toString(),
       'language': language?.toString(),
+      if (runRole != RunRole.normal) 'runRole': runRole.name,
     };
   }
 
@@ -71,6 +84,7 @@ class BlockModel extends BlockEntity {
       imagePath: imagePath ?? this.imagePath,
       type: type,
       language: language ?? this.language,
+      runRole: runRole,
     );
   }
 
@@ -79,7 +93,7 @@ class BlockModel extends BlockEntity {
       case BlockType.note:
         return NoteBlockEntity(id: id, text: text);
       case BlockType.code:
-        return CodeBlockEntity(id: id, text: text, language: language ?? Language.dart);
+        return CodeBlockEntity(id: id, text: text, language: language ?? Language.dart, runRole: runRole);
       case BlockType.image:
         return ImageBlockEntity(id: id, imagePath: imagePath ?? '');
       case BlockType.markdown:

@@ -8,6 +8,7 @@ import 'package:intl/intl.dart';
 
 import '../constants/themes.dart';
 import '../core/util/code_languages.dart';
+import '../core/util/markdown_preview.dart';
 import '../features/notes/domain/entities/block.dart';
 import '../features/notes/domain/entities/language.dart';
 import '../features/notes/domain/entities/note.dart';
@@ -16,6 +17,7 @@ import '../features/notes/presentation/bloc/note_event.dart';
 import '../features/notes/presentation/pages/note_page.dart';
 import '../helpers/helper_methods.dart';
 import 'language_icon.dart';
+import '../features/runner/run_manager.dart';
 
 /// Short display name for a code language on cards ("ts", "rust").
 String languageLabel(Language lang) => languageInfo(lang).short;
@@ -46,11 +48,13 @@ class _NoteCardState extends State<NoteCard> {
   NoteEntity get note => widget.note;
 
   /// The first piece of text in the note, for the preview line.
-  String? get _textPreview {
+  String? get _textPreview => _textBlock?.text!.trim();
+
+  BlockEntity? get _textBlock {
     for (final b in note.blocks) {
       if ((b is NoteBlockEntity || b is MarkdownBlockEntity) &&
           (b.text ?? '').trim().isNotEmpty) {
-        return b.text!.trim();
+        return b;
       }
     }
     return null;
@@ -218,15 +222,21 @@ class _NoteCardState extends State<NoteCard> {
                   const SizedBox(height: 4),
                   Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: Text(
-                      text,
-                      style: textTheme.bodySmall?.copyWith(
-                        color: color.onSurfaceVariant,
-                        height: 1.45,
-                      ),
-                      maxLines: code == null ? 5 : 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    child: _textBlock is MarkdownBlockEntity
+                        ? MarkdownPreviewText(
+                            text,
+                            maxLines: code == null ? 6 : 2,
+                            fontSize: textTheme.bodySmall?.fontSize ?? 12.5,
+                          )
+                        : Text(
+                            text,
+                            style: textTheme.bodySmall?.copyWith(
+                              color: color.onSurfaceVariant,
+                              height: 1.45,
+                            ),
+                            maxLines: code == null ? 5 : 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                   ),
                 ],
                 if (code != null) ...[
@@ -265,6 +275,16 @@ class _NoteCardState extends State<NoteCard> {
                     Text(
                       _relativeDate(note.lastModified),
                       style: monoStyle(context, size: 11, color: tokens.subtle),
+                    ),
+                    ListenableBuilder(
+                      listenable: RunManager.instance,
+                      builder: (context, _) => RunManager.instance.anyRunning(note.blocks.map((b) => b.id))
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 10),
+                              child: Text('● running',
+                                  style: monoStyle(context, size: 11, color: tokens.success)),
+                            )
+                          : const SizedBox.shrink(),
                     ),
                     if (note.reminder != null) ...[
                       const SizedBox(width: 10),

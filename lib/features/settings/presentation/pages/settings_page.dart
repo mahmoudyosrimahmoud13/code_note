@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../constants/app_info.dart';
 import '../../../ai/ai_settings_page.dart';
+import '../../../runner/runtimes_page.dart';
 import '../../../onboarding/sample_notes.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../backup/backup_page.dart';
@@ -182,6 +183,20 @@ class _SettingsPageState extends State<SettingsPage> {
                       onTap: () => Navigator.push(
                         context,
                         MaterialPageRoute(builder: (_) => const BackupPage()),
+                      ),
+                      color: color,
+                    ),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader('Run code', textTheme, color),
+                    const SizedBox(height: 16),
+                    _buildSettingTile(
+                      'Runtimes and sandbox',
+                      'Python, Bash and packages. Everything runs in a sandbox, one per folder, and files stay there until you save a copy',
+                      Icons.terminal_rounded,
+                      color.primary,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const RuntimesPage()),
                       ),
                       color: color,
                     ),

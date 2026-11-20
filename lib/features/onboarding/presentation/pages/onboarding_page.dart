@@ -31,13 +31,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
     ),
     _Page(
       title: 'Real code blocks',
-      body: 'Syntax highlighting for 20+ languages, a real code font, and quick keys for the symbols phones hide.',
+      body: 'Syntax highlighting for 58 languages, a real code font, and quick keys for the symbols phones hide.',
       scene: _Scene.code,
     ),
     _Page(
       title: 'Keep it organized',
       body: 'Group notes into folders, tag them, pin the important ones, and find anything with search.',
       scene: _Scene.organize,
+    ),
+    _Page(
+      title: 'Run code, safely',
+      body: 'Python, Bash and web pages run inside a sandbox. Each folder has its own. '
+          'Scripts can\'t touch your files, and what they make stays there until you save a copy.',
+      scene: _Scene.sandbox,
     ),
     _Page(
       title: 'Yours, on this device',
@@ -180,7 +186,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 }
 
-enum _Scene { welcome, code, organize, private }
+enum _Scene { welcome, code, organize, sandbox, private }
 
 class _Page {
   const _Page({required this.title, required this.body, required this.scene});
@@ -240,6 +246,14 @@ class _SceneViewState extends State<_SceneView> {
           [_Part('├─ '), _Part('python/', _Kind.accent), _Part('    5 notes', _Kind.subtle)],
           [_Part('├─ '), _Part('📌 ', _Kind.plain), _Part('deploy-checklist')],
           [_Part('└─ '), _Part('#sql #interview', _Kind.keyword)],
+        ];
+      case _Scene.sandbox:
+        return const [
+          [_Part('\$ ', _Kind.prompt), _Part('codenote run youtube-downloader/')],
+          [_Part('→ sandbox: ~/youtube-downloader/', _Kind.accent)],
+          [_Part('\$ ', _Kind.prompt), _Part('cat ~/Documents/secret.txt')],
+          [_Part('no such file (your files are hidden)', _Kind.subtle)],
+          [_Part('✔ ', _Kind.ok), _Part('downloads stay here until you save a copy')],
         ];
       case _Scene.private:
         return const [
@@ -302,6 +316,7 @@ class _SceneViewState extends State<_SceneView> {
       _Scene.welcome => 'zsh — ~',
       _Scene.code => 'greet.py',
       _Scene.organize => 'zsh — ~/notes',
+      _Scene.sandbox => 'zsh — sandbox',
       _Scene.private => 'zsh — privacy',
     };
 

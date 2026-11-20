@@ -3,6 +3,37 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.6.0] - 2026-11-20
+
+### New
+- **Run Python and Bash in your notes.** Python, Bash and PowerShell (Windows) code blocks get a small **▶**. Output shows under the code, with Stop, an input line for scripts that ask questions, and "Save output into the note".
+- **Everything runs in a sandbox.** Each folder of notes has its own sandbox folder, shared by the notes in it, so a backend in one note and a web page in another work together.
+  - **Android:** Android's own app sandbox.
+  - **macOS:** Apple's App Sandbox.
+  - **Linux:** bubblewrap. Scripts can't see your home folder.
+  - **Windows** (and Linux without bubblewrap): only a private folder, so running code is off until you allow it in Settings.
+- **Files stay in the sandbox** until you choose **Save a copy** from the Files button.
+- **▶ Run folder** starts every note in a folder, then opens its web pages. Mark a block **★ main** (the only one that runs with the folder) or **skip**.
+- **Runs keep going** when you leave the note, with a "● running" badge on the note card and Stop all in the command palette and Settings.
+- **Terminal:** a real shell inside the sandbox, from the sidebar, `Ctrl+K`, or the terminal button under any output.
+- **Settings → Runtimes and sandbox:**
+  - Download Python (python-build-standalone) or BusyBox Bash for Windows from their official sources.
+  - Install, update and remove Python packages. They live in CodeNote's own environment and never change your system.
+  - See what's running, and clear sandbox files.
+- **Mini apps:** web page notes can now save data. `localStorage` just works, and is kept per note and in backups.
+  - `codenote.storage` saves values.
+  - `codenote.api(8000, '/path')` calls a server started in the same folder, without CORS problems.
+  - `codenote.file('name')` shows a file from the folder's sandbox.
+- **New sample notes:**
+  - **youtube-downloader** (yt-dlp with video or audio, quality, formats, subtitles, thumbnails, SponsorBlock, playlists, speed limit, live progress)
+  - **fastapi-todo** (a FastAPI backend and its frontend)
+  - **Snake**, a mini app game that saves your best score
+  - small Python and Bash scripts
+- Onboarding explains the sandbox.
+
+### Improved
+- **Markdown on note cards and folder previews looks like Markdown:** headings, bold, code, lists and checkboxes instead of raw `#` and `**`.
+
 ## [1.5.2] - 2026-11-20
 
 ### Fixed

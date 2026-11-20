@@ -56,6 +56,18 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 - **Markdown** with a live preview. Tap to edit, tap away to see it rendered.
 - **Scan text from a photo** (Android and iOS) and drop it in as a text or code block.
 
+### Run code, safely sandboxed
+
+- **▶ Run** Python, Bash and PowerShell blocks. Output shows under the code. Save it into the note with one tap.
+- **One sandbox per folder.** Notes in a folder share it, so a FastAPI backend in one note and its web page in another work together. Press **▶ Run folder** to start everything.
+  - **Android:** Android's own app sandbox.
+  - **macOS:** Apple's App Sandbox.
+  - **Linux:** bubblewrap. Scripts can't see your home folder.
+  - **Windows:** a private folder only, so running code is off until you allow it.
+- **Files stay in the sandbox** until you press **Save a copy**.
+- **Built-in terminal**, and **Settings → Runtimes and sandbox** to download Python or Bash from their official sources and to install or update Python packages.
+- **Mini apps:** web page notes can save data (`localStorage` just works). Try the **Snake** game, the **youtube-downloader** folder (yt-dlp with all the options) and **fastapi-todo**.
+
 ### Start from a template
 
 <p align="center"><img src="poster/5.jpg" width="100%" alt="Templates" /></p>
@@ -126,7 +138,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ## What's new
 
-See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.5.0: Ask your notes, run HTML/CSS/JS live, real reminder notifications, templates, GitHub Gist import and export, and language logos for 55 languages.
+See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.6.0: run Python and Bash in a sandbox (one per folder), ▶ Run folder, a built-in terminal, Python packages in Settings, mini apps that save data, and a YouTube downloader demo.
 
 ---
 

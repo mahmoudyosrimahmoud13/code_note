@@ -46,7 +46,7 @@ class NoteTemplate {
       blocks: [
         for (final b in blocks)
           switch (b) {
-            CodeBlockEntity c => CodeBlockEntity(id: uuid.generate(), text: fill(c.text), language: c.language),
+            CodeBlockEntity c => CodeBlockEntity(id: uuid.generate(), text: fill(c.text), language: c.language, runRole: c.runRole),
             MarkdownBlockEntity m => MarkdownBlockEntity(id: uuid.generate(), text: fill(m.text)),
             ImageBlockEntity i => ImageBlockEntity(id: uuid.generate(), imagePath: i.imagePath ?? ''),
             _ => NoteBlockEntity(id: uuid.generate(), text: fill(b.text)),
