@@ -13,6 +13,7 @@ class BlockWidgetFactory {
     void Function(String id)? onMoveDown,
     void Function(BlockEntity entity)? onChanged,
     Widget? dragHandle,
+    void Function(String afterId, BlockEntity block)? onInsertAfter,
   }) {
     if (entity is NoteBlockEntity) {
       return NoteBlock(
@@ -43,6 +44,7 @@ class BlockWidgetFactory {
         moveDown: onMoveDown,
         onChanged: onChanged,
         dragHandle: dragHandle,
+        onInsertAfter: onInsertAfter,
       );
     } else if (entity is ImageBlockEntity) {
       return ImageBlock(

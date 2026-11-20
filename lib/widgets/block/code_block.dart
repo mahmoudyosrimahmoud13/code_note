@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
 
+import 'package:uuid/uuid.dart';
+
 import '../../constants/themes.dart';
+import '../../features/ai/ai_explain_sheet.dart';
+import '../../features/ai/ai_service.dart';
 import '../../core/util/code_languages.dart';
 import '../../core/util/note_share_helper.dart';
 import '../../features/notes/domain/entities/block.dart';
@@ -21,6 +25,7 @@ class CodeBlock extends Block {
     super.delete,
     super.onChanged,
     super.dragHandle,
+    super.onInsertAfter,
   });
 
   CodeBlockEntity get codeEntity => entity as CodeBlockEntity;
@@ -100,6 +105,27 @@ class _CodeBlockState extends State<CodeBlock> {
     _notify();
   }
 
+  Future<void> _askAi(AiAction action) async {
+    final code = _controller.text.trim();
+    if (code.isEmpty) {
+      showMessage(message: 'Write some code first, then ask about it.');
+      return;
+    }
+    final answer = await showAiExplainSheet(
+      context,
+      action: action,
+      language: languageInfo(_language).label,
+      code: code,
+    );
+    if (answer != null && widget.onInsertAfter != null) {
+      widget.onInsertAfter!(
+        widget.id,
+        MarkdownBlockEntity(id: const Uuid().v4(), text: answer),
+      );
+      showMessage(message: 'Saved under the code block.');
+    }
+  }
+
   void _copy() {
     Clipboard.setData(ClipboardData(text: _controller.text));
     HapticFeedback.lightImpact();
@@ -146,6 +172,15 @@ class _CodeBlockState extends State<CodeBlock> {
                 ),
               ),
               quickActions: [
+                PopupMenuButton<AiAction>(
+                  tooltip: 'Ask AI about this code',
+                  icon: const Text('✨', style: TextStyle(fontSize: 16)),
+                  onSelected: _askAi,
+                  itemBuilder: (context) => [
+                    for (final action in AiAction.values)
+                      PopupMenuItem(value: action, child: Text(action.label)),
+                  ],
+                ),
                 BlockQuickAction(
                   icon: Icons.copy_rounded,
                   tooltip: 'Copy code',

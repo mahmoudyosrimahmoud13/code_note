@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../constants/app_info.dart';
+import '../../../ai/ai_settings_page.dart';
 import '../../../../constants/themes.dart';
 
 import '../../../../core/util/image_helper.dart';
@@ -151,6 +152,20 @@ class _SettingsPageState extends State<SettingsPage> {
                         color.error,
                         onTap: () => _showClearDataConfirmation(context),
                         color: color),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader('AI assistant', textTheme, color),
+                    const SizedBox(height: 16),
+                    _buildSettingTile(
+                      'AI assistant',
+                      'Explain code, find bugs. Claude, OpenAI-compatible or Ollama (offline)',
+                      Icons.auto_awesome_outlined,
+                      color.primary,
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AiSettingsPage()),
+                      ),
+                      color: color,
+                    ),
                     const SizedBox(height: 32),
                     _buildSectionHeader('About', textTheme, color),
                     const SizedBox(height: 16),

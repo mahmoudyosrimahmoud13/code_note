@@ -14,6 +14,9 @@ abstract class Block extends StatefulWidget {
   /// Grip shown at the start of the block header; drag it to reorder.
   final Widget? dragHandle;
 
+  /// Adds a new block right after this one (used to save AI answers).
+  final void Function(String afterId, BlockEntity block)? onInsertAfter;
+
   const Block({
     super.key,
     required this.entity,
@@ -22,6 +25,7 @@ abstract class Block extends StatefulWidget {
     this.moveDown,
     this.onChanged,
     this.dragHandle,
+    this.onInsertAfter,
   });
 
   String get id => entity.id;

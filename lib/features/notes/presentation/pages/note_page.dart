@@ -216,6 +216,13 @@ class _NotePageState extends State<NotePage> {
       ));
   }
 
+  /// Puts [block] right after the block with [afterId] (AI answers).
+  void _insertAfter(String afterId, BlockEntity block) {
+    final index = _blocks.indexWhere((b) => b.id == afterId);
+    setState(() => _blocks.insert(index == -1 ? _blocks.length : index + 1, block));
+    _changed();
+  }
+
   void _reorder(int oldIndex, int newIndex) {
     if (newIndex > oldIndex) newIndex -= 1;
     if (oldIndex == newIndex) return;
@@ -722,6 +729,7 @@ class _NotePageState extends State<NotePage> {
                                       onMoveDown: index == _blocks.length - 1
                                           ? null
                                           : _moveDown,
+                                      onInsertAfter: _insertAfter,
                                       dragHandle: _blocks.length < 2
                                           ? null
                                           : ReorderableDragStartListener(
