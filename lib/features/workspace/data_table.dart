@@ -135,7 +135,10 @@ class DataTableData {
   static DataTableData _fromJson(Object? data) {
     if (data is Map) {
       final lists = data.values.whereType<List>().toList();
-      if (lists.length == data.length && lists.isNotEmpty) {
+      // {"a": [1, 2], "b": [3, 4]}: columns. Lists of objects are records
+      // ({"data": [{...}, {...}]}), handled below.
+      final columnar = lists.length == data.length && lists.isNotEmpty && !lists.any((l) => l.any((v) => v is Map));
+      if (columnar) {
         final columns = [for (final k in data.keys) '$k'];
         final n = lists.fold<int>(0, (m, l) => l.length > m ? l.length : m);
         return DataTableData(columns, [
