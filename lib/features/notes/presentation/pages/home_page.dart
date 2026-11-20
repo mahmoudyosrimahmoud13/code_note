@@ -18,9 +18,9 @@ import '../../../settings/presentation/bloc/settings_bloc.dart';
 import '../../../settings/presentation/bloc/settings_event.dart';
 import '../../../settings/presentation/bloc/settings_state.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
-import '../../domain/entities/block.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/entities/note_group.dart';
+import '../../domain/logic/note_search.dart';
 import '../bloc/note_bloc.dart';
 import '../bloc/note_event.dart';
 import '../bloc/note_group_bloc.dart';
@@ -35,18 +35,6 @@ enum HomeView { notes, reminders, archive, trash }
 
 extension on HomeView {
   String get path => const ['~/notes', '~/reminders', '~/archive', '~/trash'][index];
-}
-
-/// True when [note] matches a search [query] (title, tags, or any text).
-bool noteMatches(NoteEntity note, String query) {
-  final q = query.trim().toLowerCase();
-  if (q.isEmpty) return true;
-  if (note.title.toLowerCase().contains(q)) return true;
-  if (note.tags.any((t) => t.toLowerCase().contains(q.replaceAll('#', '')))) {
-    return true;
-  }
-  return note.blocks.any((b) =>
-      b is! ImageBlockEntity && (b.text ?? '').toLowerCase().contains(q));
 }
 
 class HomePage extends StatefulWidget {

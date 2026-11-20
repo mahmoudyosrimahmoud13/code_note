@@ -1,7 +1,7 @@
 import 'package:code_note/features/notes/domain/entities/block.dart';
 import 'package:code_note/features/notes/domain/entities/language.dart';
 import 'package:code_note/features/notes/domain/entities/note.dart';
-import 'package:code_note/features/notes/presentation/pages/home_page.dart';
+import 'package:code_note/features/notes/domain/logic/note_search.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
