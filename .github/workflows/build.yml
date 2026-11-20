@@ -6,6 +6,9 @@ on:
   push:
     branches: ["**"]
     tags: ["v*"]
+    # Changes to the website or the docs alone don't need new app builds.
+    # (Tags always build: GitHub doesn't apply path filters to tags.)
+    paths-ignore: ["website/**", "**.md", "poster/**", ".github/workflows/pages.yml"]
   pull_request:
   workflow_dispatch:
 
