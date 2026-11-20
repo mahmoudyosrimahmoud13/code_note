@@ -85,7 +85,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ## Build it yourself
 
-You need **Flutter (stable channel)**. For Android you also need **JDK 17**.
+You need **Flutter 3.41.9** (the version this project is pinned to; newer Flutter needs a Gradle 9 upgrade first). For Android you also need **JDK 17**.
 
 ```bash
 git clone git@github.com:mahmoudyosrimahmoud13/code_note.git
