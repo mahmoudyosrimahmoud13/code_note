@@ -139,7 +139,7 @@ class _TableOutputState extends State<_TableOutput> {
     final tokens = context.tokens;
     if (t == null) return const Text('(table is gone)');
     final shown = _all ? t.rows.length : (t.rows.length < 30 ? t.rows.length : 30);
-    TextStyle mono({FontWeight? weight, Color? c}) => monoStyle(context, size: 12, weight: weight, color: c);
+    TextStyle mono({FontWeight? weight, Color? c}) => monoStyle(context, size: 12, weight: weight ?? FontWeight.w400, color: c);
     Widget cell(String text, {bool head = false, bool index = false, bool right = false}) => Padding(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           child: Text(text,

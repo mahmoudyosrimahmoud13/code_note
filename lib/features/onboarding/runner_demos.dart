@@ -40,15 +40,15 @@ Only download videos you have the right to save.'''),
       code(Language.bash, '''# Installs yt-dlp and a bundled ffmpeg into CodeNote's Python (once).
 python -m pip install --quiet yt-dlp imageio-ffmpeg
 python -m pip show yt-dlp | head -2'''),
-      code(Language.python, _yt_backend, role: RunRole.main),
+      code(Language.python, _ytBackend, role: RunRole.main),
     ], const ['youtube', 'python', 'demo'], 1);
 
     final ytPage = note('Downloader', [
       md('The page for the backend note in this folder. Run the folder with **▶**, '
           'or start the backend note first and then open this page.'),
-      code(Language.html, _yt_html),
-      code(Language.css, _yt_css),
-      code(Language.javaScript, _yt_js),
+      code(Language.html, _ytHtml),
+      code(Language.css, _ytCss),
+      code(Language.javaScript, _ytJs),
     ], const ['youtube', 'mini-app', 'demo'], 1);
 
     // ── fastapi-todo/ ────────────────────────────────────────
@@ -56,13 +56,13 @@ python -m pip show yt-dlp | head -2'''),
       md('A backend in one note, the frontend in another. Both live in this folder, so they share a sandbox: '
           'the API saves **todos.json** there, and the page calls it with `codenote.api(8000, \'/todos\')`.'),
       code(Language.bash, 'python -m pip install --quiet fastapi uvicorn'),
-      code(Language.python, _api_py, role: RunRole.main),
+      code(Language.python, _apiPy, role: RunRole.main),
     ], const ['fastapi', 'python', 'demo'], 2);
 
     final todoPage = note('Todo app', [
-      code(Language.html, _todo_html),
-      code(Language.css, _todo_css),
-      code(Language.javaScript, _todo_js),
+      code(Language.html, _todoHtml),
+      code(Language.css, _todoCss),
+      code(Language.javaScript, _todoJs),
     ], const ['fastapi', 'mini-app', 'demo'], 2);
 
     // ── pipeline/ (a sequence in three languages) ────────────
@@ -77,27 +77,27 @@ python -m pip show yt-dlp | head -2'''),
     final pPage = note('Pipeline report', [
       md('Needs Python, Node.js and Dart set up in **Settings → Runtimes and sandbox**. '
           'Then press **▶ Run folder** on **pipeline**: steps 1 to 3 run one after another, step 4 keeps running, and this page opens.'),
-      code(Language.html, _p_html),
-      code(Language.css, _p_css),
-      code(Language.javaScript, _p_js),
+      code(Language.html, _pHtml),
+      code(Language.css, _pCss),
+      code(Language.javaScript, _pJs),
     ], const ['pipeline', 'mini-app', 'demo'], 3);
 
     // ── run-code/ ────────────────────────────────────────────
     final snake = note('Mini app: Snake', [
       md('Open the page from the top bar to play. The best score is saved with `localStorage`, which CodeNote keeps for this note '
           '(and in backups). Reset it from the **⋯** menu.'),
-      code(Language.html, _snake_html),
-      code(Language.css, _snake_css),
-      code(Language.javaScript, _snake_js),
+      code(Language.html, _snakeHtml),
+      code(Language.css, _snakeCss),
+      code(Language.javaScript, _snakeJs),
     ], const ['game', 'mini-app', 'demo'], 4);
 
     final pyFile = note('Python: save a file in the sandbox', [
       md('Press **▶** on the code. It writes `commits.csv` and asks your name (type it in the box under the output).'),
-      code(Language.python, _py_file),
+      code(Language.python, _pyFile),
     ], const ['python', 'demo'], 5);
 
     final bashInfo = note('Bash: look around the sandbox', [
-      code(Language.bash, _bash_info),
+      code(Language.bash, _bashInfo),
     ], const ['bash', 'demo'], 5);
 
     final nodeNote = note('Node.js: files and built-in modules', [
@@ -256,7 +256,7 @@ orders.groupby("product")["total"].sum().plot.barh(ax=axes[1], color="#3DDC97", 
 plt.tight_layout()''',
 ];
 
-const _yt_backend = r'''
+const _ytBackend = r'''
 # YouTube downloader backend: a small web server around yt-dlp.
 # It runs in this folder's sandbox. Downloads go to ./downloads and stay
 # there until you press "Save a copy" in the Files button.
@@ -489,7 +489,7 @@ print(f"yt-dlp {yt_dlp.version.__version__} · ffmpeg: {'yes' if FFMPEG else 'no
 print(f"Downloader backend running on port {PORT}. Open the Downloader note, or press Stop to end.")
 ThreadingHTTPServer(("127.0.0.1", PORT), Handler).serve_forever()''';
 
-const _yt_html = r'''
+const _ytHtml = r'''
 <div class="app">
   <header>
     <h1>▶ YouTube downloader</h1>
@@ -545,7 +545,7 @@ const _yt_html = r'''
   <div id="files"><p class="muted">No files yet.</p></div>
 </div>''';
 
-const _yt_css = r'''
+const _ytCss = r'''
 :root { color-scheme: dark; --bg:#0F0E1A; --card:#17162A; --line:#2A2846; --text:#ECEAF6; --muted:#9C98B8; --violet:#7B5CFF; --mint:#3DDC97; --red:#FF6B7A; --amber:#FFB547; }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
@@ -588,7 +588,7 @@ input.small { width: 130px; padding: 5px 8px; }
 .file a:hover { color: var(--violet); }
 video, audio { width: 100%; margin-top: 8px; border-radius: 10px; }''';
 
-const _yt_js = r'''
+const _ytJs = r'''
 // Talks to the backend note in this folder through CodeNote
 // (codenote.api avoids browser CORS problems). Your last options are
 // remembered with codenote.storage.
@@ -733,7 +733,7 @@ restore();
 refresh();
 setInterval(refresh, 1000);''';
 
-const _snake_html = r'''
+const _snakeHtml = r'''
 <div class="game">
   <div class="top">
     <span>score <b id="score">0</b></span>
@@ -750,7 +750,7 @@ const _snake_html = r'''
     Reset it from the note's ⋯ menu.</p>
 </div>''';
 
-const _snake_css = r'''
+const _snakeCss = r'''
 :root { color-scheme: dark; }
 body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0F0E1A; color: #ECEAF6; font: 15px/1.4 ui-monospace, 'JetBrains Mono', monospace; }
 .game { text-align: center; padding: 16px; width: min(420px, 100vw); }
@@ -763,7 +763,7 @@ canvas { width: 100%; aspect-ratio: 1; background: #17162A; border: 1px solid #2
 .small { color: #6F6A90; font-size: 12px; }
 @media (pointer: fine) { .pad { display: none; } }''';
 
-const _snake_js = r'''
+const _snakeJs = r'''
 // Snake, as a CodeNote mini app. localStorage here is saved by CodeNote,
 // so the best score survives restarts and travels in backups.
 const N = 20, S = 20;
@@ -861,7 +861,7 @@ el('board').addEventListener('click', start);
 reset();
 draw();''';
 
-const _api_py = r'''
+const _apiPy = r'''
 # A small FastAPI server. It runs in this folder's sandbox, so todos.json
 # is saved there. The "Todo app" note in this folder is its frontend.
 import json
@@ -921,7 +921,7 @@ def delete(todo_id: int):
 print("Todo API on port 8000 · docs at http://127.0.0.1:8000/docs")
 uvicorn.run(app, host="127.0.0.1", port=8000, log_level="warning")''';
 
-const _todo_html = r'''
+const _todoHtml = r'''
 <main>
   <h1>✓ Todo app</h1>
   <p class="sub">Frontend note → <code>codenote.api(8000, '/todos')</code> → the FastAPI note in this folder.</p>
@@ -930,7 +930,7 @@ const _todo_html = r'''
   <p id="state" class="sub"></p>
 </main>''';
 
-const _todo_css = r'''
+const _todoCss = r'''
 :root { color-scheme: dark; }
 body { margin: 0; background: #0F0E1A; color: #ECEAF6; font: 16px/1.5 system-ui, sans-serif; }
 main { max-width: 560px; margin: 0 auto; padding: 28px 18px; }
@@ -945,7 +945,7 @@ li { display: flex; align-items: center; gap: 10px; background: #17162A; border:
 li span { flex: 1; cursor: pointer; } li.done span { text-decoration: line-through; color: #6F6A90; }
 li .x { background: none; color: #FF6B7A; padding: 0 6px; font-size: 18px; }''';
 
-const _todo_js = r'''
+const _todoJs = r'''
 const url = (path) => window.codenote ? codenote.api(8000, path) : 'http://127.0.0.1:8000' + path;
 const list = document.getElementById('list'), state = document.getElementById('state');
 
@@ -984,7 +984,7 @@ document.getElementById('add').onsubmit = async (e) => {
 };
 load();''';
 
-const _py_file = r'''
+const _pyFile = r'''
 # Runs in this folder's sandbox: files you write stay here until you
 # open Files and press "Save a copy".
 import csv, datetime, platform, random
@@ -999,7 +999,7 @@ print(f"Wrote commits.csv with {len(rows) - 1} days, {total} commits in total.")
 name = input("What's your name? ")
 print(f"Nice to meet you, {name}!")''';
 
-const _bash_info = r'''
+const _bashInfo = r'''
 # A quick look at the sandbox. Try the terminal button for a full shell.
 echo "Shell: $0"
 echo "You are in: $PWD"
@@ -1112,7 +1112,7 @@ http.createServer((req, res) => {
   }
 }).listen(PORT, '127.0.0.1', () => console.log(`Step 4: serving the report on port ${PORT}. Open the Pipeline report note.`));''';
 
-const _p_html = r'''
+const _pHtml = r'''
 <main>
   <h1>Sales pipeline</h1>
   <p class="sub">Python made the data → Node.js added it up → Dart wrote the report → Node.js serves it here.</p>
@@ -1125,7 +1125,7 @@ const _p_html = r'''
   <pre id="report"></pre>
 </main>''';
 
-const _p_css = r'''
+const _pCss = r'''
 :root { color-scheme: dark; }
 body { margin: 0; background: #0F0E1A; color: #ECEAF6; font: 15px/1.5 system-ui, sans-serif; }
 main { max-width: 760px; margin: 0 auto; padding: 26px 18px 50px; }
@@ -1141,7 +1141,7 @@ h2::before { content: '// '; color: #7B5CFF; }
 .rows b { font: 12px ui-monospace, monospace; text-align: right; color: #9C98B8; }
 pre { background: #17162A; border: 1px solid #2A2846; border-radius: 14px; padding: 14px; white-space: pre-wrap; font: 12.5px/1.5 ui-monospace, monospace; }''';
 
-const _p_js = r'''
+const _pJs = r'''
 const api = (p) => window.codenote ? codenote.api(8200, p) : 'http://127.0.0.1:8200' + p;
 async function load() {
   try {

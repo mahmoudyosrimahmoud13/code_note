@@ -6,7 +6,6 @@ import 'package:path/path.dart' as p;
 
 import 'python_helpers.dart';
 import 'runtimes.dart';
-import 'sandbox.dart';
 
 /// Lines starting with this come from CodeNote's Python helpers (rich
 /// output and kernel messages), not from the person's code.
