@@ -23,6 +23,26 @@ if (flutterVersionName == null) {
     flutterVersionName = "1.0"
 }
 
+// ── Release signing ──────────────────────────────────────────────
+// Android only installs an update over an existing app when BOTH are true:
+//   1. the new APK is signed with the SAME key as the installed one, and
+//   2. its versionCode is HIGHER.
+// If either fails, the phone shows "App not installed" / "package conflicts".
+//
+// The key is read from android/key.properties (on your computer) or from
+// environment variables (on GitHub Actions). Neither is ever committed.
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withReader("UTF-8") { reader -> keystoreProperties.load(reader) }
+}
+def signingValue = { String prop, String env ->
+    def fromFile = keystoreProperties.getProperty(prop)
+    return fromFile != null ? fromFile : System.getenv(env)
+}
+def releaseStoreFile = signingValue("storeFile", "CODENOTE_KEYSTORE_PATH")
+def hasReleaseKey = releaseStoreFile != null && file(releaseStoreFile).exists()
+
 android {
     namespace = "org.code.note.community"
     compileSdk = 36
@@ -43,18 +63,37 @@ android {
         applicationId = "org.code.note.community"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion = flutter.minSdkVersion
+        // Pinned on purpose. If a future Flutter raised it, phones on older
+        // Android would suddenly see "not compatible". Change it only on purpose.
+        minSdkVersion = 24
         targetSdk = 36
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
         multiDexEnabled true
     }
 
+    signingConfigs {
+        if (hasReleaseKey) {
+            release {
+                storeFile = file(releaseStoreFile)
+                storePassword = signingValue("storePassword", "CODENOTE_KEYSTORE_PASSWORD")
+                keyAlias = signingValue("keyAlias", "CODENOTE_KEY_ALIAS")
+                keyPassword = signingValue("keyPassword", "CODENOTE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.debug
+            if (hasReleaseKey) {
+                signingConfig = signingConfigs.release
+            } else {
+                // No release key found: fall back to this machine's debug key.
+                // Fine for testing, but such an APK can't update one signed
+                // with a different key.
+                logger.warn("CodeNote: no release key found, signing with the debug key.")
+                signingConfig = signingConfigs.debug
+            }
             
             // Add proguard rules for ML Kit
             minifyEnabled true

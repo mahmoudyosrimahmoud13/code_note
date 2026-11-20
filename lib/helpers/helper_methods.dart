@@ -8,7 +8,9 @@ enum SnackType { success, faild }
 
 void showMessage(
     {required String message, SnackType type = SnackType.success}) {
-  ScaffoldMessenger.of(navigatorKey.currentContext!).removeCurrentSnackBar();
+  final context = navigatorKey.currentContext;
+  if (context == null) return;
+  ScaffoldMessenger.of(context).removeCurrentSnackBar();
 
   ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
     SnackBar(
@@ -17,15 +19,11 @@ void showMessage(
       ),
       margin: const EdgeInsets.all(20),
       backgroundColor: type == SnackType.success
-          ? Theme.of(navigatorKey.currentContext!).colorScheme.primary
-          : Colors.redAccent,
+          ? null // the theme's snackbar color
+          : Theme.of(navigatorKey.currentContext!).colorScheme.error,
       behavior: SnackBarBehavior.floating,
       duration: const Duration(seconds: 3),
-      content: Column(
-        children: [
-          Text(message),
-        ],
-      ),
+      content: Text(message),
     ),
   );
 }

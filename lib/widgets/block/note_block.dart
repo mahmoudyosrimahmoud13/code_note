@@ -1,9 +1,11 @@
-import 'block.dart';
-import '../custom_icon_button.dart';
 import 'package:flutter/material.dart';
+
 import '../../core/util/note_share_helper.dart';
 import '../../features/notes/domain/entities/language.dart';
+import 'block.dart';
+import 'block_frame.dart';
 
+/// A plain text block.
 class NoteBlock extends Block {
   const NoteBlock({
     super.key,
@@ -33,98 +35,55 @@ class _NoteBlockState extends State<NoteBlock> {
     super.dispose();
   }
 
-  void _shareLocal() {
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.share_rounded),
-            title: const Text('Share as File'),
-            onTap: () {
-              Navigator.pop(context);
-              NoteShareHelper.shareBlockAsFile(
-                widget.entity,
-                'Text Block',
-                Language.none,
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Note'),
-            Flexible(
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  CustomIconButton(
-                    icon: Icons.share,
-                    iconSize: 15,
-                    onPressed: _shareLocal,
-                  ),
-                  if (widget.delete != null)
-                    CustomIconButton(
-                      icon: Icons.delete,
-                      iconSize: 15,
-                      innerColor: color.onError,
-                      iconColor: color.error,
-                      onPressed: () {
-                        widget.delete?.call(widget.id);
-                      },
-                    ),
-                  if (widget.moveUp != null)
-                    CustomIconButton(
-                      icon: Icons.arrow_upward,
-                      iconSize: 15,
-                      onPressed: () {
-                        widget.moveUp?.call(widget.id);
-                      },
-                    ),
-                  if (widget.moveDown != null)
-                    CustomIconButton(
-                      icon: Icons.arrow_downward,
-                      iconSize: 15,
-                      onPressed: () {
-                        widget.moveDown?.call(widget.id);
-                      },
-                    )
-                ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          BlockHeader(
+            label: 'text',
+            icon: Icons.notes_rounded,
+            extraActions: [
+              BlockAction(
+                label: 'Share as file',
+                icon: Icons.ios_share_rounded,
+                onTap: () => NoteShareHelper.shareBlockAsFile(
+                  widget.entity.copyWith(text: _controller.text),
+                  'Text Block',
+                  Language.none,
+                ),
               ),
-            )
-          ],
-        ),
-        TextField(
-          controller: _controller,
-          onChanged: (val) {
-            if (widget.onChanged != null) {
-              widget.onChanged!(widget.entity.copyWith(text: val));
-            }
-          },
-          decoration: InputDecoration(
-            hintText: 'Type here.',
-            border: InputBorder.none,
-            hintStyle: textTheme.bodyLarge!.copyWith(color: color.onSurface),
+            ],
+            onMoveUp: widget.moveUp == null ? null : () => widget.moveUp!(widget.id),
+            onMoveDown:
+                widget.moveDown == null ? null : () => widget.moveDown!(widget.id),
+            onDelete: widget.delete == null ? null : () => widget.delete!(widget.id),
           ),
-          style: textTheme.bodyLarge!.copyWith(color: color.onSurface),
-          minLines: 1,
-          maxLines: 1000,
-          keyboardType: TextInputType.multiline,
-        ),
-      ],
+          TextField(
+            controller: _controller,
+            onChanged: (val) =>
+                widget.onChanged?.call(widget.entity.copyWith(text: val)),
+            decoration: InputDecoration(
+              hintText: 'Write something…',
+              filled: false,
+              border: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              isDense: true,
+              contentPadding: const EdgeInsets.only(bottom: 8),
+              hintStyle: textTheme.bodyLarge!
+                  .copyWith(color: color.onSurfaceVariant.withAlpha(150)),
+            ),
+            style: textTheme.bodyLarge!.copyWith(color: color.onSurface),
+            minLines: 1,
+            maxLines: null,
+            keyboardType: TextInputType.multiline,
+          ),
+        ],
+      ),
     );
   }
 }

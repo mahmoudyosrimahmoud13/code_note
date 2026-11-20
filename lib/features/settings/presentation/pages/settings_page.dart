@@ -5,6 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../constants/app_info.dart';
+import '../../../../constants/themes.dart';
+
 import '../../../../core/util/image_helper.dart';
 import '../../../../widgets/user_avatar.dart';
 import '../../domain/entities/settings.dart';
@@ -84,32 +87,49 @@ class _SettingsPageState extends State<SettingsPage> {
                     _buildSectionHeader('Appearance', textTheme, color),
                     const SizedBox(height: 16),
                     _buildSettingTile(
-                      'Theme Mode',
-                      settings.themeMode.toUpperCase(),
-                      Icons.palette_rounded,
-                      Colors.orange,
-                      trailing: DropdownButton<String>(
-                        value: settings.themeMode,
-                        underline: const SizedBox(),
-                        items: ['light', 'dark', 'system']
-                            .map((v) => DropdownMenuItem(
-                                value: v, child: Text(v.toUpperCase())))
-                            .toList(),
-                        onChanged: (v) => v != null
-                            ? context.read<SettingsBloc>().add(
-                                UpdateSettingsEvent(
-                                    settings.copyWith(themeMode: v)))
-                            : null,
+                      'Theme',
+                      'Light, dark, or follow your device',
+                      Icons.contrast_rounded,
+                      color.primary,
+                      bottom: SizedBox(
+                        width: double.infinity,
+                        child: SegmentedButton<String>(
+                          segments: const [
+                            ButtonSegment(
+                                value: 'light',
+                                icon: Icon(Icons.light_mode_outlined),
+                                label: Text('Light')),
+                            ButtonSegment(
+                                value: 'dark',
+                                icon: Icon(Icons.dark_mode_outlined),
+                                label: Text('Dark')),
+                            ButtonSegment(
+                                value: 'system',
+                                icon: Icon(Icons.brightness_auto_outlined),
+                                label: Text('System')),
+                          ],
+                          selected: {settings.themeMode},
+                          showSelectedIcon: false,
+                          onSelectionChanged: (v) => context
+                              .read<SettingsBloc>()
+                              .add(UpdateSettingsEvent(
+                                  settings.copyWith(themeMode: v.first))),
+                        ),
                       ),
                       color: color,
                     ),
                     const SizedBox(height: 16),
                     _buildSettingTile(
-                      'Font Size',
-                      'Scale: ${settings.fontSizeMultiplier.toStringAsFixed(1)}x',
+                      'Text size',
+                      '${(settings.fontSizeMultiplier * 100).round()}%',
                       Icons.format_size_rounded,
-                      Colors.blue,
-                      bottom: Slider(
+                      color.primary,
+                      bottom: Column(children: [
+                        Text(
+                          'The quick brown fox writes clean code.',
+                          style: textTheme.bodyLarge,
+                        ),
+                        Slider(
                         value: settings.fontSizeMultiplier,
                         min: 0.8,
                         max: 1.5,
@@ -118,6 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             UpdateSettingsEvent(
                                 settings.copyWith(fontSizeMultiplier: v))),
                       ),
+                      ]),
                       color: color,
                     ),
                     const SizedBox(height: 32),
@@ -127,7 +148,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         'Clear All Data',
                         'Delete all local notes and settings',
                         Icons.delete_forever_rounded,
-                        Colors.red,
+                        color.error,
                         onTap: () => _showClearDataConfirmation(context),
                         color: color),
                     const SizedBox(height: 32),
@@ -137,7 +158,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       'GitHub Project',
                       'View source and contribute',
                       Icons.code_rounded,
-                      Colors.purple,
+                      color.primary,
                       onTap: () => launchUrl(Uri.parse(
                           'https://github.com/mahmoudyosrimahmoud13/code_note')),
                       color: color,
@@ -145,9 +166,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 16),
                     _buildSettingTile(
                       'Version',
-                      '1.2.0 (Open Source)',
-                      Icons.info_rounded,
-                      Colors.teal,
+                      'v$appVersion · Community Edition (local-only)',
+                      Icons.info_outline_rounded,
+                      color.primary,
                       color: color,
                     ),
                     const SizedBox(height: 40),
@@ -166,8 +187,8 @@ class _SettingsPageState extends State<SettingsPage> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: color.surfaceContainerHighest.withAlpha(100),
-        borderRadius: BorderRadius.circular(32),
+        color: color.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppBrand.radius),
         border: Border.all(color: color.outlineVariant.withAlpha(50)),
       ),
       child: Column(
@@ -188,11 +209,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     right: 0,
                     child: GestureDetector(
                       onTap: () => _pickImage(settings),
-                      child: CircleAvatar(
-                          backgroundColor: color.primary,
-                          radius: 16,
-                          child: const Icon(Icons.camera_alt,
-                              size: 14, color: Colors.white)),
+                      child: Tooltip(
+                        message: 'Change photo',
+                        child: CircleAvatar(
+                            backgroundColor: color.primary,
+                            radius: 16,
+                            child: Icon(Icons.camera_alt,
+                                size: 14, color: color.onPrimary)),
+                      ),
                     ),
                   ),
                 ],
@@ -232,35 +256,41 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSectionHeader(String title, TextTheme textTheme, ColorScheme color) {
-    return Text(title,
-        style: textTheme.titleMedium!.copyWith(
-          color: color.primary,
-          fontWeight: FontWeight.bold,
-          letterSpacing: 1.2,
-        ));
+    return Semantics(
+      header: true,
+      child: Text('// ${title.toLowerCase()}',
+          style: monoStyle(context,
+              size: 13, weight: FontWeight.w700, color: color.primary)),
+    );
   }
 
   Widget _buildSettingTile(String title, String subtitle, IconData icon, Color iconColor,
       {Widget? trailing, Widget? bottom, VoidCallback? onTap, required ColorScheme color}) {
     return Container(
       decoration: BoxDecoration(
-        color: color.surfaceContainerHighest.withAlpha(50),
-        borderRadius: BorderRadius.circular(24),
+        color: color.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppBrand.radius),
+        border: Border.all(color: color.outlineVariant.withAlpha(160)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppBrand.radius),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      backgroundColor: iconColor.withAlpha(25),
-                      child: Icon(icon, color: iconColor),
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: iconColor.withAlpha(28),
+                        borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+                      ),
+                      child: Icon(icon, color: iconColor, size: 20),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -296,7 +326,9 @@ class _SettingsPageState extends State<SettingsPage> {
         actions: [
           TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            style: ElevatedButton.styleFrom(
+                backgroundColor: Theme.of(context).colorScheme.error,
+                foregroundColor: Theme.of(context).colorScheme.onError),
             onPressed: () {
               context.read<SettingsBloc>().add(ResetAllDataEvent());
               Navigator.pop(context);

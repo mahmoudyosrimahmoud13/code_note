@@ -8,7 +8,12 @@ abstract class NoteRepository {
   Future<Either<Failure, List<NoteEntity>>> getNotes();
   Future<Either<Failure, void>> addNote(NoteEntity note);
   Future<Either<Failure, void>> updateNote(NoteEntity note);
+  /// Deletes a note for good. To move a note to the trash, update it with
+  /// `isTrashed: true` instead.
   Future<Either<Failure, void>> deleteNote(String id);
+
+  /// Deletes notes that sat in the trash too long. Returns how many.
+  Future<Either<Failure, int>> purgeOldTrash();
   Future<Either<Failure, NoteEntity?>> getNoteById(String id);
 
   Future<Either<Failure, List<NoteGroupEntity>>> getGroups();

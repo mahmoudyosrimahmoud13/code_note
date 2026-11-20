@@ -1,104 +1,84 @@
+import 'dart:async';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/usecases/usecase.dart';
-import '../../domain/entities/block.dart';
+import '../../../../core/services/log_service.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/usecases/get_notes.dart';
 import 'note_event.dart';
 import 'note_state.dart';
 
+/// Holds every note. Screens filter what they show themselves.
+///
+/// The bloc listens to storage exactly once. Asking for notes again
+/// ([GetNotesEvent]) never opens a second listener, which is what used to
+/// make the app slower the longer it ran.
 class NoteBloc extends Bloc<NoteEvent, NoteState> {
   final GetNotes getNotes;
   final NoteRepository repository;
+
+  StreamSubscription<List<NoteEntity>>? _subscription;
 
   NoteBloc({
     required this.getNotes,
     required this.repository,
   }) : super(NoteInitial()) {
-    on<GetNotesEvent>((event, emit) async {
-      emit(NoteLoading());
-      await emit.forEach<List<NoteEntity>>(
-        repository.watchNotes(),
-        onData: (notes) => NoteLoaded(notes),
-        onError: (error, stackTrace) =>
-            const NoteError('Could not fetch notes'),
-      );
+    on<GetNotesEvent>(_onGetNotes);
+    on<NotesChangedEvent>((event, emit) => emit(NoteLoaded(event.notes)));
+    on<AddNoteEvent>(_onSave);
+    on<UpdateNoteEvent>(_onSave);
+    on<DeleteNoteEvent>(_onDelete);
+    on<PurgeOldTrashEvent>((event, emit) async {
+      await repository.purgeOldTrash();
     });
+  }
 
-    on<AddNoteEvent>((event, emit) async {
-      final result = await repository.addNote(event.note);
-      result.fold(
-        (failure) => emit(const NoteError('Could not add note')),
-        (_) => add(GetNotesEvent()),
-      );
-    });
+  void _onGetNotes(GetNotesEvent event, Emitter<NoteState> emit) {
+    if (_subscription != null) return;
+    if (state is! NoteLoaded) emit(NoteLoading());
+    _subscription = repository.watchNotes().listen(
+          (notes) => add(NotesChangedEvent(notes)),
+          onError: (_) => add(const NotesChangedEvent([])),
+        );
+  }
 
-    on<UpdateNoteEvent>((event, emit) async {
-      final currentState = state;
-      if (currentState is NoteLoaded) {
-        final updatedNotes = currentState.notes
-            .map((n) => n.id == event.note.id ? event.note : n)
-            .toList();
-        emit(NoteLoaded(updatedNotes));
-      }
+  Future<void> _onSave(NoteEvent event, Emitter<NoteState> emit) async {
+    final note = event is AddNoteEvent
+        ? event.note
+        : (event as UpdateNoteEvent).note;
 
-      final result = await repository.updateNote(event.note);
-      result.fold(
-        (failure) {
-          emit(const NoteError('Could not update note'));
-          add(GetNotesEvent()); // Revert on failure
-        },
-        (_) => null, // Already updated locally
-      );
-    });
+    // Show the change right away; storage confirms it a moment later.
+    final current = state;
+    if (current is NoteLoaded) {
+      final exists = current.notes.any((n) => n.id == note.id);
+      emit(NoteLoaded(exists
+          ? [for (final n in current.notes) n.id == note.id ? note : n]
+          : [...current.notes, note]));
+    }
 
-    on<DeleteNoteEvent>((event, emit) async {
-      final currentState = state;
-      if (currentState is NoteLoaded) {
-        final updatedNotes =
-            currentState.notes.where((n) => n.id != event.id).toList();
-        emit(NoteLoaded(updatedNotes));
-      }
+    final result = await repository.updateNote(note);
+    result.fold(
+      (_) => LogService().log('NoteBloc: [ERROR] Could not save note ${note.id}'),
+      (_) {},
+    );
+  }
 
-      final result = await repository.deleteNote(event.id);
-      result.fold(
-        (failure) {
-          emit(const NoteError('Could not delete note'));
-          add(GetNotesEvent()); // Revert on failure
-        },
-        (_) => null, // Already updated locally
-      );
-    });
+  Future<void> _onDelete(DeleteNoteEvent event, Emitter<NoteState> emit) async {
+    final current = state;
+    if (current is NoteLoaded) {
+      emit(NoteLoaded(current.notes.where((n) => n.id != event.id).toList()));
+    }
+    final result = await repository.deleteNote(event.id);
+    result.fold(
+      (_) => LogService().log('NoteBloc: [ERROR] Could not delete note ${event.id}'),
+      (_) {},
+    );
+  }
 
-    on<SearchNotesEvent>((event, emit) async {
-      if (event.query.isEmpty) {
-        add(GetNotesEvent());
-        return;
-      }
-
-      final result = await getNotes(NoParams());
-      result.fold(
-        (failure) => emit(const NoteError('Could not fetch notes for search')),
-        (notes) {
-          final query = event.query.toLowerCase();
-          final filteredNotes = notes.where((note) {
-            final titleMatch = note.title.toLowerCase().contains(query);
-            final tagMatch =
-                note.tags.any((tag) => tag.toLowerCase().contains(query));
-            final contentMatch = note.blocks.any((block) {
-              if (block is NoteBlockEntity) {
-                return block.text?.toLowerCase().contains(query) ?? false;
-              } else if (block is CodeBlockEntity) {
-                return block.text?.toLowerCase().contains(query) ?? false;
-              }
-              return false;
-            });
-            return titleMatch || tagMatch || contentMatch;
-          }).toList();
-          emit(NoteLoaded(filteredNotes));
-        },
-      );
-    });
+  @override
+  Future<void> close() async {
+    await _subscription?.cancel();
+    return super.close();
   }
 }

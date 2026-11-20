@@ -2,19 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../constants/app_info.dart';
+import '../../../../constants/themes.dart';
 import '../../../../core/services/log_service.dart';
 import '../../../../core/services/log_viewer_page.dart';
 import '../../../../core/services/sharing_service.dart';
 import '../../../../core/util/platform_helper.dart';
 import '../../../../helpers/helper_methods.dart';
-import '../../../../widgets/custom_icon_button.dart';
+import '../../../../widgets/brand.dart';
 import '../../../../widgets/group_card.dart';
 import '../../../../widgets/home_grid_view.dart';
 import '../../../../widgets/home_navigation_bar.dart';
-import '../../../../widgets/user_home_padge.dart';
+import '../../../../widgets/user_avatar.dart';
 import '../../../settings/presentation/bloc/settings_bloc.dart';
 import '../../../settings/presentation/bloc/settings_event.dart';
 import '../../../settings/presentation/bloc/settings_state.dart';
+import '../../../settings/presentation/pages/settings_page.dart';
+import '../../domain/entities/block.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/entities/note_group.dart';
 import '../bloc/note_bloc.dart';
@@ -26,6 +30,25 @@ import '../bloc/note_state.dart';
 import 'group_details_page.dart';
 import 'note_page.dart';
 
+/// The four views of the home screen, in navigation order.
+enum HomeView { notes, reminders, archive, trash }
+
+extension on HomeView {
+  String get path => const ['~/notes', '~/reminders', '~/archive', '~/trash'][index];
+}
+
+/// True when [note] matches a search [query] (title, tags, or any text).
+bool noteMatches(NoteEntity note, String query) {
+  final q = query.trim().toLowerCase();
+  if (q.isEmpty) return true;
+  if (note.title.toLowerCase().contains(q)) return true;
+  if (note.tags.any((t) => t.toLowerCase().contains(q.replaceAll('#', '')))) {
+    return true;
+  }
+  return note.blocks.any((b) =>
+      b is! ImageBlockEntity && (b.text ?? '').toLowerCase().contains(q));
+}
+
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
 
@@ -34,73 +57,30 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  int _selectedIndex = 0;
+  HomeView _view = HomeView.notes;
   bool _isSearching = false;
+  String _query = '';
+  String? _tag;
   final TextEditingController _searchController = TextEditingController();
-  int _versionClickCount = 0;
-  DateTime? _lastClickTime;
-
   final Set<String> _dismissedNoteIds = {};
+
+  int _versionTaps = 0;
+  DateTime? _lastVersionTap;
 
   @override
   void initState() {
     super.initState();
-    final settingsBloc = context.read<SettingsBloc>();
-    if (settingsBloc.state is SettingsLoaded) {
-      _selectedIndex = (settingsBloc.state as SettingsLoaded).settings.lastSelectedIndex;
+    final settings = context.read<SettingsBloc>().state;
+    if (settings is SettingsLoaded) {
+      final index = settings.settings.lastSelectedIndex;
+      if (index >= 0 && index < HomeView.values.length) {
+        _view = HomeView.values[index];
+      }
     }
-
+    // Clear out notes that sat in the trash for more than 30 days.
+    context.read<NoteBloc>().add(PurgeOldTrashEvent());
     SharingService().init(context);
-    LogService().log("HomePage: Initialized in Local-Only mode.");
-  }
-
-  void _addNote(BuildContext context) {
-    final note = NoteEntity(
-      id: uuid.generate(),
-      title: '',
-      tags: const [],
-      lastModified: DateTime.now(),
-      blocks: const [],
-    );
-    final noteBloc = context.read<NoteBloc>();
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (context) => NotePage(note: note),
-    )).then((_) {
-      noteBloc.add(GetNotesEvent());
-    });
-  }
-
-  void _createGroup(BuildContext context) {
-    final controller = TextEditingController();
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Group'),
-        content: TextField(
-          controller: controller,
-          autofocus: true,
-          decoration: const InputDecoration(hintText: 'Group Name'),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              if (controller.text.isNotEmpty) {
-                final group = NoteGroupEntity(
-                  id: uuid.generate(),
-                  name: controller.text,
-                  noteIds: const [],
-                  lastModified: DateTime.now(),
-                );
-                context.read<NoteGroupBloc>().add(AddGroupEvent(group));
-                Navigator.pop(context);
-              }
-            },
-            child: const Text('Create'),
-          ),
-        ],
-      ),
-    );
+    LogService().log('HomePage: ready (local-only).');
   }
 
   @override
@@ -110,404 +90,507 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
+  void _select(HomeView view) {
+    setState(() {
+      _view = view;
+      _closeSearch();
+      _tag = null;
+      _dismissedNoteIds.clear();
+    });
+    final bloc = context.read<SettingsBloc>();
+    final state = bloc.state;
+    if (state is SettingsLoaded) {
+      bloc.add(UpdateSettingsEvent(
+          state.settings.copyWith(lastSelectedIndex: view.index)));
+    }
+  }
+
+  void _closeSearch() {
+    _isSearching = false;
+    _query = '';
+    _searchController.clear();
+  }
+
+  void _addNote() {
+    final note = NoteEntity(
+      id: uuid.generate(),
+      title: '',
+      tags: _tag == null ? const [] : [_tag!],
+      lastModified: DateTime.now(),
+      blocks: const [],
+    );
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => NotePage(note: note)));
+  }
+
+  void _createGroup() {
+    final controller = TextEditingController();
+    void create(BuildContext dialogContext) {
+      final name = controller.text.trim();
+      if (name.isEmpty) return;
+      context.read<NoteGroupBloc>().add(AddGroupEvent(NoteGroupEntity(
+            id: uuid.generate(),
+            name: name,
+            noteIds: const [],
+            lastModified: DateTime.now(),
+          )));
+      Navigator.pop(dialogContext);
+    }
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('New group'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          style: monoStyle(dialogContext, size: 14),
+          decoration: const InputDecoration(hintText: 'snippets', prefixText: '~/'),
+          onSubmitted: (_) => create(dialogContext),
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('Cancel')),
+          FilledButton(
+              onPressed: () => create(dialogContext), child: const Text('Create')),
+        ],
+      ),
+    );
+  }
+
+  void _emptyTrash(List<NoteEntity> trashed) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Empty the trash?'),
+        content: Text(
+            '${trashed.length} ${trashed.length == 1 ? 'note' : 'notes'} and their images will be deleted from this device for good.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c, false), child: const Text('Cancel')),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(c).colorScheme.error,
+              foregroundColor: Theme.of(c).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(c, true),
+            child: const Text('Empty trash'),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    final bloc = context.read<NoteBloc>();
+    for (final note in trashed) {
+      bloc.add(DeleteNoteEvent(note.id));
+    }
+  }
+
+  void _onVersionTap() {
+    final now = DateTime.now();
+    if (_lastVersionTap == null ||
+        now.difference(_lastVersionTap!) > const Duration(seconds: 2)) {
+      _versionTaps = 1;
+    } else {
+      _versionTaps++;
+    }
+    _lastVersionTap = now;
+    if (_versionTaps >= 3) {
+      _versionTaps = 0;
+      HapticFeedback.heavyImpact();
+      Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const LogViewerPage()));
+    }
+  }
+
+  // ─── Build ──────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(context).colorScheme;
+    final isDesktop = PlatformHelper.isDesktopOrWeb;
 
     return Scaffold(
       body: SafeArea(
         child: Row(
           children: [
-            if (PlatformHelper.isDesktopOrWeb)
-              BlocBuilder<NoteBloc, NoteState>(
-                builder: (context, state) {
-                  return NavigationRail(
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: (index) {
-                      setState(() {
-                        _selectedIndex = index;
-                        _isSearching = false;
-                        _searchController.clear();
-                        _dismissedNoteIds.clear();
-                      });
-                      final settingsBloc = context.read<SettingsBloc>();
-                      if (settingsBloc.state is SettingsLoaded) {
-                        final currentSettings = (settingsBloc.state as SettingsLoaded).settings;
-                        settingsBloc.add(UpdateSettingsEvent(
-                          currentSettings.copyWith(lastSelectedIndex: index),
-                        ));
-                      }
-                    },
-                    labelType: NavigationRailLabelType.selected,
-                    backgroundColor: color.surface.withAlpha(100),
-                    destinations: const [
-                      NavigationRailDestination(
-                        icon: Icon(Icons.note_outlined),
-                        selectedIcon: Icon(Icons.note),
-                        label: Text('All Notes'),
-                      ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.notifications_none_rounded),
-                        selectedIcon: Icon(Icons.notifications_rounded),
-                        label: Text('Reminders'),
-                      ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.archive_outlined),
-                        selectedIcon: Icon(Icons.archive),
-                        label: Text('Archive'),
-                      ),
-                      NavigationRailDestination(
-                        icon: Icon(Icons.delete_outline),
-                        selectedIcon: Icon(Icons.delete),
-                        label: Text('Trash'),
-                      ),
-                    ],
-                  );
-                },
-              ),
+            if (isDesktop) _buildRail(),
             Expanded(
-              child: BlocBuilder<NoteBloc, NoteState>(
-                builder: (context, noteState) {
-                  return Column(
-                    children: [
-                      _buildHeader(color),
-                      if (noteState is NoteLoaded) _buildTagCloud(noteState.notes, color),
-                      if (_isSearching && _searchController.text.isNotEmpty && noteState is NoteLoaded)
-                        _buildSearchSuggestions(noteState.notes, color),
-                      Expanded(
-                        child: BlocBuilder<NoteGroupBloc, NoteGroupState>(
-                          builder: (context, groupState) {
-                            if (noteState is NoteInitial || groupState is NoteGroupInitial) {
-                              return const Center(child: CircularProgressIndicator());
-                            }
-
-                            if (noteState is NoteLoaded && groupState is NoteGroupLoaded) {
-                              List<NoteEntity> filteredNotes = noteState.notes.where((n) => !_dismissedNoteIds.contains(n.id)).toList();
-                              List<NoteGroupEntity> groups = groupState.groups;
-
-                              if (!_isSearching) {
-                                if (_selectedIndex == 3) {
-                                  filteredNotes = filteredNotes.where((n) => n.isTrashed).toList();
-                                  groups = [];
-                                } else if (_selectedIndex == 2) {
-                                  filteredNotes = filteredNotes.where((n) => n.isArchived && !n.isTrashed).toList();
-                                  groups = [];
-                                } else if (_selectedIndex == 1) {
-                                  filteredNotes = filteredNotes.where((n) => n.reminder != null && !n.isArchived && !n.isTrashed).toList();
-                                  groups = [];
-                                } else {
-                                  filteredNotes = filteredNotes.where((n) => !n.isArchived && !n.isTrashed).toList();
-                                  final notesInGroups = groups.expand((g) => g.noteIds).toSet();
-                                  filteredNotes = filteredNotes.where((n) => !notesInGroups.contains(n.id)).toList();
-                                }
-                              } else {
-                                filteredNotes = filteredNotes.where((n) => !n.isTrashed).toList();
-                              }
-
-                              filteredNotes.sort((a, b) {
-                                if (a.isPinned && !b.isPinned) return -1;
-                                if (!a.isPinned && b.isPinned) return 1;
-                                return b.lastModified.compareTo(a.lastModified);
-                              });
-
-                              if (filteredNotes.isEmpty && groups.isEmpty) {
-                                return _buildEmptyState(color);
-                              }
-
-                              final pinnedNotes = filteredNotes.where((n) => n.isPinned).toList();
-                              final normalNotes = filteredNotes.where((n) => !n.isPinned).toList();
-
-                              return CustomScrollView(
-                                physics: const BouncingScrollPhysics(),
-                                slivers: [
-                                  if (groups.isNotEmpty && !_isSearching && _selectedIndex == 0) ...[
-                                    _buildSectionTitle('Groups', Icons.folder_copy_rounded, color),
-                                    SliverPadding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                      sliver: SliverGrid(
-                                        gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                                          maxCrossAxisExtent: 200.0,
-                                          mainAxisSpacing: 12.0,
-                                          crossAxisSpacing: 12.0,
-                                          childAspectRatio: 0.9,
-                                        ),
-                                        delegate: SliverChildBuilderDelegate(
-                                          (context, index) => Hero(
-                                            tag: 'group_${groups[index].id}',
-                                            child: GroupCard(
-                                              group: groups[index],
-                                              onTap: () => Navigator.push(context, MaterialPageRoute(
-                                                builder: (context) => GroupDetailsPage(group: groups[index]),
-                                              )),
-                                            ),
-                                          ),
-                                          childCount: groups.length,
-                                        ),
-                                      ),
-                                    ),
-                                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                                  ],
-                                  if (pinnedNotes.isNotEmpty && !_isSearching && _selectedIndex == 0) ...[
-                                    _buildSectionTitle('Pinned', Icons.push_pin_rounded, color),
-                                    SliverPadding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                      sliver: SliverToBoxAdapter(
-                                        child: HomeGridView(
-                                          notes: pinnedNotes,
-                                          isShrinkWrap: true,
-                                          onNoteDismissed: (note) => setState(() => _dismissedNoteIds.add(note.id)),
-                                        ),
-                                      ),
-                                    ),
-                                    const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                                  ],
-                                  if (normalNotes.isNotEmpty || groups.isNotEmpty || _isSearching) ...[
-                                    if (!_isSearching && _selectedIndex == 0 && pinnedNotes.isNotEmpty)
-                                      _buildSectionTitle('Notes', Icons.notes_rounded, color),
-                                    SliverPadding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                                      sliver: SliverToBoxAdapter(
-                                        child: HomeGridView(
-                                          notes: _isSearching ? filteredNotes : normalNotes,
-                                          isTrashView: _selectedIndex == 3 && !_isSearching,
-                                          isShrinkWrap: true,
-                                          onNoteDismissed: (note) => setState(() => _dismissedNoteIds.add(note.id)),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                  const SliverToBoxAdapter(child: SizedBox(height: 32)),
-                                  SliverToBoxAdapter(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        final now = DateTime.now();
-                                        if (_lastClickTime == null || now.difference(_lastClickTime!) > const Duration(seconds: 2)) {
-                                          _versionClickCount = 1;
-                                        } else {
-                                          _versionClickCount++;
-                                        }
-                                        _lastClickTime = now;
-                                        if (_versionClickCount >= 3) {
-                                          _versionClickCount = 0;
-                                          HapticFeedback.heavyImpact();
-                                          Navigator.push(context, MaterialPageRoute(builder: (context) => const LogViewerPage()));
-                                        }
-                                      },
-                                      child: Center(
-                                        child: Text(
-                                          'Version 1.2.0 (Open Source)',
-                                          style: TextStyle(fontSize: 10, color: color.outline.withAlpha(50)),
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                                ],
-                              );
-                            }
-                            return const Center(child: CircularProgressIndicator());
-                          },
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: !PlatformHelper.isDesktopOrWeb
-          ? NavBar(
-              selectedIndex: _selectedIndex,
-              onIndexChanged: (index) {
-                setState(() {
-                  _selectedIndex = index;
-                  _isSearching = false;
-                  _searchController.clear();
-                  _dismissedNoteIds.clear();
-                });
-                final settingsBloc = context.read<SettingsBloc>();
-                if (settingsBloc.state is SettingsLoaded) {
-                  final currentSettings = (settingsBloc.state as SettingsLoaded).settings;
-                  settingsBloc.add(UpdateSettingsEvent(currentSettings.copyWith(lastSelectedIndex: index)));
-                }
-              },
-              addNote: () => _addNote(context),
-            )
-          : null,
-      floatingActionButton: PlatformHelper.isDesktopOrWeb
-          ? FloatingActionButton(
-              onPressed: () => _addNote(context),
-              backgroundColor: color.primary,
-              foregroundColor: color.onPrimary,
-              elevation: 4,
-              child: const Icon(Icons.add_rounded),
-            )
-          : null,
-    );
-  }
-
-  Widget _buildHeader(ColorScheme color) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          if (!_isSearching) const Expanded(child: UserHomePadge())
-          else Expanded(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 600),
-                  child: Container(
-                    height: 50,
-                    decoration: BoxDecoration(
-                      color: color.surfaceContainerHighest.withAlpha(100),
-                      borderRadius: BorderRadius.circular(25),
-                      border: Border.all(color: color.primary.withAlpha(50)),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      autofocus: true,
-                      decoration: InputDecoration(
-                        hintText: 'Search in notes...',
-                        prefixIcon: Icon(Icons.search, color: color.primary),
-                        suffixIcon: IconButton(
-                          icon: const Icon(Icons.close),
-                          onPressed: () {
-                            setState(() {
-                              _isSearching = false;
-                              _searchController.clear();
-                              context.read<NoteBloc>().add(GetNotesEvent());
-                            });
-                          },
-                        ),
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onChanged: (query) => context.read<NoteBloc>().add(SearchNotesEvent(query)),
-                    ),
-                  ),
+              // Swiped cards are hidden right away (Dismissible needs that).
+              // Once storage reports the change, show the real list again,
+              // so an Undo brings the note straight back.
+              child: BlocConsumer<NoteBloc, NoteState>(
+                listener: (context, state) => _dismissedNoteIds.clear(),
+                builder: (context, noteState) =>
+                    BlocBuilder<NoteGroupBloc, NoteGroupState>(
+                  builder: (context, groupState) {
+                    if (noteState is! NoteLoaded || groupState is! NoteGroupLoaded) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    return _buildContent(noteState.notes, groupState.groups);
+                  },
                 ),
               ),
             ),
-          if (!_isSearching) Row(
-            children: [
-              CustomIconButton(
-                icon: Icons.create_new_folder_rounded,
-                onPressed: () => _createGroup(context),
-              ),
-              const SizedBox(width: 8),
-              CustomIconButton(
-                icon: Icons.search_rounded,
-                onPressed: () => setState(() => _isSearching = true),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(String title, IconData icon, ColorScheme color) {
-    return SliverToBoxAdapter(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: color.primary.withAlpha(30),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(icon, size: 18, color: color.primary),
-            ),
-            const SizedBox(width: 12),
-            Text(title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: color.onSurface.withAlpha(220))),
-            const Spacer(),
-            Icon(Icons.chevron_right, size: 16, color: color.outline.withAlpha(100)),
           ],
         ),
       ),
+      bottomNavigationBar: isDesktop
+          ? null
+          : NavBar(
+              selectedIndex: _view.index,
+              onIndexChanged: (i) => _select(HomeView.values[i]),
+              addNote: _addNote,
+            ),
+      floatingActionButton: isDesktop
+          ? FloatingActionButton.extended(
+              onPressed: _addNote,
+              icon: const Icon(Icons.add_rounded),
+              label: const Text('New note'),
+              tooltip: 'New note',
+            )
+          : null,
     );
   }
 
-  Widget _buildEmptyState(ColorScheme color) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(color: color.primary.withAlpha(20), shape: BoxShape.circle),
-            child: Icon(Icons.note_alt_rounded, size: 64, color: color.primary.withAlpha(150)),
+  Widget _buildRail() {
+    return NavigationRail(
+      selectedIndex: _view.index,
+      onDestinationSelected: (i) => _select(HomeView.values[i]),
+      labelType: NavigationRailLabelType.all,
+      leading: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: BrandMark(size: 36),
+      ),
+      destinations: const [
+        NavigationRailDestination(
+          icon: Icon(Icons.description_outlined),
+          selectedIcon: Icon(Icons.description_rounded),
+          label: Text('Notes'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.alarm_outlined),
+          selectedIcon: Icon(Icons.alarm_rounded),
+          label: Text('Reminders'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.archive_outlined),
+          selectedIcon: Icon(Icons.archive_rounded),
+          label: Text('Archive'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.delete_outline_rounded),
+          selectedIcon: Icon(Icons.delete_rounded),
+          label: Text('Trash'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent(List<NoteEntity> all, List<NoteGroupEntity> allGroups) {
+    final searching = _isSearching && _query.trim().isNotEmpty;
+
+    // Pick the notes for this view.
+    var notes = all.where((n) => !_dismissedNoteIds.contains(n.id));
+    switch (_view) {
+      case HomeView.notes:
+        notes = notes.where((n) => !n.isArchived && !n.isTrashed);
+      case HomeView.reminders:
+        notes = notes.where((n) => n.reminder != null && !n.isTrashed);
+      case HomeView.archive:
+        notes = notes.where((n) => n.isArchived && !n.isTrashed);
+      case HomeView.trash:
+        notes = notes.where((n) => n.isTrashed);
+    }
+    if (_tag != null) notes = notes.where((n) => n.tags.contains(_tag));
+    if (searching) notes = notes.where((n) => noteMatches(n, _query));
+
+    final list = notes.toList();
+    if (_view == HomeView.reminders) {
+      list.sort((a, b) => a.reminder!.dateTime.compareTo(b.reminder!.dateTime));
+    } else {
+      list.sort((a, b) => b.lastModified.compareTo(a.lastModified));
+    }
+
+    // On the main view, notes that live in a group show inside the group.
+    final showGroups = _view == HomeView.notes && !searching && _tag == null;
+    final groups = showGroups ? allGroups : const <NoteGroupEntity>[];
+    final inGroups = groups.expand((g) => g.noteIds).toSet();
+    final loose = showGroups ? list.where((n) => !inGroups.contains(n.id)).toList() : list;
+    final pinned = _view == HomeView.notes && !searching
+        ? loose.where((n) => n.isPinned).toList()
+        : <NoteEntity>[];
+    final rest = loose.where((n) => !pinned.contains(n)).toList();
+
+    final tags = all
+        .where((n) => !n.isTrashed)
+        .expand((n) => n.tags)
+        .toSet()
+        .toList()
+      ..sort();
+
+    final visibleCount = all.where((n) => !n.isTrashed && !n.isArchived).length;
+
+    return CustomScrollView(
+      slivers: [
+        SliverToBoxAdapter(child: _buildHeader(visibleCount, allGroups.length)),
+        if (tags.isNotEmpty && _view != HomeView.trash)
+          SliverToBoxAdapter(child: _buildTagBar(tags)),
+        if (_view == HomeView.trash && list.isNotEmpty)
+          SliverToBoxAdapter(child: _buildTrashBanner(list)),
+        if (list.isEmpty && groups.isEmpty)
+          SliverFillRemaining(hasScrollBody: false, child: _buildEmptyState())
+        else ...[
+          if (groups.isNotEmpty) ...[
+            SliverToBoxAdapter(child: CommentLabel('groups', count: groups.length)),
+            SliverPadding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                  maxCrossAxisExtent: 260,
+                  mainAxisExtent: 128,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 12,
+                ),
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => GroupCard(
+                    group: groups[i],
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => GroupDetailsPage(group: groups[i])),
+                    ),
+                  ),
+                  childCount: groups.length,
+                ),
+              ),
+            ),
+          ],
+          if (pinned.isNotEmpty) ...[
+            SliverToBoxAdapter(child: CommentLabel('pinned', count: pinned.length)),
+            NotesSliverGrid(notes: pinned, onNoteDismissed: _dismissed),
+          ],
+          if (rest.isNotEmpty) ...[
+            SliverToBoxAdapter(
+              child: CommentLabel(
+                searching
+                    ? 'results for "${_query.trim()}"'
+                    : (_tag != null ? '#$_tag' : _sectionName()),
+                count: rest.length,
+              ),
+            ),
+            NotesSliverGrid(
+              notes: rest,
+              isTrashView: _view == HomeView.trash,
+              onNoteDismissed: _dismissed,
+            ),
+          ],
+        ],
+        SliverToBoxAdapter(child: _buildFooter()),
+      ],
+    );
+  }
+
+  void _dismissed(NoteEntity note) => setState(() => _dismissedNoteIds.add(note.id));
+
+  String _sectionName() => switch (_view) {
+        HomeView.notes => 'notes',
+        HomeView.reminders => 'coming up',
+        HomeView.archive => 'archived',
+        HomeView.trash => 'trash',
+      };
+
+  Widget _buildHeader(int noteCount, int groupCount) {
+    final color = Theme.of(context).colorScheme;
+    final tokens = context.tokens;
+
+    if (_isSearching) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        child: TextField(
+          controller: _searchController,
+          autofocus: true,
+          style: monoStyle(context, size: 14),
+          decoration: InputDecoration(
+            hintText: 'grep your notes…',
+            hintStyle: monoStyle(context, size: 14, color: tokens.subtle),
+            prefixIcon: Icon(Icons.search_rounded, color: color.primary),
+            suffixIcon: IconButton(
+              tooltip: 'Close search',
+              icon: const Icon(Icons.close_rounded),
+              onPressed: () => setState(_closeSearch),
+            ),
           ),
-          const SizedBox(height: 24),
-          Text(_isSearching ? 'No notes match your search' : 'Your workspace is empty',
-              style: TextStyle(color: color.onSurface.withAlpha(180), fontSize: 18, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 8),
-          Text('Start by creating your first note!', style: TextStyle(color: color.outline, fontSize: 14)),
+          onChanged: (q) => setState(() => _query = q),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 12, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                PromptLine(path: _view.path, size: 18),
+                const SizedBox(height: 2),
+                Text(
+                  '$noteCount ${noteCount == 1 ? 'note' : 'notes'} · $groupCount ${groupCount == 1 ? 'group' : 'groups'} · stored on this device',
+                  style: monoStyle(context, size: 11, color: tokens.subtle),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            tooltip: 'Search',
+            icon: const Icon(Icons.search_rounded),
+            onPressed: () => setState(() => _isSearching = true),
+          ),
+          if (_view == HomeView.notes)
+            IconButton(
+              tooltip: 'New group',
+              icon: const Icon(Icons.create_new_folder_outlined),
+              onPressed: _createGroup,
+            ),
+          BlocBuilder<SettingsBloc, SettingsState>(
+            builder: (context, state) {
+              final settings = state is SettingsLoaded ? state.settings : null;
+              return IconButton(
+                tooltip: 'Settings',
+                onPressed: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const SettingsPage())),
+                icon: Hero(
+                  tag: 'user_profile_photo',
+                  child: UserAvatar(
+                    imageUrl: settings?.profileImagePath,
+                    seed: settings?.userHandle ?? 'codenote',
+                    radius: 15,
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTagCloud(List<NoteEntity> notes, ColorScheme color) {
-    final allTags = notes.expand((n) => n.tags).toSet().toList();
-    if (allTags.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      height: 50,
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: ListView.builder(
+  Widget _buildTagBar(List<String> tags) {
+    return SizedBox(
+      height: 48,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: allTags.length,
-        itemBuilder: (context, index) {
-          final tag = allTags[index];
-          final isSelected = _isSearching && _searchController.text.toLowerCase() == tag.toLowerCase();
-          return Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: ActionChip(
-              label: Text('#$tag', style: TextStyle(fontSize: 12, color: isSelected ? color.onPrimary : color.primary)),
-              backgroundColor: isSelected ? color.primary : color.primaryContainer.withAlpha(100),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              side: BorderSide.none,
-              onPressed: () {
-                HapticFeedback.selectionClick();
-                setState(() {
-                  _isSearching = true;
-                  _searchController.text = tag;
-                  context.read<NoteBloc>().add(SearchNotesEvent(tag));
-                });
-              },
-            ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+        itemCount: tags.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 6),
+        itemBuilder: (context, i) {
+          final tag = tags[i];
+          final selected = _tag == tag;
+          return FilterChip(
+            label: Text('#$tag'),
+            selected: selected,
+            showCheckmark: false,
+            visualDensity: VisualDensity.compact,
+            onSelected: (on) {
+              HapticFeedback.selectionClick();
+              setState(() => _tag = on ? tag : null);
+            },
           );
         },
       ),
     );
   }
 
-  Widget _buildSearchSuggestions(List<NoteEntity> notes, ColorScheme color) {
-    final query = _searchController.text.toLowerCase();
-    final suggestions = notes.where((n) => n.title.toLowerCase().contains(query) || n.tags.any((t) => t.toLowerCase().contains(query))).take(5).toList();
-    if (suggestions.isEmpty) return const SizedBox.shrink();
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: suggestions.map((n) => ListTile(
-          leading: const Icon(Icons.history_rounded, size: 18),
-          title: Text(n.title.isEmpty ? 'Untitled Note' : n.title, style: const TextStyle(fontSize: 14)),
-          onTap: () {
-            setState(() {
-              _isSearching = false;
-              _searchController.clear();
-            });
-            Navigator.push(context, MaterialPageRoute(builder: (context) => NotePage(note: n)));
-          },
-        )).toList(),
+  Widget _buildTrashBanner(List<NoteEntity> trashed) {
+    final color = Theme.of(context).colorScheme;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 8, 8, 8),
+        decoration: BoxDecoration(
+          color: color.surfaceContainer,
+          borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.schedule_rounded, size: 18, color: context.tokens.subtle),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Notes here are deleted for good after 30 days.',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+            TextButton(
+              onPressed: () => _emptyTrash(trashed),
+              style: TextButton.styleFrom(foregroundColor: color.error),
+              child: const Text('Empty trash'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    if (_isSearching && _query.trim().isNotEmpty) {
+      return TerminalEmptyState(
+        command: 'grep -r "${_query.trim()}" ~/notes',
+        output: '0 matches',
+        hint: 'Try a shorter word, or search by #tag.',
+      );
+    }
+    if (_tag != null) {
+      return TerminalEmptyState(
+        command: 'ls ${_view.path} | grep #$_tag',
+        output: 'nothing tagged #$_tag here',
+      );
+    }
+    return switch (_view) {
+      HomeView.notes => TerminalEmptyState(
+          command: 'ls ~/notes',
+          output: 'total 0',
+          hint: 'Your snippets, ideas and docs live here, only on this device.',
+          action: FilledButton.icon(
+            onPressed: _addNote,
+            icon: const Icon(Icons.add_rounded),
+            label: const Text('Write your first note'),
+          ),
+        ),
+      HomeView.reminders => const TerminalEmptyState(
+          command: 'crontab -l',
+          output: 'no reminders scheduled',
+          hint: 'Open a note and tap the bell to set one.',
+        ),
+      HomeView.archive => const TerminalEmptyState(
+          command: 'ls ~/archive',
+          output: 'total 0',
+          hint: 'Swipe a note right to archive it. It stays out of the way, not gone.',
+        ),
+      HomeView.trash => const TerminalEmptyState(
+          command: 'ls ~/trash',
+          output: 'clean. nothing to delete.',
+          hint: 'Swiped-away notes wait here for 30 days.',
+        ),
+    };
+  }
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 32, 16, 120),
+      child: Center(
+        child: Semantics(
+          excludeSemantics: true,
+          child: GestureDetector(
+            onTap: _onVersionTap,
+            child: Text(
+              'codenote v$appVersion · community edition',
+              style: monoStyle(context, size: 10, color: context.tokens.subtle.withAlpha(140)),
+            ),
+          ),
+        ),
       ),
     );
   }

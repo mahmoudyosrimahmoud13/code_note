@@ -41,11 +41,11 @@ class _ScanDocumentState extends State<ScanDocument> {
   Future<void> _extractText() async {
     if (_pickedImage == null) return;
 
-    // Check for Windows to avoid crash if google_ml_kit doesn't support it
-    if (Platform.isWindows) {
+    // Google ML Kit text recognition only exists on Android and iOS.
+    if (!Platform.isAndroid && !Platform.isIOS) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-            content: Text('Text recognition is not supported on Windows.')),
+            content: Text('Text recognition works on Android and iOS only.')),
       );
       return;
     }
@@ -143,13 +143,16 @@ class _ScanDocumentState extends State<ScanDocument> {
               children: [
                 CustomIconButton(
                   icon: Icons.code,
+                  tooltip: 'Add as a code block',
                   onPressed: () => _return(CodeBlockEntity(
                     id: uuid.generate(),
                     text: _controller.text,
                   )),
                 ),
+                const SizedBox(width: 16),
                 CustomIconButton(
                   icon: Icons.text_format,
+                  tooltip: 'Add as a text block',
                   onPressed: () => _return(NoteBlockEntity(
                     id: uuid.generate(),
                     text: _controller.text,

@@ -15,6 +15,7 @@ import 'features/settings/presentation/bloc/settings_bloc.dart';
 import 'features/settings/presentation/bloc/settings_event.dart';
 import 'features/settings/presentation/bloc/settings_state.dart';
 import 'helpers/helper_methods.dart';
+import 'widgets/brand.dart';
 import 'injection_container.dart' as di;
 
 void main() async {
@@ -74,7 +75,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             navigatorKey: navigatorKey,
             debugShowCheckedModeBanner: false,
-            title: 'CodeNote (Local)',
+            title: 'CodeNote',
             theme: mainTheme,
             darkTheme: darkTheme,
             themeMode: themeMode,
@@ -90,7 +91,7 @@ class MyApp extends StatelessWidget {
                 ? (state.settings.hasCompletedOnboarding
                     ? const HomePage()
                     : const OnboardingPage())
-                : const Scaffold(body: Center(child: CircularProgressIndicator())),
+                : const Scaffold(body: Center(child: BrandMark(size: 64))),
           );
         },
       ),

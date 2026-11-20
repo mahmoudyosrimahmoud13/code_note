@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/entities/note_group.dart';
 import '../bloc/note_bloc.dart';
-import '../bloc/note_event.dart';
 import '../bloc/note_state.dart';
 import '../bloc/note_group_bloc.dart';
 import '../bloc/note_group_event.dart';
@@ -11,6 +10,7 @@ import '../bloc/note_group_state.dart';
 import '../../../../widgets/home_grid_view.dart';
 import 'note_page.dart';
 import '../../../../helpers/helper_methods.dart';
+import '../../../../constants/themes.dart';
 
 class GroupDetailsPage extends StatefulWidget {
   final NoteGroupEntity group;
@@ -51,15 +51,18 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
 
         return Scaffold(
           appBar: AppBar(
-            title: Text(currentGroup.name),
+            title: Text('~/${currentGroup.name}/',
+                style: monoStyle(context, size: 17, weight: FontWeight.w700)),
             actions: [
               IconButton(
-                icon: const Icon(Icons.edit_rounded),
+                tooltip: 'Rename group',
+                icon: const Icon(Icons.edit_outlined),
                 onPressed: () =>
                     _showEditGroupNameDialog(context, currentGroup),
               ),
               IconButton(
-                icon: const Icon(Icons.delete_rounded),
+                tooltip: 'Delete group',
+                icon: const Icon(Icons.delete_outline_rounded),
                 onPressed: () => _showDeleteGroupDialog(context, currentGroup),
               ),
             ],
@@ -124,14 +127,9 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
                         return HomeGridView(
                           notes: notes,
                           onNoteTap: (note) {
-                            final noteBloc = context.read<NoteBloc>();
-                            Navigator.of(context)
-                                .push(MaterialPageRoute(
+                            Navigator.of(context).push(MaterialPageRoute(
                               builder: (context) => NotePage(note: note),
-                            ))
-                                .then((_) {
-                              noteBloc.add(GetNotesEvent());
-                            });
+                            ));
                           },
                           onRemoveFromGroup: (note) =>
                               _removeNoteFromGroup(context, currentGroup, note),
@@ -150,10 +148,8 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
             ],
           ),
           floatingActionButton: FloatingActionButton(
+            tooltip: 'New note in this group',
             onPressed: () => _createNewNote(context, currentGroup),
-            backgroundColor: color.primary,
-            foregroundColor: color.onPrimary,
-            elevation: 4,
             child: const Icon(Icons.add_rounded),
           ),
         );
@@ -265,13 +261,19 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
       builder: (context) => NotePage(note: newNote),
     ))
         .then((_) {
-      if (!currentGroup.noteIds.contains(newNote.id)) {
-        List<String> newNoteIds = List.from(currentGroup.noteIds)
-          ..add(newNote.id);
-        groupBloc
-            .add(UpdateGroupEvent(currentGroup.copyWith(noteIds: newNoteIds)));
+      // Only link the note if it was actually saved (empty notes aren't).
+      final state = noteBloc.state;
+      final saved =
+          state is NoteLoaded && state.notes.any((n) => n.id == newNote.id);
+      final latest = groupBloc.state is NoteGroupLoaded
+          ? (groupBloc.state as NoteGroupLoaded).groups.firstWhere(
+              (g) => g.id == currentGroup.id,
+              orElse: () => currentGroup)
+          : currentGroup;
+      if (saved && !latest.noteIds.contains(newNote.id)) {
+        groupBloc.add(UpdateGroupEvent(
+            latest.copyWith(noteIds: [...latest.noteIds, newNote.id])));
       }
-      noteBloc.add(GetNotesEvent());
     });
   }
 
@@ -343,9 +345,9 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
               Navigator.pop(context);
               Navigator.pop(context);
             },
-            child: const Text('Delete',
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+            style: TextButton.styleFrom(
+                foregroundColor: Theme.of(context).colorScheme.error),
+            child: const Text('Delete group'),
           ),
         ],
       ),

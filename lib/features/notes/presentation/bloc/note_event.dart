@@ -8,7 +8,18 @@ abstract class NoteEvent extends Equatable {
   List<Object> get props => [];
 }
 
+/// Start listening to stored notes. Safe to send more than once.
 class GetNotesEvent extends NoteEvent {}
+
+/// Sent by the bloc itself when storage changes.
+class NotesChangedEvent extends NoteEvent {
+  final List<NoteEntity> notes;
+
+  const NotesChangedEvent(this.notes);
+
+  @override
+  List<Object> get props => [notes];
+}
 
 class AddNoteEvent extends NoteEvent {
   final NoteEntity note;
@@ -28,6 +39,7 @@ class UpdateNoteEvent extends NoteEvent {
   List<Object> get props => [note];
 }
 
+/// Deletes a note for good (used from the trash).
 class DeleteNoteEvent extends NoteEvent {
   final String id;
 
@@ -37,11 +49,5 @@ class DeleteNoteEvent extends NoteEvent {
   List<Object> get props => [id];
 }
 
-class SearchNotesEvent extends NoteEvent {
-  final String query;
-
-  const SearchNotesEvent(this.query);
-
-  @override
-  List<Object> get props => [query];
-}
+/// Deletes notes that sat in the trash longer than 30 days.
+class PurgeOldTrashEvent extends NoteEvent {}

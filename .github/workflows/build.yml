@@ -1,0 +1,204 @@
+name: Build
+
+# Runs on every push and pull request, and can be started by hand.
+# Pushing a tag like v1.2.0 also publishes a GitHub Release with all builds.
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_CHANNEL: stable
+
+jobs:
+  check:
+    name: Check and test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Check version numbers
+        id: version
+        shell: bash
+        run: |
+          # pubspec.yaml has "version: 1.2.0+10200".
+          # The build number (after +) is Android's versionCode. It must always
+          # go up, or phones refuse the update. We make it automatic:
+          #   versionCode = major*10000 + minor*100 + patch   (1.2.0 -> 10200)
+          line=$(grep -E '^version:' pubspec.yaml | head -1 | awk '{print $2}')
+          name=${line%%+*}
+          code=${line##*+}
+          IFS=. read -r major minor patch <<< "$name"
+          expected=$((major*10000 + minor*100 + patch))
+          echo "pubspec version: $name (code $code)"
+          if [ "$code" != "$expected" ]; then
+            echo "::error::Build number must be $expected for version $name. Use: version: $name+$expected"
+            exit 1
+          fi
+          if ! grep -q "appVersion = '$name'" lib/constants/app_info.dart; then
+            echo "::error::lib/constants/app_info.dart must say appVersion = '$name'"
+            exit 1
+          fi
+          if [[ "$GITHUB_REF" == refs/tags/v* ]] && [ "${GITHUB_REF#refs/tags/v}" != "$name" ]; then
+            echo "::error::Tag ${GITHUB_REF#refs/tags/} does not match pubspec version $name"
+            exit 1
+          fi
+          echo "version=$name" >> "$GITHUB_OUTPUT"
+
+      - run: flutter pub get
+      - name: Analyze (fails only on real errors)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Run tests
+        run: flutter test
+
+  android:
+    name: Android APK
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+
+      - name: Load the signing key
+        shell: bash
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/codenote.keystore"
+            echo "CODENOTE_KEYSTORE_PATH=$RUNNER_TEMP/codenote.keystore" >> "$GITHUB_ENV"
+            echo "Signing with the CodeNote release key."
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            echo "::error::Releases must be signed with the CodeNote key, or phones can't update. Add the ANDROID_KEYSTORE_BASE64 secret (see README)."
+            exit 1
+          else
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret. This test APK can't update an installed CodeNote."
+          fi
+
+      - name: Build APK
+        env:
+          CODENOTE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          CODENOTE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          CODENOTE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        # One universal APK that works on every phone CPU (no split-per-abi),
+        # so no phone gets "not compatible".
+        run: flutter build apk --release
+
+      - name: Show what was built
+        shell: bash
+        run: |
+          apk=build/app/outputs/flutter-apk/app-release.apk
+          aapt=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
+          "$aapt" dump badging "$apk" | grep -E "package:|sdkVersion|native-code" || true
+          mv "$apk" "CodeNote-${{ needs.check.outputs.version }}-android.apk"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: CodeNote-*-android.apk
+
+  windows:
+    name: Windows
+    needs: check
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter build windows --release
+      - name: Zip
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "CodeNote-${{ needs.check.outputs.version }}-windows-x64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows
+          path: CodeNote-*-windows-x64.zip
+
+  linux:
+    name: Linux
+    needs: check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Linux build tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgtk-3-dev clang cmake pkg-config liblzma-dev libstdc++-12-dev
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter build linux --release
+      - name: Pack
+        run: |
+          name="CodeNote-${{ needs.check.outputs.version }}-linux-x64"
+          mkdir -p "$name"
+          cp -r build/linux/x64/release/bundle/* "$name/"
+          tar -czf "$name.tar.gz" "$name"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: CodeNote-*-linux-x64.tar.gz
+
+  macos:
+    name: macOS
+    needs: check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_CHANNEL }}
+          cache: true
+      - run: flutter build macos --release
+      - name: Zip
+        run: |
+          app=$(ls -d build/macos/Build/Products/Release/*.app | head -1)
+          ditto -c -k --keepParent "$app" "CodeNote-${{ needs.check.outputs.version }}-macos.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos
+          path: CodeNote-*-macos.zip
+
+  release:
+    name: Publish release
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [check, android, windows, linux, macos]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF#refs/tags/}" dist/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "CodeNote ${{ needs.check.outputs.version }}" \
+            --generate-notes

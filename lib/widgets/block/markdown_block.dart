@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
-import 'block.dart';
-import '../custom_icon_button.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../constants/themes.dart';
+import 'block.dart';
+import 'block_frame.dart';
+
+/// A markdown block: shows the rendered result, tap to edit the source.
 class MarkdownBlock extends Block {
   const MarkdownBlock({
     super.key,
@@ -19,18 +23,18 @@ class MarkdownBlock extends Block {
 
 class _MarkdownBlockState extends State<MarkdownBlock> {
   late final TextEditingController _controller;
-  bool _isEditing = false;
   final FocusNode _focusNode = FocusNode();
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.entity.text);
+    // New, empty blocks open ready to type.
+    _isEditing = (widget.entity.text ?? '').isEmpty;
     _focusNode.addListener(() {
-      if (!_focusNode.hasFocus && mounted) {
-        setState(() {
-          _isEditing = false;
-        });
+      if (!_focusNode.hasFocus && mounted && _controller.text.isNotEmpty) {
+        setState(() => _isEditing = false);
       }
     });
   }
@@ -42,119 +46,90 @@ class _MarkdownBlockState extends State<MarkdownBlock> {
     super.dispose();
   }
 
+  void _startEditing() {
+    setState(() => _isEditing = true);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _focusNode.requestFocus());
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Row(
-                  children: [
-                    Icon(Icons.description_rounded, size: 20, color: color.primary),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        'Markdown',
-                        style: textTheme.labelLarge?.copyWith(fontWeight: FontWeight.bold),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
-                ),
+          BlockHeader(
+            label: 'markdown',
+            icon: Icons.tag_rounded,
+            quickActions: [
+              BlockQuickAction(
+                icon: _isEditing ? Icons.visibility_rounded : Icons.edit_rounded,
+                tooltip: _isEditing ? 'Preview' : 'Edit',
+                onPressed: () => _isEditing
+                    ? setState(() => _isEditing = false)
+                    : _startEditing(),
               ),
-              Flexible(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    if (widget.delete != null)
-                      CustomIconButton(
-                        icon: Icons.delete,
-                        iconSize: 15,
-                        innerColor: color.onError,
-                        iconColor: color.error,
-                        onPressed: () {
-                          widget.delete?.call(widget.id);
-                        },
-                      ),
-                    if (widget.moveUp != null)
-                      CustomIconButton(
-                        icon: Icons.arrow_upward,
-                        iconSize: 15,
-                        onPressed: () {
-                          widget.moveUp?.call(widget.id);
-                        },
-                      ),
-                    if (widget.moveDown != null)
-                      CustomIconButton(
-                        icon: Icons.arrow_downward,
-                        iconSize: 15,
-                        onPressed: () {
-                          widget.moveDown?.call(widget.id);
-                        },
-                      )
-                  ],
-                ),
-              )
             ],
+            onMoveUp: widget.moveUp == null ? null : () => widget.moveUp!(widget.id),
+            onMoveDown:
+                widget.moveDown == null ? null : () => widget.moveDown!(widget.id),
+            onDelete: widget.delete == null ? null : () => widget.delete!(widget.id),
           ),
-          const SizedBox(height: 8),
-          GestureDetector(
-            onTap: () {
-              if (!_isEditing) {
-                setState(() {
-                  _isEditing = true;
-                });
-                _focusNode.requestFocus();
-              }
-            },
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: _isEditing
-                  ? TextField(
-                      key: const ValueKey('editing'),
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      onChanged: (val) {
-                        if (widget.onChanged != null) {
-                          widget.onChanged!(widget.entity.copyWith(text: val));
-                        }
-                      },
-                      maxLines: null,
-                      decoration: InputDecoration(
-                        hintText: 'Write markdown...',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: color.outline.withAlpha(127)),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: _isEditing
+                ? TextField(
+                    key: const ValueKey('editing'),
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    onChanged: (val) =>
+                        widget.onChanged?.call(widget.entity.copyWith(text: val)),
+                    maxLines: null,
+                    minLines: 3,
+                    decoration: const InputDecoration(
+                      hintText: '# Heading\n- a list\n**bold**, `code`',
+                    ),
+                    style: monoStyle(context, size: 13.5),
+                    keyboardType: TextInputType.multiline,
+                  )
+                : Material(
+                    key: const ValueKey('preview'),
+                    color: color.surfaceContainerLow,
+                    borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+                      onTap: _startEditing,
+                      child: Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: MarkdownBody(
+                          data: _controller.text,
+                          selectable: false,
+                          onTapLink: (text, href, title) {
+                            if (href != null) {
+                              launchUrl(Uri.parse(href),
+                                  mode: LaunchMode.externalApplication);
+                            }
+                          },
+                          styleSheet:
+                              MarkdownStyleSheet.fromTheme(Theme.of(context))
+                                  .copyWith(
+                            p: textTheme.bodyLarge,
+                            code: monoStyle(context, size: 13,
+                                color: color.primary),
+                            codeblockDecoration: BoxDecoration(
+                              color: context.tokens.codeBackground,
+                              borderRadius:
+                                  BorderRadius.circular(AppBrand.radiusSmall),
+                            ),
+                          ),
                         ),
-                        filled: true,
-                        fillColor: color.surfaceContainerHighest.withAlpha(51),
-                      ),
-                      style: textTheme.bodyLarge!.copyWith(fontFamily: 'monospace'),
-                      keyboardType: TextInputType.multiline,
-                    )
-                  : Container(
-                      key: const ValueKey('preview'),
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: color.surfaceContainerHighest.withAlpha(25),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: color.outline.withAlpha(25)),
-                      ),
-                      child: MarkdownBody(
-                        data: _controller.text.isEmpty ? '*Click to edit markdown...*' : _controller.text,
-                        selectable: true,
                       ),
                     ),
-            ),
+                  ),
           ),
         ],
       ),

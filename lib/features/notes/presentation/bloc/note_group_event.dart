@@ -9,7 +9,17 @@ abstract class NoteGroupEvent extends Equatable {
   List<Object> get props => [];
 }
 
+/// Start listening to stored groups. Safe to send more than once.
 class GetGroupsEvent extends NoteGroupEvent {}
+
+/// Sent by the bloc itself when storage changes.
+class GroupsChangedEvent extends NoteGroupEvent {
+  final List<NoteGroupEntity> groups;
+  const GroupsChangedEvent(this.groups);
+
+  @override
+  List<Object> get props => [groups];
+}
 
 class AddGroupEvent extends NoteGroupEvent {
   final NoteGroupEntity group;

@@ -1,113 +1,152 @@
-# CodeNote 🚀
+# CodeNote
 
+[![Build](https://github.com/mahmoudyosrimahmoud13/code_note/actions/workflows/build.yml/badge.svg)](https://github.com/mahmoudyosrimahmoud13/code_note/actions/workflows/build.yml)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-7B5CFF.svg)](LICENSE)
 
-**CodeNote** is a professional, developer-centric productivity suite that bridges the gap between note-taking and system-wide coding utilities. 
+**A notebook for code, notes and ideas.** Mix text, code, markdown and images in one note, with real syntax highlighting and a code font, on Android, Windows, Linux and macOS.
+
+```
+~/notes $ ls
+flutter/   python/   📌 deploy-checklist   #sql #interview
+```
 
 <p align="center">
-  <img src="poster/1.jpg" width="100%" alt="CodeNote - The Ultimate Productivity Note app for Developers" />
+  <img src="poster/1.jpg" width="100%" alt="CodeNote" />
 </p>
 
 > [!IMPORTANT]
-> **Source Code Notice**: The code in this repository represents the **Community Edition (Local-Only)**. It is a strictly offline, privacy-first version designed for open-source contribution. For the complete experience with Cloud Sync and Messaging, please use the download links below.
+> **This repository is the Community Edition: local-only.** Your notes stay on your device. There is no account, no cloud and no tracking. The full version with cloud sync and messaging is distributed separately (see Download).
 
 ---
 
-## 📥 Download (Full Version) 🛜
+## Download
 
-The **Full Version** includes all features listed below, including real-time messaging and cloud synchronization.
+**Community Edition (local-only)**, the version built from this code:
 
-*   **[📱 Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/app-release.apk)**
-*   **[🪟 Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/Release.zip)**
+Get the latest build for your platform from **[Releases](https://github.com/mahmoudyosrimahmoud13/code_note/releases/latest)**:
+
+| Platform | File |
+| --- | --- |
+| Android | `CodeNote-<version>-android.apk` (works on every phone, Android 7.0+) |
+| Windows | `CodeNote-<version>-windows-x64.zip` (unzip, run `code_note.exe`) |
+| Linux | `CodeNote-<version>-linux-x64.tar.gz` (extract, run `./code_note`) |
+| macOS | `CodeNote-<version>-macos.zip` (unzip, then right-click the app > Open the first time, because it isn't notarized) |
+
+**Updating on Android:** install the new APK over the old one. Your notes stay. Starting with 1.2.0, every release is signed with the same key and has a higher version number, so Android accepts it as an update.
+
+**Full version** (cloud sync and messaging):
+[Android](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/app-release.apk) ·
+[Windows](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/Release.zip)
 
 ---
 
-## 📥 Download (Community Version) Local only 🔒
+## Features
 
-The **Full Version** includes all features listed below, including real-time messaging and cloud synchronization.
+### Notes made of blocks
+- **Text, code, markdown and image blocks** in any order, in one note.
+- **Code blocks** with highlighting for 20+ languages (Python, Dart, JavaScript, TypeScript, Go, Java, Kotlin, C#, C++, PHP, SQL, PostgreSQL, Bash, HTML, CSS, JSON, Docker, Django, Arduino, ARM and x86 assembly), line numbers and the JetBrains Mono font.
+- **A symbol bar** while you type code: `{}` `()` `[]` `""` `;` `=>` and an indent key, inserted where your cursor is.
+- **Markdown** with a live preview. Tap to edit, tap away to see it rendered.
+- **Scan text from a photo** (Android and iOS) and drop it in as a text or code block.
 
-*   **[📱 Android (.apk)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/community/CodeNote-community.apk)**
-*   **[🪟 Windows (.zip)](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/community/CodeNote_Windows_community.zip)**
+### Organized your way
+- **Groups** (folders). Drag a note onto a group to move it there.
+- **Tags**, with one-tap tag filters on the home screen.
+- **Pin** important notes to the top. **Archive** what you don't need every day.
+- **Search** across titles, tags, text and code.
+- **Trash** keeps deleted notes for 30 days, then removes them and their images for good. Every swipe has **Undo**.
+- **Reminders** list for notes you need to come back to.
 
----
-
-## ✨ Full Feature Suite
-
-### 🛠️ Android OS Power User Features
--   **"Open With" Support**: Open source files directly from your file manager into CodeNote.
-    -   **Supported Extensions**: `.dart`, `.py`, `.js`, `.ts`, `.cpp`, `.cxx`, `.h`, `.hpp`, `.cs`, `.go`, `.java`, `.php`, `.ino`, `.sh`, `.kt`, `.sql`, `.json`, `.html`, `.css`, `.md`, `.txt`.
--   **Automated Note Parsing**: The app automatically reads shared files, detects the programming language, and creates a formatted code note instantly.
--   **System Share Target**: Share text, snippets, or files from any app (Chrome, WhatsApp, GitHub, File Manager) directly to CodeNote.
+### Built for developers
+- **Share into CodeNote** on Android: share text, a link, a photo or a code file from any app. Files like `.py`, `.dart`, `.js`, `.sql` become code blocks with the right language. `.md` becomes markdown.
+- **Open with CodeNote** for source files from your file manager.
+- **Share out** a note as text, as a `.txt`, or as a source file (`.py`, `.dart`, ...).
+- **Light, dark or system theme**, and adjustable text size.
 
 <p align="center">
-  <img src="poster/6.jpg" width="80%" alt="Seamless Sharing Workflow" />
+  <img src="poster/8.jpg" width="32%" alt="Blocks" />
+  <img src="poster/3.jpg" width="32%" alt="Syntax highlighting" />
+  <img src="poster/7.jpg" width="32%" alt="Scan text" />
 </p>
-
-### 💬 Professional Messaging (Full Version Only)
--   **Real-time Collaboration**: Powered by Firestore with sub-millisecond sync for messages and reactions.
--   **Clickable Links**: All URLs in chat are automatically linkified and open in your external system browser.
--   **Group Management**: Full control over group members, admin permissions, and rich media sharing.
-
-<p align="center">
-  <img src="poster/5.jpg" width="80%" alt="Professional Messaging & Collaboration" />
-</p>
-
-### 📝 Developer-First Editor
--   **Rich Block Architecture**: Mix Text, Markdown, and Code blocks in a single note.
--   **Syntax Highlighting**: Industry-standard highlighting for **20+ languages**:
-    -   *Python, C#, Dart, Go, Java, JavaScript, TypeScript, C++, PHP, Arduino, ARM/x86 Assembly, Bash, Django, HTML, CSS, Docker, Kotlin, SQL, PostgreSQL, JSON.*
--   **OCR Integration**: Extract code or text from images using Google ML Kit.
-
-<p align="center">
-  <img src="poster/8.jpg" width="32%" alt="Jupyter-Inspired Blocks" />
-  <img src="poster/3.jpg" width="32%" alt="Syntax Highlighting" />
-  <img src="poster/7.jpg" width="32%" alt="OCR Scan & Extract" />
-</p>
-
-### 🗂️ Note Organization & Tagging
--   **Unified Workspace**: Seamlessly mix text, Markdown, and code blocks.
--   **Smart Tagging**: Organize your knowledge with a powerful, custom tag system.
--   **Instant Access**: Find any project, snippet, or idea in milliseconds.
-
-<p align="center">
-  <img src="poster/2.jpg" width="48%" alt="Organization Workspace" />
-  <img src="poster/4.jpg" width="48%" alt="Tagging and Grouping" />
-</p>
-
-### 🔐 Security & Persistence
--   **Offline-First Architecture**: Powered by **Hive**, ensuring your data is accessible even without an internet connection.
--   **Cloud Sync (Full Version Only)**: Automatic reconciliation between local storage and Firebase Cloud for multi-device access (Android, Windows, Web).
--   **QR Profile Sync**: Save and share high-resolution profile QR codes to connect with other developers instantly.
--   **Privacy Focused**: Disable Android Auto-Backup and manually clear all local/cloud data at any time.
 
 ---
 
-## 🏗️ Technical Architecture (Community Edition)
+## What's new in 1.2.0
 
-The open-source codebase is built on **Clean Architecture** principles, optimized for a local-only environment.
-
--   **State Management**: BLoC (Business Logic Component).
--   **Dependency Injection**: GetIt (Service Locator).
--   **Local Database**: Hive (High-performance NoSQL).
--   **UI UX**: Flutter Animate, Custom Block Factory.
-
-> [!TIP]
-> For a deep-dive into the local-only architecture and build infrastructure, check out our **[Technical Overview](PROJECT_OVERVIEW.md)**.
+- **Faster:** each note is saved on its own instead of rewriting every note on each keystroke, and the app no longer slows down the longer it runs.
+- **No lost edits:** your last keystrokes are saved when you leave a note, and archiving or trashing from inside a note keeps your latest changes.
+- **Delete forever actually deletes** (it used to only move the note to the trash again). Trash empties itself after 30 days.
+- **Shared items are saved right away**, shared photos are no longer ignored, and `.md` and `.txt` files open as text.
+- **New look with a terminal personality:** prompt-style headers, `// comment` section labels, code previews on cards, a real code font, quieter block controls (one `⋯` menu instead of a row of big buttons), labeled toolbar, new onboarding.
+- **Accessible:** every icon button has a label for screen readers and a tooltip.
+- **Builds for Android, Windows, Linux and macOS** on every push, with signed Android releases that update cleanly.
 
 ---
 
-## 🚀 Getting Started (Developers)
+## Build it yourself
 
-1.  **Clone**: `git clone https://github.com/mahmoudyosrimahmoud13/code_note.git`
-2.  **Environment**: Ensure you have **Flutter 3.22+** and **JDK 17** installed.
-3.  **Setup**: Run `flutter pub get` to install dependencies.
-4.  **Build**: 
-    ```powershell
-    # Generate the release APK (Community Edition)
-    flutter build apk --release
-    ```
+You need **Flutter (stable channel)**. For Android you also need **JDK 17**.
+
+```bash
+git clone git@github.com:mahmoudyosrimahmoud13/code_note.git
+cd code_note
+flutter pub get
+flutter test                    # run the tests
+flutter run                     # run on a connected device or desktop
+flutter build apk --release     # Android
+flutter build windows --release # Windows (on Windows)
+flutter build linux --release   # Linux (needs: ninja-build libgtk-3-dev clang cmake pkg-config)
+flutter build macos --release   # macOS (on a Mac with Xcode)
+```
+
+### Version numbers
+
+`pubspec.yaml` holds the version, for example `version: 1.2.0+10200`.
+
+- The part before `+` is the version people see.
+- The part after `+` is Android's version code. It must always go up, or phones refuse the update. The rule is **major × 10000 + minor × 100 + patch**, so 1.2.0 is `10200`, 1.2.1 is `10201` and 1.3.0 is `10300`.
+- `lib/constants/app_info.dart` shows the version in the app and must match.
+
+The build checks all three and stops with a clear message if they don't match.
+
+### Releasing
+
+1. Update the version in `pubspec.yaml` and `lib/constants/app_info.dart`.
+2. Commit, then tag and push: `git tag v1.2.0 && git push --tags`.
+3. GitHub Actions builds all four platforms and publishes a release with the files.
+
+### Android signing (once, by the maintainer)
+
+Android only installs an update over an existing app when it's **signed with the same key**. Release builds read the key from four repository secrets (**Settings > Secrets and variables > Actions**):
+
+| Secret | Value |
+| --- | --- |
+| `ANDROID_KEYSTORE_BASE64` | The keystore file, base64-encoded |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Key alias |
+| `ANDROID_KEY_PASSWORD` | Key password |
+
+A tagged release fails if the key is missing, so an unsigned APK can never be published by mistake. For local release builds, put the same values in `android/key.properties` (`storeFile`, `storePassword`, `keyAlias`, `keyPassword`). That file is git-ignored.
 
 ---
 
-## 📜 License
+## Architecture
 
-This project is licensed under the GNU Affero General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
+Clean Architecture with three layers per feature (`data`, `domain`, `presentation`):
+
+- **State:** BLoC. Each bloc listens to storage once and screens filter what they show.
+- **Storage:** Hive. Every note and group is its own entry (`note:<id>`, `group:<id>`) with an in-memory copy, so saving one note writes only that note. Older data is moved to this format automatically on first launch.
+- **Dependency injection:** GetIt.
+- **Design system:** `lib/constants/themes.dart` (colors from the logo, surfaces, type, code colors) and `lib/widgets/brand.dart` (prompt line, blinking cursor, comment labels, terminal empty states).
+
+More detail in **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**.
+
+---
+
+## Contributing
+
+Issues and pull requests are welcome. Every pull request is checked by the build: analysis, tests, and builds for all four platforms.
+
+## License
+
+GNU Affero General Public License v3.0. See [LICENSE](LICENSE). JetBrains Mono is under the SIL Open Font License (`assets/fonts/JetBrainsMono-OFL.txt`).

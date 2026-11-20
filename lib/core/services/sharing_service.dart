@@ -6,7 +6,11 @@ import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import '../../features/notes/domain/entities/note.dart';
 import '../../features/notes/domain/entities/block.dart';
 import '../../features/notes/domain/entities/language.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../features/notes/presentation/bloc/note_bloc.dart';
+import '../../features/notes/presentation/bloc/note_event.dart';
 import '../../features/notes/presentation/pages/note_page.dart';
+import '../util/image_helper.dart';
 import '../../helpers/helper_methods.dart';
 import 'log_service.dart';
 import 'package:uuid/uuid.dart';
@@ -37,6 +41,8 @@ class SharingService {
       // For sharing images/files coming from outside the app while the app is closed
       ReceiveSharingIntent.instance.getInitialMedia().then((value) {
         _handleSharedMedia(context, value);
+        // Mark the launch share as handled, so it isn't added again later.
+        ReceiveSharingIntent.instance.reset();
       }).catchError((err) {
         LogService().log("SharingService: getInitialMedia error: $err");
       });
@@ -54,13 +60,41 @@ class SharingService {
 
     LogService().log("SharingService: Handling shared media: ${media.length} items");
 
+    final images = <String>[];
     for (var file in media) {
       if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
         _createNoteFromText(context, file.path);
+      } else if (file.type == SharedMediaType.image) {
+        images.add(file.path);
       } else if (file.type == SharedMediaType.file) {
         _createNoteFromFile(context, file.path);
       }
     }
+    // Several shared photos become one note with all of them.
+    if (images.isNotEmpty) _createNoteFromImages(context, images);
+  }
+
+  void _createNoteFromImages(BuildContext context, List<String> paths) async {
+    final blocks = <BlockEntity>[];
+    for (final path in paths) {
+      try {
+        final saved = await ImageHelper.persistImage(path);
+        blocks.add(ImageBlockEntity(id: _uuid.v4(), imagePath: saved));
+      } catch (e) {
+        LogService().log("SharingService: Could not copy shared image: $e");
+      }
+    }
+    if (blocks.isEmpty || !context.mounted) return;
+    _openAndSave(
+      context,
+      NoteEntity(
+        id: _uuid.v4(),
+        title: paths.length == 1 ? 'Shared image' : 'Shared images',
+        blocks: blocks,
+        lastModified: DateTime.now(),
+        tags: const ['shared'],
+      ),
+    );
   }
 
   void _createNoteFromText(BuildContext context, String text) {
@@ -74,7 +108,7 @@ class SharingService {
       tags: const ['shared'],
     );
 
-    _navigateToNote(context, note);
+    _openAndSave(context, note);
   }
 
   void _createNoteFromFile(BuildContext context, String path) async {
@@ -86,23 +120,30 @@ class SharingService {
 
       final language = _mapExtensionToLanguage(extension);
 
+      // Markdown and plain text become text blocks, not code.
+      final BlockEntity block;
+      if (extension == 'md' || extension == 'markdown') {
+        block = MarkdownBlockEntity(id: _uuid.v4(), text: content);
+      } else if (language == Language.none) {
+        block = NoteBlockEntity(id: _uuid.v4(), text: content);
+      } else {
+        block = CodeBlockEntity(id: _uuid.v4(), text: content, language: language);
+      }
+
       final note = NoteEntity(
         id: _uuid.v4(),
         title: fileName,
-        blocks: [
-          CodeBlockEntity(
-            id: _uuid.v4(),
-            text: content,
-            language: language,
-          ),
-        ],
+        blocks: [block],
         lastModified: DateTime.now(),
         tags: const ['shared', 'file'],
       );
 
-      _navigateToNote(context, note);
+      if (context.mounted) _openAndSave(context, note);
     } catch (e) {
       LogService().log("SharingService: Error reading file: $e");
+      showMessage(
+          message: "Couldn't open that file. CodeNote reads text and code files.",
+          type: SnackType.faild);
     }
   }
 
@@ -135,7 +176,10 @@ class SharingService {
     }
   }
 
-  void _navigateToNote(BuildContext context, NoteEntity note) {
+  /// Saves the shared note first, so nothing is lost even if it's closed
+  /// right away, then opens it.
+  void _openAndSave(BuildContext context, NoteEntity note) {
+    context.read<NoteBloc>().add(AddNoteEvent(note));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       navigateTo(toPage: NotePage(note: note));
     });

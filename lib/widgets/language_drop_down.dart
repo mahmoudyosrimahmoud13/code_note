@@ -47,7 +47,7 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (brand != null) SizedBox(width: 24, height: 24, child: Brand(brand)) else if (icon != null) Icon(icon, size: 24),
+          if (brand != null) SizedBox(width: 18, height: 18, child: Brand(brand)) else if (icon != null) Icon(icon, size: 18),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -66,11 +66,13 @@ class _LanguageDropDownState extends State<LanguageDropDown> {
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 140),
+      constraints: const BoxConstraints(maxWidth: 170),
       child: DropdownButton(
         isExpanded: true,
-        dropdownColor: color.primary.withAlpha(70),
-        borderRadius: BorderRadius.circular(30),
+        isDense: true,
+        dropdownColor: color.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+        style: TextStyle(fontFamily: 'JetBrainsMono', fontSize: 13, color: color.onSurface),
         underline: const SizedBox.shrink(),
         items: _items,
         value: widget.language,

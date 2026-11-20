@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-class CustomIconButton extends StatefulWidget {
+import '../constants/themes.dart';
+
+/// A round icon (or short text) button used across the app.
+///
+/// It is a real Material button, so screen readers announce it, keyboards
+/// can reach it, and [tooltip] shows on hover and long-press.
+class CustomIconButton extends StatelessWidget {
   const CustomIconButton({
     super.key,
     this.icon,
     this.text,
+    this.tooltip,
     this.borderColor,
     this.innerColor,
     this.iconColor,
     this.iconSize,
     this.showBadge = false,
     this.onPressed,
-  });
+  }) : assert(icon != null || text != null);
 
   final IconData? icon;
   final String? text;
+  final String? tooltip;
   final void Function()? onPressed;
   final Color? borderColor;
   final Color? innerColor;
@@ -24,120 +32,46 @@ class CustomIconButton extends StatefulWidget {
   final bool showBadge;
 
   @override
-  State<CustomIconButton> createState() => _CustomIconButtonState();
-}
-
-class _CustomIconButtonState extends State<CustomIconButton>
-    with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  late Animation<double> _scaleAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 150),
-    );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.85).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _handleTapDown(TapDownDetails _) {
-    _controller.forward();
-  }
-
-  void _handleTapUp(TapUpDetails _) {
-    _controller.reverse();
-  }
-
-  void _handleTapCancel() {
-    _controller.reverse();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final textTheme = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
-    final effectiveIconSize = widget.iconSize ?? 25;
+    final size = iconSize ?? 22;
+    final box = size + 22;
 
-    return GestureDetector(
-      onTapDown: _handleTapDown,
-      onTapUp: _handleTapUp,
-      onTapCancel: _handleTapCancel,
-      onTap: () {
-        HapticFeedback.lightImpact();
-        widget.onPressed?.call();
-      },
-      child: AnimatedBuilder(
-        animation: _scaleAnimation,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scaleAnimation.value,
-            child: child,
-          );
-        },
-        child: SizedBox(
-          height: effectiveIconSize + 25,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              ElevatedButton(
-                onPressed: null, // Handled by GestureDetector
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.innerColor ?? color.surface,
-                  disabledBackgroundColor: widget.innerColor ?? color.surface,
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size(effectiveIconSize + 25, effectiveIconSize + 25),
-                  shape: CircleBorder(
-                    side: BorderSide(
-                      width: 1,
-                      color: widget.borderColor ?? color.onSurface.withAlpha(80),
-                    ),
-                  ),
-                  elevation: 0,
-                ),
-                child: widget.icon == null
-                    ? Text(
-                        widget.text!,
-                        style: textTheme.bodyLarge!.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: widget.iconColor ?? color.primary,
-                        ),
-                      )
-                    : Icon(
-                        widget.icon,
-                        color: widget.iconColor ?? color.primary,
-                        size: effectiveIconSize,
-                      ),
-              ),
-              if (widget.showBadge)
-                Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 10,
-                      minHeight: 10,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
+    final button = IconButton(
+      tooltip: tooltip ?? text,
+      onPressed: onPressed == null
+          ? null
+          : () {
+              HapticFeedback.selectionClick();
+              onPressed!();
+            },
+      style: IconButton.styleFrom(
+        backgroundColor: innerColor ?? color.surfaceContainerHigh,
+        foregroundColor: iconColor ?? color.primary,
+        minimumSize: Size(box, box),
+        fixedSize: Size(box, box),
+        padding: EdgeInsets.zero,
+        side: borderColor == null ? null : BorderSide(color: borderColor!),
+        shape: const CircleBorder(),
       ),
+      icon: icon != null
+          ? Icon(icon, size: size)
+          : Text(
+              text!,
+              style: TextStyle(
+                fontFamily: AppBrand.mono,
+                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: iconColor ?? color.primary,
+              ),
+            ),
+    );
+
+    if (!showBadge) return button;
+    return Badge(
+      smallSize: 8,
+      backgroundColor: context.tokens.pin,
+      child: button,
     );
   }
 }

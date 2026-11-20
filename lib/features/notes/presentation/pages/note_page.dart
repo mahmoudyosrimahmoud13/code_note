@@ -1,24 +1,31 @@
 import 'dart:async';
-import 'package:uuid/uuid.dart';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
-import 'package:image_picker/image_picker.dart';
-
-import '../../../../widgets/animated_icons.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/entities/note.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../../../constants/themes.dart';
+import '../../../../core/util/image_helper.dart';
+import '../../../../core/util/note_share_helper.dart';
+import '../../../../widgets/note_navigation_bar.dart';
 import '../../domain/entities/block.dart';
+import '../../domain/entities/note.dart';
 import '../bloc/note_bloc.dart';
 import '../bloc/note_event.dart';
 import '../bloc/note_group_bloc.dart';
 import '../bloc/note_group_event.dart';
 import '../bloc/note_group_state.dart';
+import '../bloc/note_state.dart';
 import '../widgets/block_widget_factory.dart';
-import '../../../../widgets/note_navigation_bar.dart';
 import 'scan_document_page.dart';
-import '../../../../core/util/note_share_helper.dart';
-import '../../../../core/util/image_helper.dart';
+
+enum _SaveStatus { saved, editing }
 
 class NotePage extends StatefulWidget {
   final NoteEntity note;
@@ -30,137 +37,129 @@ class NotePage extends StatefulWidget {
 }
 
 class _NotePageState extends State<NotePage> {
+  static const _uuid = Uuid();
+  static const _saveDelay = Duration(milliseconds: 600);
+
   late final TextEditingController _titleController;
   final TextEditingController _tagController = TextEditingController();
+  late final NoteBloc _noteBloc;
+
   late List<BlockEntity> _blocks;
   late List<String> _tags;
-  late DateTime _lastModified;
   late bool _isPinned;
   late bool _isArchived;
+  late bool _isTrashed;
+  DateTime? _trashTimestamp;
   NoteReminderEntity? _reminder;
+  late DateTime _lastSaved;
 
-  Timer? _debounceTimer;
-  final uuid = const Uuid();
+  /// True until the note has been saved once. Empty new notes are never
+  /// saved, so opening "new note" and going back leaves nothing behind.
+  late bool _isNew;
+  bool _dirty = false;
+  bool _disposing = false;
+  Timer? _saveTimer;
+
+  /// Shown under the title. A notifier, so typing doesn't rebuild the page.
+  final ValueNotifier<_SaveStatus> _status = ValueNotifier(_SaveStatus.saved);
 
   @override
   void initState() {
     super.initState();
-    _titleController = TextEditingController(text: widget.note.title);
-    _blocks = List.from(widget.note.blocks);
-    _tags = List.from(widget.note.tags);
-    _lastModified = widget.note.lastModified;
-    _isPinned = widget.note.isPinned;
-    _isArchived = widget.note.isArchived;
-    _reminder = widget.note.reminder;
-  }
+    _noteBloc = context.read<NoteBloc>();
+    final note = widget.note;
+    _titleController = TextEditingController(text: note.title);
+    _blocks = List.of(note.blocks);
+    _tags = List.of(note.tags);
+    _isPinned = note.isPinned;
+    _isArchived = note.isArchived;
+    _isTrashed = note.isTrashed;
+    _trashTimestamp = note.trashTimestamp;
+    _reminder = note.reminder;
+    _lastSaved = note.lastModified;
 
-  void _showReminderDialog() async {
-    final color = Theme.of(context).colorScheme;
-    DateTime? pickedDate = await showDatePicker(
-      context: context,
-      initialDate: _reminder?.dateTime ?? DateTime.now().add(const Duration(minutes: 5)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: color.copyWith(primary: color.primary),
-        ),
-        child: child!,
-      ),
-    );
+    final state = _noteBloc.state;
+    _isNew = !(state is NoteLoaded && state.notes.any((n) => n.id == note.id));
 
-    if (pickedDate == null) return;
-
-    if (!mounted) return;
-    TimeOfDay? pickedTime = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.fromDateTime(_reminder?.dateTime ?? DateTime.now().add(const Duration(minutes: 5))),
-    );
-
-    if (pickedTime == null) return;
-
-    final reminderDateTime = DateTime(
-      pickedDate.year,
-      pickedDate.month,
-      pickedDate.day,
-      pickedTime.hour,
-      pickedTime.minute,
-    );
-
-    if (reminderDateTime.isBefore(DateTime.now())) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reminder must be in the future')));
-      return;
+    // A brand-new note starts with one text block, ready to type.
+    if (_isNew && _blocks.isEmpty) {
+      _blocks.add(NoteBlockEntity(id: _uuid.v4()));
     }
-
-    final messageController = TextEditingController(text: _reminder?.message);
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Reminder Message'),
-        content: TextField(
-          controller: messageController,
-          decoration: const InputDecoration(hintText: 'Enter reminder message...'),
-          autofocus: true,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () {
-              setState(() => _reminder = null);
-              _saveNote();
-              Navigator.pop(context);
-            },
-            child: const Text('Clear', style: TextStyle(color: Colors.red)),
-          ),
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          TextButton(
-            onPressed: () {
-              setState(() {
-                _reminder = NoteReminderEntity(
-                  dateTime: reminderDateTime,
-                  message: messageController.text,
-                );
-              });
-              _saveNote();
-              if (context.mounted) Navigator.pop(context);
-            },
-            child: const Text('Set'),
-          ),
-        ],
-      ),
-    );
   }
 
-  void _addNoteBlock() {
-    setState(() => _blocks.add(NoteBlockEntity(id: uuid.v4())));
-    _saveNote();
+  @override
+  void dispose() {
+    _saveTimer?.cancel();
+    _disposing = true;
+    // Save anything typed in the last moment before leaving.
+    _flush();
+    _titleController.dispose();
+    _tagController.dispose();
+    _status.dispose();
+    super.dispose();
   }
 
-  void _addMarkdownBlock() {
-    setState(() => _blocks.add(MarkdownBlockEntity(id: uuid.v4())));
-    _saveNote();
+  // ─── Saving ─────────────────────────────────────────────
+
+  bool get _isEmpty =>
+      _titleController.text.trim().isEmpty &&
+      _tags.isEmpty &&
+      _reminder == null &&
+      _blocks.every((b) => b is! ImageBlockEntity && (b.text ?? '').trim().isEmpty);
+
+  NoteEntity _currentNote() => widget.note.copyWith(
+        title: _titleController.text,
+        tags: List.of(_tags),
+        blocks: List.of(_blocks),
+        lastModified: DateTime.now(),
+        isPinned: _isPinned,
+        isArchived: _isArchived,
+        isTrashed: _isTrashed,
+        trashTimestamp: _trashTimestamp,
+        clearTrashTimestamp: _trashTimestamp == null,
+        reminder: _reminder,
+        clearReminder: _reminder == null,
+      );
+
+  /// Marks the note as changed and saves shortly after typing stops.
+  void _changed() {
+    _dirty = true;
+    if (!_disposing) _status.value = _SaveStatus.editing;
+    _saveTimer?.cancel();
+    _saveTimer = Timer(_saveDelay, _flush);
   }
 
-  void _addCodeBlock() {
-    setState(() => _blocks.add(CodeBlockEntity(id: uuid.v4())));
-    _saveNote();
+  /// Saves now if anything changed.
+  void _flush() {
+    _saveTimer?.cancel();
+    if (!_dirty) return;
+    _dirty = false;
+    if (_isNew && _isEmpty) return;
+    final note = _currentNote();
+    _noteBloc.add(UpdateNoteEvent(note));
+    _isNew = false;
+    _lastSaved = note.lastModified;
+    if (!_disposing) _status.value = _SaveStatus.saved;
+  }
+
+  // ─── Blocks ─────────────────────────────────────────────
+
+  void _addBlock(BlockEntity block) {
+    setState(() => _blocks.add(block));
+    _changed();
   }
 
   void _addImage() async {
-    final picker = ImagePicker();
-    final image = await picker.pickImage(
+    final image = await ImagePicker().pickImage(
       source: ImageSource.gallery,
       imageQuality: 70,
-      maxWidth: 1200,
-      maxHeight: 1200,
+      maxWidth: 1600,
+      maxHeight: 1600,
     );
-    if (image != null) {
-      final persistentPath = await ImageHelper.persistImage(image.path);
-      setState(() => _blocks.add(ImageBlockEntity(id: uuid.v4(), imagePath: persistentPath)));
-      _saveNote();
-    }
+    if (image == null) return;
+    final path = await ImageHelper.persistImage(image.path);
+    if (!mounted) return;
+    _addBlock(ImageBlockEntity(id: _uuid.v4(), imagePath: path));
   }
 
   void _scanDoc() async {
@@ -171,344 +170,544 @@ class _NotePageState extends State<NotePage> {
         moveUp: _moveUp,
       ),
     ));
-    if (result != null) {
-      setState(() => _blocks.add(result));
-      _saveNote();
-    }
+    if (result != null && mounted) _addBlock(result);
   }
 
   void _deleteBlock(String id) {
-    setState(() => _blocks.removeWhere((b) => b.id == id));
-    _saveNote();
-  }
-
-  void _moveUp(String id) {
     final index = _blocks.indexWhere((b) => b.id == id);
-    if (index > 0) {
-      setState(() {
-        final temp = _blocks[index - 1];
-        _blocks[index - 1] = _blocks[index];
-        _blocks[index] = temp;
-      });
-      _saveNote();
-    }
+    if (index == -1) return;
+    final removed = _blocks[index];
+    setState(() => _blocks.removeAt(index));
+    _changed();
+
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: const Text('Block deleted'),
+        action: SnackBarAction(
+          label: 'Undo',
+          onPressed: () {
+            if (!mounted) return;
+            setState(() => _blocks.insert(index.clamp(0, _blocks.length), removed));
+            _changed();
+          },
+        ),
+      ));
   }
 
-  void _moveDown(String id) {
+  void _moveUp(String id) => _move(id, -1);
+  void _moveDown(String id) => _move(id, 1);
+
+  void _move(String id, int by) {
     final index = _blocks.indexWhere((b) => b.id == id);
-    if (index < _blocks.length - 1) {
-      setState(() {
-        final temp = _blocks[index + 1];
-        _blocks[index + 1] = _blocks[index];
-        _blocks[index] = temp;
-      });
-      _saveNote();
-    }
-  }
-
-  void _onBlockChanged(BlockEntity updatedBlock) {
-    final index = _blocks.indexWhere((b) => b.id == updatedBlock.id);
-    if (index != -1) {
-      setState(() => _blocks[index] = updatedBlock);
-      _saveNote();
-    }
-  }
-
-  void _saveNote() {
-    if (!mounted) return;
-    if (_titleController.text.isEmpty && _blocks.isEmpty && _tags.isEmpty && _reminder == null) return;
-
-    final updatedNote = NoteEntity(
-      id: widget.note.id,
-      title: _titleController.text,
-      tags: _tags,
-      lastModified: DateTime.now(),
-      blocks: _blocks,
-      isPinned: _isPinned,
-      isArchived: _isArchived,
-      reminder: _reminder,
-      version: widget.note.version,
-    );
-
-    setState(() => _lastModified = updatedNote.lastModified);
-
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      if (!mounted) return;
-      context.read<NoteBloc>().add(UpdateNoteEvent(updatedNote));
+    final target = index + by;
+    if (index == -1 || target < 0 || target >= _blocks.length) return;
+    setState(() {
+      final block = _blocks.removeAt(index);
+      _blocks.insert(target, block);
     });
+    _changed();
   }
 
-  void _shareNote() {
-    final note = NoteEntity(
-      id: widget.note.id,
-      title: _titleController.text,
-      tags: _tags,
-      lastModified: _lastModified,
-      blocks: _blocks,
-    );
-
-    final languages = _blocks.whereType<CodeBlockEntity>().map((e) => e.language).toSet().toList();
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Share Note', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.copy),
-                title: const Text('Copy to Clipboard'),
-                onTap: () {
-                  NoteShareHelper.copyToClipboard(NoteShareHelper.formatNoteAsText(note));
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Copied to clipboard')));
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.text_fields),
-                title: const Text('Share as .txt'),
-                onTap: () {
-                  NoteShareHelper.shareAsTxt(note);
-                  Navigator.pop(context);
-                },
-              ),
-              if (languages.isNotEmpty) ...[
-                const Divider(),
-                const Padding(padding: EdgeInsets.symmetric(vertical: 8), child: Text('Share as Source Code')),
-                ...languages.map((lang) => ListTile(
-                      leading: const Icon(Icons.code),
-                      title: Text('Share as ${lang.name.toUpperCase()} file'),
-                      onTap: () {
-                        NoteShareHelper.shareNoteAsFile(note, lang);
-                        Navigator.pop(context);
-                      },
-                    )),
-              ],
-            ],
-          ),
-        );
-      },
-    );
+  /// Typing inside a block: update the data, but don't rebuild the page.
+  /// The block already shows what was typed.
+  void _onBlockChanged(BlockEntity updated) {
+    final index = _blocks.indexWhere((b) => b.id == updated.id);
+    if (index == -1) return;
+    _blocks[index] = updated;
+    _changed();
   }
 
-  void _addTag(String tag) {
-    if (tag.isNotEmpty && !_tags.contains(tag)) {
-      setState(() {
-        _tags.add(tag);
-        _tagController.clear();
-      });
-      _saveNote();
+  // ─── Tags ───────────────────────────────────────────────
+
+  void _addTag(String raw) {
+    final tag = raw.trim().replaceAll('#', '').replaceAll(' ', '-');
+    if (tag.isEmpty || _tags.contains(tag)) {
+      _tagController.clear();
+      return;
     }
+    setState(() {
+      _tags.add(tag);
+      _tagController.clear();
+    });
+    _changed();
   }
 
   void _removeTag(String tag) {
     setState(() => _tags.remove(tag));
-    _saveNote();
+    _changed();
+  }
+
+  // ─── Menu actions ───────────────────────────────────────
+
+  void _togglePin() {
+    HapticFeedback.lightImpact();
+    setState(() => _isPinned = !_isPinned);
+    _changed();
+  }
+
+  void _toggleArchive() {
+    setState(() {
+      _isArchived = !_isArchived;
+      if (_isArchived) _isPinned = false;
+    });
+    _dirty = true;
+    _flush();
+    if (_isArchived) {
+      Navigator.pop(context);
+      _toast('Archived');
+    }
+  }
+
+  void _moveToTrash() {
+    _isTrashed = true;
+    _isPinned = false;
+    _trashTimestamp = DateTime.now();
+    _dirty = true;
+    if (_isNew && _isEmpty) {
+      // Nothing worth keeping; just leave.
+      _dirty = false;
+    } else {
+      _flush();
+    }
+    Navigator.pop(context);
+    _toast('Moved to trash. It stays there for 30 days.');
+  }
+
+  void _toast(String message) {
+    ScaffoldMessenger.maybeOf(context)
+      ?..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void _showReminderDialog() async {
+    final now = DateTime.now();
+    final initial = _reminder?.dateTime ?? now.add(const Duration(hours: 1));
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initial.isBefore(now) ? now : initial,
+      firstDate: now,
+      lastDate: now.add(const Duration(days: 365 * 2)),
+    );
+    if (pickedDate == null || !mounted) return;
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
+    if (pickedTime == null || !mounted) return;
+
+    final when = DateTime(pickedDate.year, pickedDate.month, pickedDate.day,
+        pickedTime.hour, pickedTime.minute);
+    if (when.isBefore(DateTime.now())) {
+      _toast('Pick a time in the future.');
+      return;
+    }
+
+    final messageController = TextEditingController(text: _reminder?.message);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Reminder'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(DateFormat.yMMMEd().add_jm().format(when),
+                style: monoStyle(dialogContext,
+                    size: 13, color: Theme.of(dialogContext).colorScheme.primary)),
+            const SizedBox(height: 6),
+            Text(
+              'It shows in your Reminders list. Pop-up alerts are not in this version yet.',
+              style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
+                  color: dialogContext.tokens.subtle),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: messageController,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: 'What should we remind you?'),
+            ),
+          ],
+        ),
+        actions: [
+          if (_reminder != null)
+            TextButton(
+              onPressed: () {
+                setState(() => _reminder = null);
+                _changed();
+                Navigator.pop(dialogContext);
+              },
+              style: TextButton.styleFrom(
+                  foregroundColor: Theme.of(dialogContext).colorScheme.error),
+              child: const Text('Remove'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              setState(() => _reminder = NoteReminderEntity(
+                    dateTime: when,
+                    message: messageController.text.trim(),
+                  ));
+              _changed();
+              Navigator.pop(dialogContext);
+            },
+            child: const Text('Set'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _shareNote() {
+    final note = _currentNote();
+    final languages = _blocks
+        .whereType<CodeBlockEntity>()
+        .map((e) => e.language)
+        .toSet()
+        .toList();
+
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy_rounded),
+              title: const Text('Copy as text'),
+              onTap: () {
+                NoteShareHelper.copyToClipboard(
+                    NoteShareHelper.formatNoteAsText(note));
+                Navigator.pop(sheetContext);
+                _toast('Copied. Ready to paste.');
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.description_outlined),
+              title: const Text('Share as .txt'),
+              onTap: () {
+                NoteShareHelper.shareAsTxt(note);
+                Navigator.pop(sheetContext);
+              },
+            ),
+            for (final lang in languages)
+              ListTile(
+                leading: const Icon(Icons.code_rounded),
+                title: Text('Share as a ${lang.name} file'),
+                onTap: () {
+                  NoteShareHelper.shareNoteAsFile(note, lang);
+                  Navigator.pop(sheetContext);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
   }
 
   void _addToGroup() {
-    showModalBottomSheet(
+    showModalBottomSheet<void>(
       context: context,
-      builder: (context) => BlocBuilder<NoteGroupBloc, NoteGroupState>(
+      builder: (sheetContext) => BlocBuilder<NoteGroupBloc, NoteGroupState>(
         builder: (context, state) {
-          if (state is NoteGroupLoaded) {
-            if (state.groups.isEmpty) {
-              return const Center(child: Padding(padding: EdgeInsets.all(24.0), child: Text('No groups yet.')));
-            }
-            return Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Padding(padding: EdgeInsets.all(16.0), child: Text('Add to Group', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold))),
-                const Divider(),
-                ...state.groups.map((group) {
-                  final isInGroup = group.noteIds.contains(widget.note.id);
-                  return ListTile(
-                    leading: Icon(isInGroup ? Icons.folder : Icons.folder_outlined),
-                    title: Text(group.name),
-                    trailing: isInGroup ? const Icon(Icons.check, color: Colors.green) : null,
-                    onTap: () {
-                      List<String> newNoteIds = List.from(group.noteIds);
-                      if (isInGroup) {
-                        newNoteIds.remove(widget.note.id);
-                      } else {
-                        newNoteIds.add(widget.note.id);
-                      }
-                      context.read<NoteGroupBloc>().add(UpdateGroupEvent(group.copyWith(noteIds: newNoteIds)));
-                      Navigator.pop(context);
-                    },
-                  );
-                }),
-              ],
+          if (state is! NoteGroupLoaded) {
+            return const Padding(
+              padding: EdgeInsets.all(32),
+              child: Center(child: CircularProgressIndicator()),
             );
           }
-          return const Center(child: CircularProgressIndicator());
+          if (state.groups.isEmpty) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
+              child: Text(
+                'No groups yet. Create one from the home screen with the folder button.',
+                style: TextStyle(color: context.tokens.subtle),
+              ),
+            );
+          }
+          return SafeArea(
+            child: ListView(
+              shrinkWrap: true,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+                  child: Text('Add to group',
+                      style: Theme.of(context).textTheme.titleMedium),
+                ),
+                for (final group in state.groups)
+                  CheckboxListTile(
+                    value: group.noteIds.contains(widget.note.id),
+                    secondary: const Icon(Icons.folder_outlined),
+                    title: Text(group.name),
+                    onChanged: (checked) {
+                      // Make sure the note exists before a group points to it.
+                      _dirty = true;
+                      _flush();
+                      final ids = List<String>.of(group.noteIds);
+                      if (checked == true) {
+                        if (!ids.contains(widget.note.id)) ids.add(widget.note.id);
+                      } else {
+                        ids.remove(widget.note.id);
+                      }
+                      context
+                          .read<NoteGroupBloc>()
+                          .add(UpdateGroupEvent(group.copyWith(noteIds: ids)));
+                    },
+                  ),
+              ],
+            ),
+          );
         },
       ),
     );
   }
 
-  @override
-  void dispose() {
-    _titleController.dispose();
-    _tagController.dispose();
-    super.dispose();
-  }
+  // ─── Build ──────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
     final color = Theme.of(context).colorScheme;
+    final tokens = context.tokens;
 
-    return Scaffold(
-      appBar: AppBar(
-        actions: [
-          IconButton(
-            icon: Icon(_reminder != null ? Icons.notifications_active : Icons.notifications_none, color: _reminder != null ? color.primary : null),
-            tooltip: 'Reminder',
-            onPressed: _showReminderDialog,
-          ),
-          IconButton(
-            icon: const Icon(Icons.folder_outlined),
-            tooltip: 'Add to Group',
-            onPressed: _addToGroup,
-          ),
-          IconButton(
-            icon: BouncyIcon(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: Icon(_isPinned ? Icons.star_rounded : Icons.star_border_rounded, key: ValueKey(_isPinned), color: _isPinned ? Colors.amber : null),
+    return PopScope(
+      onPopInvokedWithResult: (didPop, _) => _flush(),
+      child: Scaffold(
+        appBar: AppBar(
+          actions: [
+            IconButton(
+              tooltip: _reminder == null ? 'Add reminder' : 'Edit reminder',
+              icon: Icon(
+                _reminder == null
+                    ? Icons.notifications_none_rounded
+                    : Icons.notifications_active_rounded,
+                color: _reminder == null ? null : tokens.pin,
               ),
+              onPressed: _showReminderDialog,
             ),
-            tooltip: 'Pin Note',
-            onPressed: () {
-              HapticFeedback.lightImpact();
-              setState(() => _isPinned = !_isPinned);
-              _saveNote();
-            },
-          ),
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'archive') {
-                setState(() => _isArchived = !_isArchived);
-                _saveNote();
-                if (_isArchived) Navigator.pop(context);
-              } else if (value == 'share') {
-                _shareNote();
-              } else if (value == 'delete') {
-                context.read<NoteBloc>().add(UpdateNoteEvent(widget.note.copyWith(isTrashed: true, trashTimestamp: DateTime.now())));
-                Navigator.pop(context);
-              }
-            },
-            itemBuilder: (context) => [
-              PopupMenuItem(
-                value: 'archive',
-                child: ListTile(
-                  leading: BouncyIcon(child: Icon(_isArchived ? Icons.unarchive_rounded : Icons.archive_rounded)),
-                  title: Text(_isArchived ? 'Dearchive' : 'Archive'),
-                  contentPadding: EdgeInsets.zero,
-                ),
+            IconButton(
+              tooltip: _isPinned ? 'Unpin' : 'Pin to top',
+              icon: Icon(
+                _isPinned ? Icons.push_pin_rounded : Icons.push_pin_outlined,
+                color: _isPinned ? tokens.pin : null,
               ),
-              PopupMenuItem(
-                value: 'share',
-                child: ListTile(
-                  leading: const BouncyIcon(child: Icon(Icons.share_rounded)),
-                  title: const Text('Share'),
-                  contentPadding: EdgeInsets.zero,
+              onPressed: _togglePin,
+            ),
+            PopupMenuButton<String>(
+              tooltip: 'More',
+              onSelected: (value) {
+                switch (value) {
+                  case 'group':
+                    _addToGroup();
+                  case 'share':
+                    _shareNote();
+                  case 'archive':
+                    _toggleArchive();
+                  case 'trash':
+                    _moveToTrash();
+                }
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'group',
+                  child: ListTile(
+                    leading: Icon(Icons.folder_outlined),
+                    title: Text('Add to group'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
-              ),
-              PopupMenuItem(
-                value: 'delete',
-                child: ListTile(
-                  leading: const BouncyIcon(child: Icon(Icons.delete_outline_rounded, color: Colors.red)),
-                  title: const Text('Delete', style: TextStyle(color: Colors.red)),
-                  contentPadding: EdgeInsets.zero,
+                const PopupMenuItem(
+                  value: 'share',
+                  child: ListTile(
+                    leading: Icon(Icons.ios_share_rounded),
+                    title: Text('Share'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
-      body: SafeArea(
-        child: Column(
+                PopupMenuItem(
+                  value: 'archive',
+                  child: ListTile(
+                    leading: Icon(_isArchived
+                        ? Icons.unarchive_outlined
+                        : Icons.archive_outlined),
+                    title: Text(_isArchived ? 'Unarchive' : 'Archive'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuDivider(),
+                PopupMenuItem(
+                  value: 'trash',
+                  child: ListTile(
+                    leading: Icon(Icons.delete_outline_rounded, color: color.error),
+                    title: Text('Move to trash', style: TextStyle(color: color.error)),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 4),
+          ],
+        ),
+        body: Column(
           children: [
             Expanded(
-              child: Center(
+              child: Align(
+                alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 800),
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Last modified: ${DateFormat.yMMMd().add_jm().format(_lastModified)}', style: textTheme.labelSmall!.copyWith(color: color.outline)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _titleController,
-                          style: textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold),
-                          decoration: const InputDecoration(hintText: 'Note Title', border: InputBorder.none),
-                          onChanged: (_) => _saveNote(),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    children: [
+                      ValueListenableBuilder<_SaveStatus>(
+                        valueListenable: _status,
+                        builder: (context, status, _) => Row(
                           children: [
-                            ..._tags.map((tag) => Chip(
-                                  label: Text(tag, style: const TextStyle(fontSize: 12)),
-                                  onDeleted: () => _removeTag(tag),
-                                  deleteIconColor: color.error,
-                                  backgroundColor: color.secondaryContainer.withAlpha(150),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                                )),
-                            SizedBox(
-                              width: 100,
-                              child: TextField(
-                                controller: _tagController,
-                                style: const TextStyle(fontSize: 12),
-                                decoration: const InputDecoration(hintText: '+ Add tag', border: InputBorder.none, isDense: true),
-                                onSubmitted: _addTag,
-                              ),
+                            Icon(
+                              status == _SaveStatus.saved
+                                  ? Icons.check_circle_outline_rounded
+                                  : Icons.edit_outlined,
+                              size: 13,
+                              color: status == _SaveStatus.saved
+                                  ? tokens.success
+                                  : tokens.subtle,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              status == _SaveStatus.saved
+                                  ? (_isNew
+                                      ? 'new note'
+                                      : 'saved · ${DateFormat.MMMd().add_jm().format(_lastSaved)}')
+                                  : 'editing…',
+                              style: monoStyle(context,
+                                  size: 11, color: tokens.subtle),
                             ),
                           ],
                         ),
-                        const Divider(height: 32),
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: _blocks.length,
-                          itemBuilder: (context, index) {
-                            final block = _blocks[index];
-                            return BlockWidgetFactory.createBlockWidget(
-                              entity: block,
-                              onChanged: _onBlockChanged,
-                              onDelete: _deleteBlock,
-                              onMoveUp: _moveUp,
-                              onMoveDown: _moveDown,
-                            );
-                          },
+                      ),
+                      TextField(
+                        controller: _titleController,
+                        autofocus: _isNew,
+                        textCapitalization: TextCapitalization.sentences,
+                        style: textTheme.headlineMedium,
+                        decoration: InputDecoration(
+                          hintText: 'Untitled',
+                          filled: false,
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          hintStyle: textTheme.headlineMedium?.copyWith(
+                            color: color.onSurfaceVariant.withAlpha(110),
+                          ),
                         ),
-                        const SizedBox(height: 100),
+                        onChanged: (_) => _changed(),
+                      ),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          for (final tag in _tags)
+                            InputChip(
+                              label: Text('#$tag'),
+                              onDeleted: () => _removeTag(tag),
+                              deleteButtonTooltipMessage: 'Remove #$tag',
+                              deleteIcon: const Icon(Icons.close_rounded, size: 14),
+                              visualDensity: VisualDensity.compact,
+                            ),
+                          SizedBox(
+                            width: 120,
+                            child: TextField(
+                              controller: _tagController,
+                              style: monoStyle(context, size: 12),
+                              decoration: InputDecoration(
+                                hintText: '+ tag',
+                                hintStyle: monoStyle(context,
+                                    size: 12, color: tokens.subtle),
+                                filled: false,
+                                border: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                isDense: true,
+                              ),
+                              textInputAction: TextInputAction.done,
+                              onSubmitted: _addTag,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_reminder != null) ...[
+                        const SizedBox(height: 10),
+                        _ReminderChip(
+                          reminder: _reminder!,
+                          onTap: _showReminderDialog,
+                        ),
                       ],
-                    ),
+                      const SizedBox(height: 12),
+                      Divider(color: color.outlineVariant),
+                      const SizedBox(height: 4),
+                      for (final block in _blocks)
+                        BlockWidgetFactory.createBlockWidget(
+                          entity: block,
+                          onChanged: _onBlockChanged,
+                          onDelete: _deleteBlock,
+                          onMoveUp: block == _blocks.first ? null : _moveUp,
+                          onMoveDown: block == _blocks.last ? null : _moveDown,
+                        ),
+                      if (_blocks.isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 32),
+                          child: Text(
+                            '// empty note. Add a block below.',
+                            textAlign: TextAlign.center,
+                            style: monoStyle(context, color: tokens.subtle),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
             ),
             NoteNavigationBar(
-              addText: _addNoteBlock,
-              addCode: _addCodeBlock,
-              addMarkdown: _addMarkdownBlock,
+              addText: () => _addBlock(NoteBlockEntity(id: _uuid.v4())),
+              addCode: () => _addBlock(CodeBlockEntity(id: _uuid.v4())),
+              addMarkdown: () => _addBlock(MarkdownBlockEntity(id: _uuid.v4())),
               addImage: _addImage,
-              scanDoc: _scanDoc,
+              // Text recognition (ML Kit) only exists on phones.
+              scanDoc: !kIsWeb && (Platform.isAndroid || Platform.isIOS)
+                  ? _scanDoc
+                  : null,
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _ReminderChip extends StatelessWidget {
+  const _ReminderChip({required this.reminder, required this.onTap});
+  final NoteReminderEntity reminder;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final pin = context.tokens.pin;
+    final when = DateFormat.MMMEd().add_jm().format(reminder.dateTime);
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: ActionChip(
+        avatar: Icon(Icons.alarm_rounded, size: 16, color: pin),
+        label: Text(
+          reminder.message.isEmpty ? when : '$when · ${reminder.message}',
+          overflow: TextOverflow.ellipsis,
+        ),
+        onPressed: onTap,
+        tooltip: 'Edit reminder',
       ),
     );
   }

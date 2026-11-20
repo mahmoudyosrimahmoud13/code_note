@@ -25,10 +25,10 @@ class NavBar extends StatelessWidget {
       child: Container(
         height: 64,
         decoration: BoxDecoration(
-          color: color.surface.withAlpha(240),
+          color: color.surfaceContainer,
           borderRadius: BorderRadius.circular(60),
           border: Border.all(
-            color: color.primary.withAlpha(30),
+            color: color.outlineVariant,
             width: 1,
           ),
           boxShadow: [
@@ -43,8 +43,8 @@ class NavBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
             _NavItem(
-              icon: Icons.note_outlined,
-              selectedIcon: Icons.note_rounded,
+              icon: Icons.description_outlined,
+              selectedIcon: Icons.description_rounded,
               label: 'Notes',
               isSelected: selectedIndex == 0,
               onTap: () => onIndexChanged(0),
@@ -52,8 +52,8 @@ class NavBar extends StatelessWidget {
               textTheme: textTheme,
             ),
             _NavItem(
-              icon: Icons.notifications_none_rounded,
-              selectedIcon: Icons.notifications_rounded,
+              icon: Icons.alarm_outlined,
+              selectedIcon: Icons.alarm_rounded,
               label: 'Remind',
               isSelected: selectedIndex == 1,
               onTap: () => onIndexChanged(1),
@@ -149,7 +149,12 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      selected: widget.isSelected,
+      label: widget.label,
+      excludeSemantics: true,
+      child: GestureDetector(
       onTap: () {
         HapticFeedback.selectionClick();
         widget.onTap();
@@ -200,8 +205,8 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
                     right: -2,
                     child: Container(
                       padding: const EdgeInsets.all(3),
-                      decoration: const BoxDecoration(
-                        color: Colors.red,
+                      decoration: BoxDecoration(
+                        color: widget.color.tertiary,
                         shape: BoxShape.circle,
                       ),
                       constraints: const BoxConstraints(
@@ -216,7 +221,7 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 250),
               style: widget.textTheme.labelSmall!.copyWith(
-                fontSize: 10,
+                fontSize: 11,
                 color: widget.isSelected
                     ? widget.color.primary
                     : widget.color.onSurface.withAlpha(150),
@@ -227,6 +232,7 @@ class _NavItemState extends State<_NavItem> with SingleTickerProviderStateMixin 
             ),
           ],
         ),
+      ),
       ),
     );
   }
@@ -276,10 +282,16 @@ class _AddButtonState extends State<_AddButton>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: 'New note',
+      excludeSemantics: true,
+      child: GestureDetector(
       onTap: () {
         HapticFeedback.mediumImpact();
-        _controller.forward(from: 0);
+        _controller.forward(from: 0).then((_) {
+          if (mounted) _controller.reverse();
+        });
         widget.onPressed();
       },
       child: AnimatedBuilder(
@@ -320,6 +332,7 @@ class _AddButtonState extends State<_AddButton>
             size: 26,
           ),
         ),
+      ),
       ),
     );
   }
