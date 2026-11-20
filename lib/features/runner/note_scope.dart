@@ -8,6 +8,7 @@ class NoteScope extends InheritedWidget {
     required this.noteId,
     required this.spaceKey,
     required this.title,
+    this.isWebPage = false,
     required super.child,
   });
 
@@ -15,10 +16,13 @@ class NoteScope extends InheritedWidget {
   final String spaceKey;
   final String title;
 
+  /// The note has HTML: its JavaScript belongs to the page, not to Node.
+  final bool isWebPage;
+
   static NoteScope? of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<NoteScope>();
 
   @override
   bool updateShouldNotify(NoteScope old) =>
-      old.noteId != noteId || old.spaceKey != spaceKey || old.title != title;
+      old.noteId != noteId || old.spaceKey != spaceKey || old.title != title || old.isWebPage != isWebPage;
 }

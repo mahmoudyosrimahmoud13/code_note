@@ -17,6 +17,7 @@ import '../../../reminders/reminder_service.dart';
 import '../../../templates/templates.dart';
 import '../../../ai/ask_notes_page.dart';
 import '../../../gist/gist_page.dart';
+import '../../../backup/codenote_files.dart';
 import '../../../runner/run_manager.dart';
 import '../../../runner/runtimes_page.dart';
 import '../../../runner/sandbox.dart';
@@ -379,6 +380,7 @@ class _HomePageState extends State<HomePage> {
         if (RunManager.instance.running.isNotEmpty)
           PaletteItem(label: 'Stop all running code (${RunManager.instance.running.length})', icon: Icons.stop_circle_outlined, run: RunManager.instance.stopAll, keywords: 'kill server'),
       ],
+      PaletteItem(label: 'Open a .codenote file', icon: Icons.file_open_outlined, run: () => CodenoteFiles.pickAndImport(context), keywords: 'import share file note folder'),
       PaletteItem(label: 'New folder', icon: Icons.create_new_folder_outlined, run: _createGroup, keywords: 'group create'),
       PaletteItem(label: 'Search notes', icon: Icons.search_rounded, hint: 'Ctrl+F', run: _openSearch, keywords: 'find grep'),
       for (final view in HomeView.values)

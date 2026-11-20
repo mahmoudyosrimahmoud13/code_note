@@ -10,8 +10,11 @@ import '../bloc/note_group_state.dart';
 import '../../../../widgets/home_grid_view.dart';
 import 'note_page.dart';
 import 'web_preview_page.dart';
+import '../../../backup/codenote_files.dart';
 import '../../../runner/run_manager.dart';
 import '../../../runner/sandbox.dart';
+import '../../../runner/run_order_sheet.dart';
+import '../../../runner/running_indicator.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../../constants/themes.dart';
 import '../../../../widgets/brand.dart';
@@ -53,12 +56,22 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
               );
         }
 
-        return Scaffold(
+        return ListenableBuilder(
+          listenable: RunManager.instance,
+          builder: (context, _) => Scaffold(
           appBar: AppBar(
+            bottom: RunManager.instance.sequenceRunning(currentGroup.id)
+                ? _FolderRunStatus(folderId: currentGroup.id)
+                : null,
             title: Text('~/${currentGroup.name}/',
                 style: monoStyle(context, size: 17, weight: FontWeight.w700)),
             actions: [
               _RunFolderButton(group: currentGroup),
+              IconButton(
+                tooltip: 'Share folder as a .codenote file',
+                icon: const Icon(Icons.ios_share_rounded),
+                onPressed: () => CodenoteFiles.shareFolder(context, currentGroup),
+              ),
               IconButton(
                 tooltip: 'Rename group',
                 icon: const Icon(Icons.edit_outlined),
@@ -152,6 +165,7 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
             onPressed: () => _createNewNote(context, currentGroup),
             child: const Icon(Icons.add_rounded),
           ),
+        ),
         );
       },
     );
@@ -330,8 +344,8 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
 }
 
 
-/// ▶ Runs every note in the folder in its shared sandbox: code first
-/// (setup blocks, then servers), then opens the folder's web pages.
+/// ▶ Runs the folder as a sequence (see the Run order sheet), then opens
+/// its web pages. ≡ opens the Run order sheet.
 class _RunFolderButton extends StatelessWidget {
   const _RunFolderButton({required this.group});
   final NoteGroupEntity group;
@@ -347,20 +361,19 @@ class _RunFolderButton extends StatelessWidget {
     final pages = notes.where((n) => WebPreview.canPreview(n.blocks)).toList();
     final spaceKey = Sandbox.keyFor(noteId: '', folderId: group.id);
     final messenger = ScaffoldMessenger.of(context);
-    if (RunManager.runnable(notes).isEmpty && pages.isEmpty) {
+    if (RunManager.runnableNotes(group, notes).isEmpty && pages.isEmpty) {
       messenger.showSnackBar(const SnackBar(
-          content: Text('Nothing to run here. Add Python, Bash or web code to a note.'), persist: false));
+          content: Text('Nothing to run here. Add Python, Bash, JavaScript, Dart or web code to a note.'),
+          persist: false));
       return;
     }
-    messenger.showSnackBar(SnackBar(
-        content: Text('Running ~/${group.name}/ …'), persist: false, duration: const Duration(seconds: 2)));
-    final problem = await RunManager.instance.runFolder(notes, spaceKey);
+    final problem = await RunManager.instance.runFolder(group, notes, spaceKey);
     if (problem != null) {
       messenger.showSnackBar(SnackBar(content: Text(problem), persist: false));
       return;
     }
     if (pages.isEmpty || !context.mounted) return;
-    // Give servers a moment to start before the pages call them.
+    // Give the primary server a moment to start before the pages call it.
     await Future<void>.delayed(const Duration(milliseconds: 1500));
     if (!context.mounted) return;
     final phone = Theme.of(context).platform == TargetPlatform.android ||
@@ -377,14 +390,47 @@ class _RunFolderButton extends StatelessWidget {
       listenable: RunManager.instance,
       builder: (context, _) {
         final notes = _notes(context);
-        final running = RunManager.instance.folderRunning(notes);
-        return IconButton(
-          tooltip: running ? 'Stop everything in this folder' : 'Run folder (code, then web pages)',
-          icon: Icon(running ? Icons.stop_circle_outlined : Icons.play_arrow_rounded,
-              color: running ? Theme.of(context).colorScheme.error : context.tokens.success),
-          onPressed: () => running ? RunManager.instance.stopFolder(notes) : _run(context),
-        );
+        final running = RunManager.instance.folderRunning(notes) || RunManager.instance.sequenceRunning(group.id);
+        return Row(mainAxisSize: MainAxisSize.min, children: [
+          IconButton(
+            tooltip: 'Run order',
+            icon: const Icon(Icons.low_priority_rounded),
+            onPressed: () => showRunOrderSheet(context, group, notes),
+          ),
+          IconButton(
+            tooltip: running ? 'Running · tap to stop everything in this folder' : 'Run folder (in order, then web pages)',
+            icon: RunButtonIcon(running: running, size: 22),
+            onPressed: () => running ? RunManager.instance.stopFolder(group.id, notes) : _run(context),
+          ),
+        ]);
       },
+    );
+  }
+}
+
+/// "step 2 of 4: Backend" under the folder title while a run starts.
+class _FolderRunStatus extends StatelessWidget implements PreferredSizeWidget {
+  const _FolderRunStatus({required this.folderId});
+  final String folderId;
+
+  @override
+  Size get preferredSize => const Size.fromHeight(24);
+
+  @override
+  Widget build(BuildContext context) {
+    final status = RunManager.instance.folderStatus[folderId] ?? '';
+    return Container(
+      height: 24,
+      alignment: Alignment.centerLeft,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(children: [
+        SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.6, color: context.tokens.success)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(status,
+              maxLines: 1, overflow: TextOverflow.ellipsis, style: monoStyle(context, size: 12, color: context.tokens.success)),
+        ),
+      ]),
     );
   }
 }

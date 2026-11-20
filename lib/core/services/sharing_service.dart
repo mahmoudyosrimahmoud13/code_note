@@ -1,3 +1,4 @@
+import '../../features/backup/codenote_files.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -113,6 +114,17 @@ class SharingService {
   }
 
   void _createNoteFromFile(BuildContext context, String path) async {
+    // A .codenote file: import its notes, folders, images and app data.
+    if (path.toLowerCase().endsWith('.codenote')) {
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      try {
+        final summary = await CodenoteFiles.importBytes(await File(path).readAsBytes());
+        messenger?.showSnackBar(SnackBar(content: Text('Imported: $summary'), persist: false));
+      } catch (e) {
+        messenger?.showSnackBar(SnackBar(content: Text("Couldn't open that file: $e"), persist: false));
+      }
+      return;
+    }
     try {
       final file = File(path);
       final content = await file.readAsString();

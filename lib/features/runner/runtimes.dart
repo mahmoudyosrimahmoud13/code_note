@@ -204,6 +204,30 @@ class Runtimes {
 
   // ---------- Packages ----------
 
+  bool? _pipRaw;
+
+  /// pip 24.1+ can report download progress as plain lines
+  /// ("Progress 1234 of 5678"), which the Settings page turns into a bar.
+  Future<bool> pipReportsProgress() async {
+    if (_pipRaw != null) return _pipRaw!;
+    try {
+      final r = await Process.run(await venvPython(), ['-m', 'pip', '--version']);
+      final m = RegExp(r'pip (\d+)\.(\d+)').firstMatch('${r.stdout}');
+      final major = int.parse(m!.group(1)!), minor = int.parse(m.group(2)!);
+      return _pipRaw = major > 24 || (major == 24 && minor >= 1);
+    } catch (_) {
+      return _pipRaw = false;
+    }
+  }
+
+  /// Reads a pip progress line: the fraction done, or null.
+  static double? pipProgress(String line) {
+    final m = RegExp(r'^Progress (\d+) of (\d+)').firstMatch(line.trim());
+    if (m == null) return null;
+    final total = int.parse(m.group(2)!);
+    return total == 0 ? null : (int.parse(m.group(1)!) / total).clamp(0.0, 1.0);
+  }
+
   Future<RunningProcess> pip(List<String> args) async {
     final py = await venvPython();
     if (!await File(py).exists()) {
@@ -258,6 +282,291 @@ class Runtimes {
     return null;
   }
 
+  // ---------- Node.js ----------
+
+  static bool get nodeSupported => Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+  static bool get canDownloadNode => _nodeTarget() != null;
+
+  static String? _nodeTarget() {
+    final abi = Abi.current();
+    if (abi == Abi.linuxX64) return 'linux-x64';
+    if (abi == Abi.linuxArm64) return 'linux-arm64';
+    if (abi == Abi.windowsX64) return 'win-x64';
+    return null;
+  }
+
+  Future<Directory> _nodeDir() async => Directory(p.join((await Sandbox.instance.runtimesDir()).path, 'node'));
+
+  Future<String> _downloadedNode() async {
+    final dir = (await _nodeDir()).path;
+    return _win ? p.join(dir, 'node.exe') : p.join(dir, 'bin', 'node');
+  }
+
+  Future<bool> isNodeDownloaded() async => File(await _downloadedNode()).exists();
+
+  Future<String?> systemNode() async {
+    if (!nodeSupported) return null;
+    if (_win) return _where('node');
+    for (final c in ['/usr/bin/node', '/usr/local/bin/node', '/opt/homebrew/bin/node']) {
+      if (await File(c).exists()) return c;
+    }
+    return null;
+  }
+
+  Future<String?> nodeForRuns() async {
+    final d = await _downloadedNode();
+    if (await File(d).exists()) return d;
+    return systemNode();
+  }
+
+  String? _nodeVersionCache;
+
+  Future<String?> nodeVersion() async {
+    final node = await nodeForRuns();
+    if (node == null) return null;
+    try {
+      final r = await Process.run(node, ['--version']);
+      return _nodeVersionCache = r.stdout.toString().trim().replaceFirst('v', '');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Extra Node flags for TypeScript: Node 22 needs a switch, 23.6+ runs
+  /// .ts files as they are. Null means this Node is too old for TypeScript.
+  Future<List<String>?> typeScriptFlags() async {
+    final v = _nodeVersionCache ?? await nodeVersion();
+    final major = int.tryParse((v ?? '').split('.').first) ?? 0;
+    if (major < 22) return null;
+    return major == 22 ? const ['--experimental-strip-types', '--no-warnings'] : const ['--no-warnings'];
+  }
+
+  /// npm's own script, run with our node (works the same everywhere).
+  Future<String?> _npmCli() async {
+    final node = await nodeForRuns();
+    if (node == null) return null;
+    final base = p.dirname(node);
+    for (final c in [
+      p.join(base, 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+      p.join(base, '..', 'lib', 'node_modules', 'npm', 'bin', 'npm-cli.js'),
+      '/usr/share/nodejs/npm/bin/npm-cli.js',
+      '/usr/lib/node_modules/npm/bin/npm-cli.js',
+    ]) {
+      if (await File(c).exists()) return p.normalize(c);
+    }
+    return null;
+  }
+
+  Future<String> _npmGlobal() async => p.join((await Sandbox.instance.runtimesDir()).path, 'npm-global');
+
+  /// Newest LTS Node.js from nodejs.org, into the sandbox.
+  Future<void> downloadNode({void Function(double progress, String status)? onProgress}) async {
+    final target = _nodeTarget();
+    if (target == null) throw RuntimeException("Downloading Node.js isn't available on this computer.");
+    onProgress?.call(0, 'Finding the newest Node.js LTS…');
+    final res = await http.get(Uri.parse('https://nodejs.org/dist/index.json')).timeout(const Duration(seconds: 20));
+    if (res.statusCode != 200) throw RuntimeException('nodejs.org answered ${res.statusCode}. Try again later.');
+    final lts = (json.decode(res.body) as List).cast<Map<String, dynamic>>().firstWhere(
+          (r) => r['lts'] != false && r['lts'] != null,
+          orElse: () => throw RuntimeException("Couldn't find a Node.js LTS release."),
+        );
+    final version = lts['version'] as String;
+    final name = 'node-$version-$target';
+    final file = _win ? '$name.zip' : '$name.tar.xz';
+    final runtimes = await Sandbox.instance.runtimesDir();
+    final archive = File(p.join(runtimes.path, file));
+    await _download(Uri.parse('https://nodejs.org/dist/$version/$file'), archive,
+        (f) => onProgress?.call(f * 0.9, 'Downloading Node.js $version…'));
+    onProgress?.call(0.92, 'Unpacking…');
+    final dir = await _nodeDir();
+    if (await dir.exists()) await dir.delete(recursive: true);
+    await _extract(archive, runtimes);
+    await Directory(p.join(runtimes.path, name)).rename(dir.path);
+    await _makeRunnable(Directory(p.join(dir.path, 'bin')));
+    onProgress?.call(1, 'Node.js $version is ready.');
+  }
+
+  Future<void> removeNode() async {
+    for (final d in [await _nodeDir(), Directory(await _npmGlobal())]) {
+      if (await d.exists()) await d.delete(recursive: true);
+    }
+  }
+
+  /// Runs npm inside the sandbox, with global packages kept in the sandbox.
+  Future<RunningProcess> npm(List<String> args) async {
+    final node = await nodeForRuns();
+    final cli = await _npmCli();
+    if (node == null || cli == null) throw RuntimeException('Set up Node.js first.');
+    final runtimes = await Sandbox.instance.runtimesDir();
+    return start(node, [cli, ...args], workDir: runtimes);
+  }
+
+  /// Global npm packages in the sandbox, with newer versions when known.
+  Future<List<PythonPackage>> npmPackages({bool checkUpdates = false}) async {
+    if (await nodeForRuns() == null) return const [];
+    Future<String> out(List<String> args) async {
+      final proc = await npm(args);
+      final b = StringBuffer();
+      await for (final l in proc.lines) {
+        if (!l.startsWith(RunningProcess.errorMark)) b.writeln(l);
+      }
+      await proc.exitCode;
+      return b.toString();
+    }
+
+    final list = parseNpmList(await out(['ls', '-g', '--json', '--depth=0']));
+    if (!checkUpdates) return list;
+    final newer = parseNpmOutdated(await out(['outdated', '-g', '--json']));
+    return [for (final pkg in list) PythonPackage(pkg.name, pkg.version, latest: newer[pkg.name])];
+  }
+
+  static List<PythonPackage> parseNpmList(String text) {
+    try {
+      final deps = (json.decode(text.substring(text.indexOf('{'))) as Map)['dependencies'] as Map? ?? {};
+      return [
+        for (final e in deps.entries)
+          if (e.key != 'npm' && e.key != 'corepack') PythonPackage(e.key.toString(), '${(e.value as Map)['version'] ?? ''}'),
+      ]..sort((a, b) => a.name.compareTo(b.name));
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static Map<String, String> parseNpmOutdated(String text) {
+    try {
+      final m = json.decode(text.substring(text.indexOf('{'))) as Map;
+      return {for (final e in m.entries) e.key.toString(): '${(e.value as Map)['latest']}'};
+    } catch (_) {
+      return const {};
+    }
+  }
+
+  // ---------- Dart ----------
+
+  static bool get dartSupported => Platform.isLinux || Platform.isWindows || Platform.isMacOS;
+  static bool get canDownloadDart => _dartTarget() != null;
+
+  static String? _dartTarget() {
+    final abi = Abi.current();
+    if (abi == Abi.linuxX64) return 'linux-x64';
+    if (abi == Abi.linuxArm64) return 'linux-arm64';
+    if (abi == Abi.windowsX64) return 'windows-x64';
+    return null;
+  }
+
+  Future<String> _downloadedDart() async =>
+      p.join((await Sandbox.instance.runtimesDir()).path, 'dart-sdk', 'bin', _win ? 'dart.exe' : 'dart');
+
+  Future<bool> isDartDownloaded() async => File(await _downloadedDart()).exists();
+
+  Future<String?> systemDart() async {
+    if (!dartSupported) return null;
+    if (_win) return _where('dart');
+    for (final c in ['/usr/lib/dart/bin/dart', '/usr/bin/dart', '/usr/local/bin/dart', '/opt/homebrew/bin/dart']) {
+      if (await File(c).exists()) return c;
+    }
+    return null;
+  }
+
+  Future<String?> dartForRuns() async {
+    final d = await _downloadedDart();
+    if (await File(d).exists()) return d;
+    return systemDart();
+  }
+
+  Future<String?> dartVersion() async {
+    final dart = await dartForRuns();
+    if (dart == null) return null;
+    try {
+      final r = await Process.run(dart, ['--version']);
+      final m = RegExp(r'(\d+\.\d+\.\d+\S*)').firstMatch('${r.stdout}${r.stderr}');
+      return m?.group(1);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// The stable Dart SDK from Google's official Dart archive, into the sandbox.
+  Future<void> downloadDart({void Function(double progress, String status)? onProgress}) async {
+    final target = _dartTarget();
+    if (target == null) throw RuntimeException("Downloading Dart isn't available on this computer.");
+    const base = 'https://storage.googleapis.com/dart-archive/channels/stable/release/latest';
+    onProgress?.call(0, 'Finding the newest Dart…');
+    String version = 'latest';
+    try {
+      final v = await http.get(Uri.parse('$base/VERSION')).timeout(const Duration(seconds: 15));
+      version = (json.decode(v.body) as Map)['version']?.toString() ?? version;
+    } catch (_) {}
+    final runtimes = await Sandbox.instance.runtimesDir();
+    final archive = File(p.join(runtimes.path, 'dart-sdk.zip'));
+    await _download(Uri.parse('$base/sdk/dartsdk-$target-release.zip'), archive,
+        (f) => onProgress?.call(f * 0.9, 'Downloading Dart $version…'));
+    onProgress?.call(0.92, 'Unpacking…');
+    final old = Directory(p.join(runtimes.path, 'dart-sdk'));
+    if (await old.exists()) await old.delete(recursive: true);
+    await _extract(archive, runtimes);
+    await _makeRunnable(Directory(p.join(runtimes.path, 'dart-sdk', 'bin')));
+    onProgress?.call(0.98, 'Turning off Dart analytics…');
+    try {
+      await Process.run(await _downloadedDart(), ['--disable-analytics'],
+          environment: await Sandbox.instance.environment(runtimes));
+    } catch (_) {}
+    onProgress?.call(1, 'Dart $version is ready.');
+  }
+
+  Future<void> removeDart() async {
+    final d = Directory(p.join((await Sandbox.instance.runtimesDir()).path, 'dart-sdk'));
+    if (await d.exists()) await d.delete(recursive: true);
+  }
+
+  // ---------- Helpers ----------
+
+  Future<String?> _where(String name) async {
+    try {
+      final r = await Process.run('where', [name]);
+      for (final line in r.stdout.toString().split(RegExp(r'\r?\n'))) {
+        final path = line.trim();
+        if (path.isNotEmpty && !path.toLowerCase().contains('windowsapps')) return path;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Unpacks .tar.gz, .tar.xz and .zip files with the system's own tools,
+  /// then deletes the archive.
+  Future<void> _extract(File archive, Directory into) async {
+    final name = archive.path.toLowerCase();
+    ProcessResult r;
+    if (!name.endsWith('.zip') || _win) {
+      // Windows 10+ tar (bsdtar) also handles .zip.
+      r = await Process.run('tar', ['-xf', archive.path, '-C', into.path]);
+    } else {
+      r = await Process.run('unzip', ['-q', '-o', archive.path, '-d', into.path]).catchError(
+          (_) => ProcessResult(0, 127, '', 'no unzip'));
+      if (r.exitCode != 0) {
+        final py = await basePython() ?? '/usr/bin/python3';
+        r = await Process.run(py, ['-m', 'zipfile', '-e', archive.path, into.path]);
+      }
+    }
+    if (await archive.exists()) await archive.delete();
+    if (r.exitCode != 0) {
+      throw RuntimeException("Couldn't unpack ${p.basename(archive.path)}: ${r.stderr}".trim());
+    }
+  }
+
+  /// Some unpackers drop the "can run" flag; put it back on Linux and macOS.
+  Future<void> _makeRunnable(Directory bin) async {
+    if (_win || !await bin.exists()) return;
+    await Process.run('chmod', ['-R', 'a+rx', bin.path]);
+  }
+
+  /// A safe npm package name, or null ("prettier", "@angular/cli@17").
+  static String? cleanNpmName(String input) {
+    final t = input.trim();
+    if (RegExp(r'^(@[a-z0-9][a-z0-9._~-]*/)?[a-z0-9][a-z0-9._~-]*(@[A-Za-z0-9.^~<>=*_-]+)?$').hasMatch(t)) return t;
+    return null;
+  }
+
   // ---------- Shell ----------
 
   Future<String> _busybox() async =>
@@ -309,6 +618,14 @@ class Runtimes {
   Future<List<String>> toolPaths() async {
     final paths = <String>[];
     if (await hasEnvironment()) paths.add(await _venvBin());
+    final node = await nodeForRuns();
+    if (node != null) {
+      paths.add(p.dirname(node));
+      final global = await _npmGlobal();
+      paths.add(_win ? global : p.join(global, 'bin'));
+    }
+    final dart = await dartForRuns();
+    if (dart != null) paths.add(p.dirname(dart));
     if (_win && await isBusyboxDownloaded()) paths.add(p.dirname(await _busybox()));
     return paths;
   }
@@ -323,9 +640,17 @@ class Runtimes {
   }) async {
     final env = await Sandbox.instance.environment(workDir,
         extraPath: [...extraPath, ...await toolPaths()]);
+    final runtimes = (await Sandbox.instance.runtimesDir()).path;
+    final cache = p.join(p.dirname(runtimes), 'cache');
+    env.addAll({
+      'NPM_CONFIG_PREFIX': await _npmGlobal(),
+      'NPM_CONFIG_CACHE': p.join(cache, 'npm'),
+      'NPM_CONFIG_UPDATE_NOTIFIER': 'false',
+      'NPM_CONFIG_FUND': 'false',
+      'PUB_CACHE': p.join(runtimes, 'pub-cache'),
+    });
     // CodeNote's own Python lives in the sandbox too, so notes can
     // `pip install` what they need without touching the system.
-    final runtimes = (await Sandbox.instance.runtimesDir()).path;
     final (cmd, cmdArgs) = await Sandbox.instance.command(executable, args,
         writable: workDir, extraWritable: {...extraWritable, runtimes}.toList());
     final Process process;

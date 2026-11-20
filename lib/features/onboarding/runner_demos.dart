@@ -3,11 +3,13 @@ import '../notes/domain/entities/block.dart';
 import '../notes/domain/entities/language.dart';
 import '../notes/domain/entities/note.dart';
 import '../notes/domain/entities/note_group.dart';
+import '../notes/domain/entities/run_plan.dart';
 
 /// Sample notes that run code: a YouTube downloader (Python backend + web
-/// page), a FastAPI todo app (backend + frontend), a Snake mini app that
-/// saves its best score, and small Python and Bash scripts. Each folder
-/// shares one sandbox and starts with ▶ Run folder.
+/// page), a FastAPI todo app, a pipeline in Python, Node.js and Dart with a
+/// primary server, a Snake mini app that saves its best score, and small
+/// Python, Bash, Node.js, TypeScript and Dart scripts. Each folder shares one
+/// sandbox and starts with ▶ Run folder.
 class RunnerDemos {
   RunnerDemos._();
 
@@ -30,7 +32,7 @@ class RunnerDemos {
       md('''### How to use
 1. First time only: **Settings → Runtimes and sandbox** → set up Python.
 2. Open the **youtube-downloader** folder and press **▶ Run folder**.
-   This installs yt-dlp, starts this backend and opens the **Downloader** page.
+   It installs yt-dlp, starts this backend (the **★ primary** block) and opens the **Downloader** page.
 3. Downloads stay in this folder's sandbox. Press the **folder** button under the output to **Save a copy**.
 
 YouTube changes often. Keep yt-dlp fresh in **Settings → Runtimes and sandbox → Check for updates**.
@@ -38,12 +40,12 @@ Only download videos you have the right to save.'''),
       code(Language.bash, '''# Installs yt-dlp and a bundled ffmpeg into CodeNote's Python (once).
 python -m pip install --quiet yt-dlp imageio-ffmpeg
 python -m pip show yt-dlp | head -2'''),
-      code(Language.python, _yt_backend),
+      code(Language.python, _yt_backend, role: RunRole.main),
     ], const ['youtube', 'python', 'demo'], 1);
 
     final ytPage = note('Downloader', [
       md('The page for the backend note in this folder. Run the folder with **▶**, '
-          'or start the backend note first and then press ▶ here.'),
+          'or start the backend note first and then open this page.'),
       code(Language.html, _yt_html),
       code(Language.css, _yt_css),
       code(Language.javaScript, _yt_js),
@@ -54,7 +56,7 @@ python -m pip show yt-dlp | head -2'''),
       md('A backend in one note, the frontend in another. Both live in this folder, so they share a sandbox: '
           'the API saves **todos.json** there, and the page calls it with `codenote.api(8000, \'/todos\')`.'),
       code(Language.bash, 'python -m pip install --quiet fastapi uvicorn'),
-      code(Language.python, _api_py),
+      code(Language.python, _api_py, role: RunRole.main),
     ], const ['fastapi', 'python', 'demo'], 2);
 
     final todoPage = note('Todo app', [
@@ -63,30 +65,80 @@ python -m pip show yt-dlp | head -2'''),
       code(Language.javaScript, _todo_js),
     ], const ['fastapi', 'mini-app', 'demo'], 2);
 
-    // ── mini apps and scripts ────────────────────────────────
+    // ── pipeline/ (a sequence in three languages) ────────────
+    final p1 = note('1 · Make the data (Python)', [code(Language.python, _p1)], const ['pipeline', 'python', 'demo'], 3);
+    final p2 = note('2 · Add it up (Node.js)', [code(Language.javaScript, _p2)], const ['pipeline', 'node', 'demo'], 3);
+    final p3 = note('3 · Write the report (Dart)', [code(Language.dart, _p3)], const ['pipeline', 'dart', 'demo'], 3);
+    final p4 = note('4 · Serve it (Node.js, primary)', [
+      md('The **primary** note of this folder: it runs last and keeps running, so the **Pipeline report** page can read the results. '
+          'See the order with the **Run order** button on the folder.'),
+      code(Language.javaScript, _p4, role: RunRole.main),
+    ], const ['pipeline', 'node', 'demo'], 3);
+    final pPage = note('Pipeline report', [
+      md('Needs Python, Node.js and Dart set up in **Settings → Runtimes and sandbox**. '
+          'Then press **▶ Run folder** on **pipeline**: steps 1 to 3 run one after another, step 4 keeps running, and this page opens.'),
+      code(Language.html, _p_html),
+      code(Language.css, _p_css),
+      code(Language.javaScript, _p_js),
+    ], const ['pipeline', 'mini-app', 'demo'], 3);
+
+    // ── run-code/ ────────────────────────────────────────────
     final snake = note('Mini app: Snake', [
-      md('Press **▶** to play. The best score is saved with `localStorage`, which CodeNote keeps for this note '
+      md('Open the page from the top bar to play. The best score is saved with `localStorage`, which CodeNote keeps for this note '
           '(and in backups). Reset it from the **⋯** menu.'),
       code(Language.html, _snake_html),
       code(Language.css, _snake_css),
       code(Language.javaScript, _snake_js),
-    ], const ['game', 'mini-app', 'demo'], 3);
+    ], const ['game', 'mini-app', 'demo'], 4);
 
     final pyFile = note('Python: save a file in the sandbox', [
       md('Press **▶** on the code. It writes `commits.csv` and asks your name (type it in the box under the output).'),
       code(Language.python, _py_file),
-    ], const ['python', 'demo'], 4);
+    ], const ['python', 'demo'], 5);
 
     final bashInfo = note('Bash: look around the sandbox', [
       code(Language.bash, _bash_info),
-    ], const ['bash', 'demo'], 4);
+    ], const ['bash', 'demo'], 5);
 
+    final nodeNote = note('Node.js: files and built-in modules', [
+      md('JavaScript in a note **without HTML** runs with Node.js. Set it up once in **Settings → Runtimes and sandbox**.'),
+      code(Language.javaScript, _node),
+    ], const ['node', 'javascript', 'demo'], 6);
+
+    final tsNote = note('TypeScript: no build step', [
+      md('Runs directly on Node.js 22 or newer.'),
+      code(Language.typeScript, _ts),
+    ], const ['typescript', 'node', 'demo'], 6);
+
+    final dartNote = note('Dart: records and patterns', [
+      md('Uses the Dart SDK from **Settings → Runtimes and sandbox**.'),
+      code(Language.dart, _dart),
+    ], const ['dart', 'demo'], 6);
+
+    final pipeline = NoteGroupEntity(
+      id: id(),
+      name: 'pipeline',
+      noteIds: [p1.id, p2.id, p3.id, p4.id, pPage.id],
+      lastModified: now,
+      runPlan: RunPlan(order: [p1.id, p2.id, p3.id, p4.id], primary: p4.id),
+    );
     final groups = [
       NoteGroupEntity(id: id(), name: 'youtube-downloader', noteIds: [ytBackend.id, ytPage.id], lastModified: now),
       NoteGroupEntity(id: id(), name: 'fastapi-todo', noteIds: [apiNote.id, todoPage.id], lastModified: now),
-      NoteGroupEntity(id: id(), name: 'run-code', noteIds: [snake.id, pyFile.id, bashInfo.id], lastModified: now),
+      pipeline,
+      NoteGroupEntity(
+        id: id(),
+        name: 'run-code',
+        noteIds: [snake.id, pyFile.id, bashInfo.id, nodeNote.id, tsNote.id, dartNote.id],
+        lastModified: now,
+        // The Python sample waits for you to type a name, so Run folder skips it.
+        runPlan: RunPlan(disabled: {pyFile.id}),
+      ),
     ];
-    return (notes: [ytBackend, ytPage, apiNote, todoPage, snake, pyFile, bashInfo], groups: groups);
+    return (
+      notes: [ytBackend, ytPage, apiNote, todoPage, p1, p2, p3, p4, pPage, snake, pyFile, bashInfo, nodeNote, tsNote, dartNote],
+      groups: groups,
+    );
   }
 }
 
@@ -845,3 +897,217 @@ echo
 echo "Can I see the real home folder?"
 ls /home 2>/dev/null | head -5 || echo "no"
 echo "(empty or missing = the sandbox is hiding it)"''';
+
+const _p1 = r'''
+# Step 1 (Python): make the raw data. A real pipeline would download it;
+# this one makes 300 sales so it works offline.
+import json, os, random
+
+random.seed(7)
+regions = ["Cairo", "Alexandria", "Giza", "Mansoura"]
+products = ["Laptop", "Phone", "Headphones", "Monitor"]
+sales = [
+    {
+        "month": f"2026-{m:02d}",
+        "region": random.choice(regions),
+        "product": random.choice(products),
+        "amount": round(random.uniform(20, 900), 2),
+    }
+    for m in range(1, 13)
+    for _ in range(25)
+]
+os.makedirs("data", exist_ok=True)
+with open("data/sales.json", "w") as f:
+    json.dump(sales, f)
+print(f"Step 1 done: wrote {len(sales)} sales to data/sales.json")''';
+
+const _p2 = r'''
+// Step 2 (Node.js): add the sales up by region, product and month.
+const fs = require('fs');
+
+const sales = JSON.parse(fs.readFileSync('data/sales.json', 'utf8'));
+const sum = (key) => sales.reduce((acc, s) => {
+  acc[s[key]] = Math.round(((acc[s[key]] || 0) + s.amount) * 100) / 100;
+  return acc;
+}, {});
+
+const summary = {
+  total: Math.round(sales.reduce((a, s) => a + s.amount, 0) * 100) / 100,
+  count: sales.length,
+  byRegion: sum('region'),
+  byProduct: sum('product'),
+  byMonth: sum('month'),
+};
+fs.writeFileSync('data/summary.json', JSON.stringify(summary, null, 2));
+console.log(`Step 2 done: ${summary.count} sales, total ${summary.total.toFixed(2)}`);''';
+
+const _p3 = r'''
+// Step 3 (Dart): turn the summary into a Markdown report.
+import 'dart:convert';
+import 'dart:io';
+
+void main() {
+  final summary = jsonDecode(File('data/summary.json').readAsStringSync()) as Map<String, dynamic>;
+  final total = (summary['total'] as num).toDouble();
+
+  String table(String title, Map<String, dynamic> rows) {
+    final sorted = rows.entries.toList()
+      ..sort((a, b) => (b.value as num).compareTo(a.value as num));
+    final lines = [
+      '### $title',
+      '| Name | Sales | Share |',
+      '| --- | ---: | ---: |',
+      for (final e in sorted)
+        '| ${e.key} | ${(e.value as num).toStringAsFixed(2)} | ${((e.value as num) / total * 100).toStringAsFixed(1)}% |',
+    ];
+    return lines.join('\n');
+  }
+
+  final report = [
+    '# Sales report 2026',
+    'Total: **${total.toStringAsFixed(2)}** from ${summary['count']} sales.',
+    table('By region', summary['byRegion'] as Map<String, dynamic>),
+    table('By product', summary['byProduct'] as Map<String, dynamic>),
+  ].join('\n\n');
+
+  File('data/report.md').writeAsStringSync(report);
+  print('Step 3 done: wrote data/report.md');
+  print(report.split('\n').take(6).join('\n'));
+}''';
+
+const _p4 = r'''
+// Step 4 (Node.js, primary): serve the results to the "Pipeline report"
+// page. It keeps running until you press Stop.
+const http = require('http');
+const fs = require('fs');
+
+const PORT = 8200;
+http.createServer((req, res) => {
+  try {
+    if (req.url === '/summary') {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(fs.readFileSync('data/summary.json'));
+    }
+    if (req.url === '/report') {
+      res.writeHead(200, { 'Content-Type': 'text/markdown; charset=utf-8' });
+      return res.end(fs.readFileSync('data/report.md'));
+    }
+    res.writeHead(404).end('not found');
+  } catch (e) {
+    res.writeHead(500).end('Run the earlier steps first: ' + e.message);
+  }
+}).listen(PORT, '127.0.0.1', () => console.log(`Step 4: serving the report on port ${PORT}. Open the Pipeline report note.`));''';
+
+const _p_html = r'''
+<main>
+  <h1>Sales pipeline</h1>
+  <p class="sub">Python made the data → Node.js added it up → Dart wrote the report → Node.js serves it here.</p>
+  <div id="total" class="total">…</div>
+  <h2>By month</h2>
+  <div id="months" class="bars"></div>
+  <h2>By region</h2>
+  <div id="regions" class="rows"></div>
+  <h2>Report from Dart</h2>
+  <pre id="report"></pre>
+</main>''';
+
+const _p_css = r'''
+:root { color-scheme: dark; }
+body { margin: 0; background: #0F0E1A; color: #ECEAF6; font: 15px/1.5 system-ui, sans-serif; }
+main { max-width: 760px; margin: 0 auto; padding: 26px 18px 50px; }
+h1 { margin: 0; } h2 { font: 600 14px ui-monospace, monospace; color: #9C98B8; margin: 26px 0 10px; }
+h2::before { content: '// '; color: #7B5CFF; }
+.sub { color: #9C98B8; font-size: 13px; }
+.total { font: 700 34px ui-monospace, monospace; color: #3DDC97; margin-top: 14px; }
+.bars { display: flex; align-items: flex-end; gap: 6px; height: 160px; padding: 10px; background: #17162A; border: 1px solid #2A2846; border-radius: 14px; }
+.bar { flex: 1; background: linear-gradient(#A993FF, #7B5CFF); border-radius: 6px 6px 2px 2px; position: relative; min-height: 4px; }
+.bar span { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font: 10px ui-monospace, monospace; color: #9C98B8; }
+.rows div { display: grid; grid-template-columns: 110px 1fr 90px; gap: 10px; align-items: center; margin: 6px 0; font-size: 14px; }
+.rows i { display: block; height: 10px; border-radius: 5px; background: #3DDC97; }
+.rows b { font: 12px ui-monospace, monospace; text-align: right; color: #9C98B8; }
+pre { background: #17162A; border: 1px solid #2A2846; border-radius: 14px; padding: 14px; white-space: pre-wrap; font: 12.5px/1.5 ui-monospace, monospace; }''';
+
+const _p_js = r'''
+const api = (p) => window.codenote ? codenote.api(8200, p) : 'http://127.0.0.1:8200' + p;
+async function load() {
+  try {
+    const s = await (await fetch(api('/summary'))).json();
+    document.getElementById('total').textContent = s.total.toLocaleString(undefined, { minimumFractionDigits: 2 }) + ' total';
+    const months = Object.entries(s.byMonth).sort();
+    const top = Math.max(...months.map(m => m[1]));
+    document.getElementById('months').innerHTML = months.map(([m, v]) =>
+      `<div class="bar" style="height:${v / top * 100}%" title="${m}: ${v}"><span>${m.slice(5)}</span></div>`).join('');
+    const regions = Object.entries(s.byRegion).sort((a, b) => b[1] - a[1]);
+    const most = regions[0][1];
+    document.getElementById('regions').innerHTML = regions.map(([r, v]) =>
+      `<div><span>${r}</span><i style="width:${v / most * 100}%"></i><b>${v.toFixed(0)}</b></div>`).join('');
+    document.getElementById('report').textContent = await (await fetch(api('/report'))).text();
+  } catch (e) {
+    document.getElementById('total').textContent = 'Press ▶ Run folder on the pipeline folder first.';
+  }
+}
+load();''';
+
+const _node = r'''
+// Node.js in the sandbox: read and write files, use the built-in modules.
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+
+console.log(`Node ${process.version} on ${os.platform()} (${os.arch()})`);
+console.log(`Working in: ${process.cwd()}`);
+
+const notes = { saved: new Date().toISOString(), tips: ['npm install works in the terminal', 'files stay in the sandbox'] };
+fs.writeFileSync('node-notes.json', JSON.stringify(notes, null, 2));
+console.log('Wrote', path.resolve('node-notes.json'));
+
+const words = 'the quick brown fox jumps over the lazy dog the end'.split(' ');
+const counts = words.reduce((m, w) => m.set(w, (m.get(w) || 0) + 1), new Map());
+console.table([...counts].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([word, n]) => ({ word, n })));''';
+
+const _ts = r'''
+// TypeScript runs straight on Node.js 22 or newer: no build step.
+type Task = { title: string; minutes: number; done: boolean };
+
+const tasks: Task[] = [
+  { title: 'Write the API', minutes: 90, done: true },
+  { title: 'Build the page', minutes: 60, done: false },
+  { title: 'Test on Android', minutes: 30, done: false },
+];
+
+function remaining(list: Task[]): number {
+  return list.filter((t) => !t.done).reduce((sum, t) => sum + t.minutes, 0);
+}
+
+const left: number = remaining(tasks);
+console.log(`${tasks.filter((t) => !t.done).length} tasks left, about ${left} minutes.`);
+for (const t of tasks) console.log(`${t.done ? '✓' : '·'} ${t.title.padEnd(18)} ${t.minutes} min`);''';
+
+const _dart = r'''
+// Dart in the sandbox: records, patterns and a small file.
+import 'dart:io';
+
+(String, int) longestWord(String text) {
+  final words = text.split(RegExp(r'\s+')).where((w) => w.isNotEmpty);
+  final best = words.reduce((a, b) => b.length > a.length ? b : a);
+  return (best, best.length);
+}
+
+String describe(Object value) => switch (value) {
+      int n when n < 0 => 'a negative number',
+      int n => 'the number $n',
+      String s => 'the text "$s"',
+      List l => 'a list of ${l.length}',
+      _ => 'something else',
+    };
+
+void main() {
+  print('Dart ${Platform.version.split(' ').first} on ${Platform.operatingSystem}');
+  final (word, length) = longestWord('Notes for people who write beautiful code');
+  print('Longest word: $word ($length letters)');
+  for (final v in [42, -1, 'hi', [1, 2, 3]]) {
+    print('$v is ${describe(v)}');
+  }
+  File('dart-hello.txt').writeAsStringSync('Hello from Dart at ${DateTime.now()}\n');
+  print('Wrote dart-hello.txt');
+}''';

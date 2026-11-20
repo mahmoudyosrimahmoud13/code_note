@@ -17,9 +17,13 @@ import '../../../../widgets/note_navigation_bar.dart';
 import '../../../reminders/reminder_service.dart';
 import '../../../templates/templates.dart';
 import '../../../gist/gist_page.dart';
+import '../../../backup/codenote_files.dart';
 import '../../../miniapps/mini_app_storage.dart';
 import '../../../runner/note_scope.dart';
 import '../../../runner/sandbox.dart';
+import '../../../runner/code_runner.dart';
+import '../../../runner/run_manager.dart';
+import '../../../runner/running_indicator.dart';
 import '../../domain/entities/block.dart';
 import '../../domain/entities/note.dart';
 import '../bloc/note_bloc.dart';
@@ -51,6 +55,8 @@ class _NotePageState extends State<NotePage> {
   static const _saveDelay = Duration(milliseconds: 600);
 
   late final TextEditingController _titleController;
+  final _scroll = ScrollController();
+  final _primaryKey = GlobalKey();
   final TextEditingController _tagController = TextEditingController();
   late final NoteBloc _noteBloc;
   late final NoteGroupBloc _groupBloc;
@@ -106,6 +112,7 @@ class _NotePageState extends State<NotePage> {
     // Save anything typed in the last moment before leaving.
     _flush();
     _titleController.dispose();
+    _scroll.dispose();
     _tagController.dispose();
     _status.dispose();
     super.dispose();
@@ -118,6 +125,47 @@ class _NotePageState extends State<NotePage> {
       _tags.isEmpty &&
       _reminder == null &&
       _blocks.every((b) => b is! ImageBlockEntity && (b.text ?? '').trim().isEmpty);
+
+  /// The note's ★ primary code block, if it has one.
+  CodeBlockEntity? get _primaryBlock {
+    for (final b in _blocks) {
+      if (b is CodeBlockEntity && b.runRole == RunRole.main) return b;
+    }
+    return null;
+  }
+
+  /// Scrolls to the primary block. Blocks far down aren't built yet, so
+  /// scroll a screen at a time until it appears.
+  Future<void> _showPrimary() async {
+    for (var i = 0; i < 40; i++) {
+      final ctx = _primaryKey.currentContext;
+      if (ctx != null) {
+        await Scrollable.ensureVisible(ctx, duration: const Duration(milliseconds: 300), alignment: 0.1);
+        return;
+      }
+      if (!_scroll.hasClients) return;
+      final pos = _scroll.position;
+      if (pos.pixels >= pos.maxScrollExtent) return;
+      _scroll.jumpTo((pos.pixels + pos.viewportDimension * 0.8).clamp(0, pos.maxScrollExtent));
+      await WidgetsBinding.instance.endOfFrame;
+    }
+  }
+
+  bool get _hasRunnableCode => RunManager.folderBlocks(_currentNote()).isNotEmpty;
+
+  Future<void> _runNote() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final problem = await RunManager.instance.runNote(_currentNote(), _spaceKey());
+    if (problem != null && problem != 'Stopped.') {
+      messenger.showSnackBar(SnackBar(content: Text(problem), persist: false));
+    }
+  }
+
+  /// Side margins: roomy on wide desktop windows, tight on phones.
+  double _sidePadding(BuildContext context) {
+    final w = MediaQuery.sizeOf(context).width;
+    return w >= 1400 ? 48 : w >= 900 ? 32 : 20;
+  }
 
   /// This note's sandbox: shared with the other notes in its folder.
   String _spaceKey() {
@@ -305,6 +353,7 @@ class _NotePageState extends State<NotePage> {
     final index = _blocks.indexWhere((b) => b.id == updated.id);
     if (index == -1) return;
     final couldPreview = WebPreview.canPreview(_blocks);
+    final wasWebPage = CodeRunner.isWebPageNote(_blocks);
     _blocks[index] = updated;
     // Only one main block per note: picking a new one clears the old one.
     if (updated is CodeBlockEntity && updated.runRole == RunRole.main) {
@@ -319,7 +368,9 @@ class _NotePageState extends State<NotePage> {
       if (demoted) setState(() {});
     }
     // Rebuild only when the ▶ preview button should appear or disappear.
-    if (couldPreview != WebPreview.canPreview(_blocks)) setState(() {});
+    if (couldPreview != WebPreview.canPreview(_blocks) || wasWebPage != CodeRunner.isWebPageNote(_blocks)) {
+      setState(() {});
+    }
     _changed();
   }
 
@@ -587,10 +638,24 @@ class _NotePageState extends State<NotePage> {
       child: Scaffold(
         appBar: AppBar(
           actions: [
+            if (_hasRunnableCode)
+              ListenableBuilder(
+                listenable: RunManager.instance,
+                builder: (context, _) {
+                  final note = _currentNote();
+                  final running = RunManager.instance.noteStatus.containsKey(note.id) ||
+                      RunManager.instance.anyRunning(note.blocks.map((b) => b.id));
+                  return IconButton(
+                    tooltip: running ? 'Running · tap to stop this note' : 'Run note (blocks in order, primary last)',
+                    icon: RunButtonIcon(running: running, size: 22),
+                    onPressed: () => running ? RunManager.instance.stopNote(note) : _runNote(),
+                  );
+                },
+              ),
             if (WebPreview.canPreview(_blocks))
               IconButton(
-                tooltip: 'Run preview (HTML, CSS, JS)',
-                icon: Icon(Icons.play_arrow_rounded, color: tokens.success),
+                tooltip: 'Open the web page (HTML, CSS, JS)',
+                icon: Icon(Icons.open_in_browser_rounded, color: tokens.success),
                 onPressed: () => WebPreview.open(context, _currentNote(), spaceKey: _spaceKey()),
               ),
             IconButton(
@@ -623,6 +688,8 @@ class _NotePageState extends State<NotePage> {
                     _saveAsTemplate();
                   case 'gist':
                     exportNoteToGist(context, _currentNote());
+                  case 'codenote':
+                    CodenoteFiles.shareNote(context, _currentNote());
                   case 'appdata':
                     _resetAppData();
                   case 'archive':
@@ -666,6 +733,14 @@ class _NotePageState extends State<NotePage> {
                     ),
                   ),
                 const PopupMenuItem(
+                  value: 'codenote',
+                  child: ListTile(
+                    leading: Icon(Icons.description_outlined),
+                    title: Text('Share as .codenote file'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
                   value: 'gist',
                   child: ListTile(
                     leading: Icon(Icons.upload_rounded),
@@ -701,19 +776,22 @@ class _NotePageState extends State<NotePage> {
           noteId: widget.note.id,
           spaceKey: _spaceKey(),
           title: _titleController.text,
+          isWebPage: CodeRunner.isWebPageNote(_blocks),
           child: Column(
           children: [
             Expanded(
               child: Align(
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 820),
+                  // Full width on desktop, like an editor; the side padding grows instead.
+                  constraints: const BoxConstraints(maxWidth: double.infinity),
                   child: CustomScrollView(
+                    controller: _scroll,
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
                     slivers: [
                      SliverPadding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      padding: EdgeInsets.symmetric(horizontal: _sidePadding(context)),
                       sliver: SliverList.list(children: [
                       ValueListenableBuilder<_SaveStatus>(
                         valueListenable: _status,
@@ -762,6 +840,14 @@ class _NotePageState extends State<NotePage> {
                         runSpacing: 6,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
+                          if (_primaryBlock != null)
+                            ActionChip(
+                              avatar: Icon(Icons.star_rounded, size: 16, color: tokens.pin),
+                              label: Text('primary', style: monoStyle(context, size: 12)),
+                              tooltip: 'Jump to the primary block',
+                              visualDensity: VisualDensity.compact,
+                              onPressed: _showPrimary,
+                            ),
                           for (final tag in _tags)
                             InputChip(
                               label: Text('#$tag'),
@@ -804,7 +890,7 @@ class _NotePageState extends State<NotePage> {
                      ),
                       // Blocks: drag the grip on a block's header to reorder.
                       SliverPadding(
-                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                        padding: EdgeInsets.fromLTRB(_sidePadding(context), 0, _sidePadding(context), 120),
                         sliver: _blocks.isEmpty
                             ? SliverToBoxAdapter(
                                 child: Padding(
@@ -831,6 +917,8 @@ class _NotePageState extends State<NotePage> {
                                   final block = _blocks[index];
                                   return KeyedSubtree(
                                     key: ValueKey('reorder_${block.id}'),
+                                    child: KeyedSubtree(
+                                    key: block.id == _primaryBlock?.id ? _primaryKey : null,
                                     child: BlockWidgetFactory.createBlockWidget(
                                       entity: block,
                                       onChanged: _onBlockChanged,
@@ -860,6 +948,7 @@ class _NotePageState extends State<NotePage> {
                                                 ),
                                               ),
                                             ),
+                                    ),
                                     ),
                                   );
                                 },

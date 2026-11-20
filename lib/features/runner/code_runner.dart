@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 
+import '../notes/domain/entities/block.dart';
 import '../notes/domain/entities/language.dart';
 import 'runtimes.dart';
 import 'sandbox.dart';
@@ -21,14 +22,34 @@ class CodeRunner {
         return true;
       case Language.powershell:
         return Platform.isWindows;
+      case Language.javaScript:
+      case Language.typeScript:
+        return Runtimes.nodeSupported;
+      case Language.dart:
+        return Runtimes.dartSupported;
       default:
         return false;
     }
   }
 
+  /// JavaScript in a note with HTML belongs to the web page (▶ in the top
+  /// bar opens it). Without HTML it runs with Node.js.
+  static bool isWebPageNote(Iterable<BlockEntity> blocks) =>
+      blocks.any((b) => b is CodeBlockEntity && b.language == Language.html && (b.text ?? '').trim().isNotEmpty);
+
+  /// Whether a block gets its own ▶ in this note.
+  static bool canRunIn(Language language, Iterable<BlockEntity> noteBlocks) {
+    if (!canRun(language)) return false;
+    final web = language == Language.javaScript || language == Language.typeScript;
+    return !(web && isWebPageNote(noteBlocks));
+  }
+
   static String _fileName(Language language) => switch (language) {
         Language.python => 'run.py',
         Language.powershell => 'run.ps1',
+        Language.javaScript => 'run.js',
+        Language.typeScript => 'run.ts',
+        Language.dart => 'run.dart',
         _ => 'run.sh',
       };
 
@@ -61,6 +82,27 @@ class CodeRunner {
           throw RuntimeException('Python isn\'t set up yet. Open Settings > Runtimes and sandbox.');
         }
         return Runtimes.instance.start(py, ['-u', script.path], workDir: workspace);
+      case Language.javaScript:
+      case Language.typeScript:
+        final node = await Runtimes.instance.nodeForRuns();
+        if (node == null) {
+          throw RuntimeException('Node.js isn\'t set up yet. Open Settings > Runtimes and sandbox.');
+        }
+        var flags = const <String>[];
+        if (language == Language.typeScript) {
+          final ts = await Runtimes.instance.typeScriptFlags();
+          if (ts == null) {
+            throw RuntimeException('TypeScript needs Node.js 22 or newer. Update it in Settings > Runtimes and sandbox.');
+          }
+          flags = ts;
+        }
+        return Runtimes.instance.start(node, [...flags, script.path], workDir: workspace);
+      case Language.dart:
+        final dart = await Runtimes.instance.dartForRuns();
+        if (dart == null) {
+          throw RuntimeException('Dart isn\'t set up yet. Open Settings > Runtimes and sandbox.');
+        }
+        return Runtimes.instance.start(dart, ['run', script.path], workDir: workspace);
       case Language.powershell:
         return Runtimes.instance.start('powershell.exe',
             ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-File', script.path],

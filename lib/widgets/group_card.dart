@@ -196,11 +196,15 @@ class _MiniNotePreview extends StatelessWidget {
       );
     }
 
+    // The ★ primary block if the note has one, otherwise the first code.
     CodeBlockEntity? code;
     for (final b in note.blocks) {
       if (b is CodeBlockEntity && (b.text ?? '').trim().isNotEmpty) {
-        code = b;
-        break;
+        if (b.runRole == RunRole.main) {
+          code = b;
+          break;
+        }
+        code ??= b;
       }
     }
     if (code != null) {

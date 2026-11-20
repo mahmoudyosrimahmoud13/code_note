@@ -65,16 +65,20 @@ class MarkdownBlockEntity extends BlockEntity {
   }
 }
 
-/// What "Run folder" does with a code block.
+/// How a code block takes part when its note (or folder) runs as a
+/// sequence: blocks run top to bottom, each finishing before the next.
 enum RunRole {
-  /// Runs in order with the note's other blocks.
+  /// Runs in order, and the next block waits until it finishes.
   normal,
 
-  /// The note's primary block: Run folder runs only this one.
+  /// The primary block: always runs last and keeps running (a server).
   main,
 
-  /// Never started by Run folder (still runs with its own ▶).
+  /// Never started by Run note or Run folder (its own ▶ still works).
   skip,
+
+  /// Starts in order, but the next block doesn't wait for it (an extra server).
+  background,
 }
 
 class CodeBlockEntity extends BlockEntity {

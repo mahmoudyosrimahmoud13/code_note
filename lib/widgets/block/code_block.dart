@@ -17,6 +17,7 @@ import '../../features/runner/code_runner.dart';
 import '../../features/runner/note_scope.dart';
 import '../../features/runner/run_manager.dart';
 import '../../features/runner/run_panel.dart';
+import '../../features/runner/running_indicator.dart';
 import '../language_drop_down.dart';
 import 'block.dart';
 import 'block_frame.dart';
@@ -145,9 +146,10 @@ class _CodeBlockState extends State<CodeBlock> {
     _notify();
     showMessage(
         message: switch (_runRole) {
-      RunRole.main => 'Main block: Run folder runs only this block in this note.',
-      RunRole.skip => 'Run folder will skip this block. Its own ▶ still works.',
-      RunRole.normal => 'Run folder runs this block in order again.',
+      RunRole.main => 'Primary block: it runs last when you run the note or folder, and keeps running.',
+      RunRole.background => 'Keeps running: the next block starts without waiting for this one.',
+      RunRole.skip => 'Skipped when running the note or folder. Its own ▶ still works.',
+      RunRole.normal => 'Runs in order, and the next block waits for it.',
     });
   }
 
@@ -191,6 +193,15 @@ class _CodeBlockState extends State<CodeBlock> {
       );
       showMessage(message: 'Saved under the code block.');
     }
+  }
+
+  /// Gets a ▶: a runnable language, inside a note, and for JavaScript only
+  /// when the note isn't a web page.
+  bool _runnable(BuildContext context) {
+    final scope = NoteScope.of(context);
+    if (scope == null || !CodeRunner.canRun(_language)) return false;
+    final web = _language == Language.javaScript || _language == Language.typeScript;
+    return !(web && scope.isWebPage);
   }
 
   void _run() {
@@ -267,14 +278,21 @@ class _CodeBlockState extends State<CodeBlock> {
                     _notify();
                   },
                 ),
-                 if (_runRole != RunRole.normal && CodeRunner.canRun(_language))
+                 if (_runRole != RunRole.normal && _runnable(context))
                    Padding(
                      padding: const EdgeInsets.only(left: 4),
                      child: Tooltip(
-                       message: _runRole == RunRole.main
-                           ? 'Main block: Run folder runs only this one in this note'
-                           : 'Run folder skips this block',
-                       child: Text(_runRole == RunRole.main ? '★ main' : 'skip',
+                       message: switch (_runRole) {
+                         RunRole.main => 'Primary: runs last and keeps running',
+                         RunRole.background => 'Keeps running: the next block does not wait',
+                         _ => 'Skipped when running the note or folder',
+                       },
+                       child: Text(
+                           switch (_runRole) {
+                             RunRole.main => '★ primary',
+                             RunRole.background => '↻ keeps running',
+                             _ => 'skip',
+                           },
                            style: monoStyle(context,
                                size: 11.5,
                                color: _runRole == RunRole.main ? tokens.pin : tokens.subtle)),
@@ -283,14 +301,15 @@ class _CodeBlockState extends State<CodeBlock> {
                 ]),
               ),
               quickActions: [
-                if (CodeRunner.canRun(_language) && NoteScope.of(context) != null)
+                if (_runnable(context))
                   ListenableBuilder(
                     listenable: RunManager.instance,
                     builder: (context, _) {
                       final running = RunManager.instance.sessionFor(widget.id)?.running ?? false;
-                      return BlockQuickAction(
-                        icon: running ? Icons.stop_rounded : Icons.play_arrow_rounded,
-                        tooltip: running ? 'Stop' : 'Run in the sandbox',
+                      return IconButton(
+                        tooltip: running ? 'Running · tap to stop' : 'Run in the sandbox',
+                        visualDensity: VisualDensity.compact,
+                        icon: RunButtonIcon(running: running),
                         onPressed: running ? () => RunManager.instance.sessionFor(widget.id)?.stop() : _run,
                       );
                     },
@@ -311,14 +330,19 @@ class _CodeBlockState extends State<CodeBlock> {
                 ),
               ],
               extraActions: [
-                if (CodeRunner.canRun(_language)) ...[
+                if (_runnable(context)) ...[
                   BlockAction(
-                    label: _runRole == RunRole.main ? 'Unset main block' : '★ Set as main block',
+                    label: _runRole == RunRole.main ? 'Unset primary block' : '★ Primary block (runs last)',
                     icon: Icons.star_outline_rounded,
                     onTap: () => _setRunRole(RunRole.main),
                   ),
                   BlockAction(
-                    label: _runRole == RunRole.skip ? 'Run with the folder again' : 'Skip when running the folder',
+                    label: _runRole == RunRole.background ? 'Wait for this block again' : 'Keep running (don\'t wait)',
+                    icon: Icons.all_inclusive_rounded,
+                    onTap: () => _setRunRole(RunRole.background),
+                  ),
+                  BlockAction(
+                    label: _runRole == RunRole.skip ? 'Run with the note again' : 'Skip when running the note',
                     icon: Icons.block_rounded,
                     onTap: () => _setRunRole(RunRole.skip),
                   ),

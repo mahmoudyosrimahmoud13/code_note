@@ -3,6 +3,33 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.7.0] - 2026-11-20
+
+### New
+- **Run order for folders.** ▶ Run folder now runs notes one after another, in an order you set with the new **Run order** button.
+  - Each note finishes before the next starts, unless you set it to **keep running**.
+  - The **★ primary** note always runs last and keeps running (a server, usually). Then the folder's web pages open.
+  - A "step 2 of 4" line shows progress.
+- **The same sequence inside a note.** A new **▶ Run note** button in the note's top bar runs its blocks top to bottom.
+  - Mark a block **★ primary** (runs last, keeps running), **keep running** (the next block doesn't wait) or **skip**.
+  - Cards preview the primary block's code, and a **★ primary** chip under the title jumps to it.
+- **JavaScript and TypeScript with Node.js.** Download Node.js (newest LTS, from nodejs.org) in **Settings → Runtimes and sandbox**, or use the one you have.
+  - JavaScript and TypeScript blocks in notes without HTML get a ▶. In a web page note they stay part of the page.
+  - `node` and `npm` work in the terminal.
+  - Global npm packages can be installed, updated and removed in Settings.
+- **Dart.** Download the official Dart SDK (stable) in Settings, or use the one you have. Dart blocks get a ▶, and `dart` works in the terminal.
+- **.codenote files for sharing.** Share a note (⋯ menu) or a whole folder with its run order (folder page) as one `.codenote` file, with images and saved app data.
+  - Open one with **Ctrl+K → Open a .codenote file**, from Backup, or with "open with / share" on Android. It merges in and never deletes anything.
+- **Download progress for packages:** a bar for each file pip downloads, pinned at the top of the Runtimes page.
+- **A spinning ring on ▶ while code runs:** on blocks, on Run note and on Run folder.
+- **New samples:**
+  - a **pipeline** folder (Python makes data → Node.js adds it up → Dart writes a report → a Node.js primary server feeds a chart page)
+  - Node.js, TypeScript and Dart samples in **run-code**
+
+### Improved
+- **Notes use the full window width on desktop,** with wider side margins on big screens.
+- The web page button in a note is now an "open in browser" icon, since ▶ runs the note.
+
 ## [1.6.0] - 2026-11-20
 
 ### New

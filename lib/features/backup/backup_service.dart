@@ -87,6 +87,27 @@ class BackupService {
   Future<Uint8List> export() async {
     final notes = (await repository.getNotes()).getOrElse(() => const []);
     final groups = (await repository.getGroups()).getOrElse(() => const []);
+    return _package(notes, groups, kind: 'backup');
+  }
+
+  /// One note as a `.codenote` file to share. Opening it in CodeNote
+  /// imports the note with its images and its saved app data.
+  Future<Uint8List> exportNote(NoteEntity note) => _package([note], const [], kind: 'note');
+
+  /// A folder and its notes (with its run order) as a `.codenote` file.
+  Future<Uint8List> exportFolder(NoteGroupEntity group) async {
+    final all = (await repository.getNotes()).getOrElse(() => const []);
+    final notes = all.where((n) => group.noteIds.contains(n.id) && !n.isTrashed).toList();
+    return _package(notes, [group], kind: 'folder');
+  }
+
+  /// A safe file name for sharing, like "Snake game.codenote".
+  static String shareFileName(String title) {
+    final clean = title.trim().replaceAll(RegExp(r'[\\/:*?"<>|\n\r\t]'), ' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    return '${clean.isEmpty ? 'note' : (clean.length > 60 ? clean.substring(0, 60).trim() : clean)}.$extension';
+  }
+
+  Future<Uint8List> _package(List<NoteEntity> notes, List<NoteGroupEntity> groups, {required String kind}) async {
 
     final images = <String, String>{};
     if (!kIsWeb) {
@@ -102,15 +123,19 @@ class BackupService {
       }
     }
 
+    final allAppData = await MiniAppStorage.instance.exportAll();
+    final ids = {for (final n in notes) n.id};
     final data = {
       'format': format,
       'formatVersion': 1,
+      // backup (everything), note or folder. Opening any of them merges.
+      'kind': kind,
       'appVersion': appVersion,
       'createdAt': DateTime.now().toIso8601String(),
       'notes': [for (final n in notes) NoteModel.fromEntity(n).toJson()],
       'groups': [for (final g in groups) NoteGroupModel.fromEntity(g).toJson()],
       'images': images,
-      'appData': await MiniAppStorage.instance.exportAll(),
+      'appData': {for (final e in allAppData.entries) if (kind == 'backup' || ids.contains(e.key)) e.key: e.value},
     };
     return Uint8List.fromList(utf8.encode(json.encode(data)));
   }

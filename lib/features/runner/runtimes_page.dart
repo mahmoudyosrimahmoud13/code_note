@@ -31,6 +31,13 @@ class _RuntimesPageState extends State<RuntimesPage> {
   bool _busyboxDownloaded = false;
   List<PythonPackage> _packages = const [];
   bool _checkedUpdates = false;
+  String? _nodeVersion;
+  bool _nodeDownloaded = false;
+  List<PythonPackage> _npmPackages = const [];
+  bool _checkedNpmUpdates = false;
+  String? _dartVersion;
+  bool _dartDownloaded = false;
+  final _npmInput = TextEditingController();
 
   String? _task; // what's happening now
   double? _progress;
@@ -48,6 +55,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
   void dispose() {
     RunManager.instance.removeListener(_refreshRuns);
     _pkgInput.dispose();
+    _npmInput.dispose();
     super.dispose();
   }
 
@@ -65,8 +73,16 @@ class _RuntimesPageState extends State<RuntimesPage> {
     final hasEnv = await rt.hasEnvironment();
     final shell = await rt.shell();
     final bb = await rt.isBusyboxDownloaded();
+    final nodeV = await rt.nodeVersion();
+    final nodeD = await rt.isNodeDownloaded();
+    final dartV = await rt.dartVersion();
+    final dartD = await rt.isDartDownloaded();
     if (!mounted) return;
     setState(() {
+      _nodeVersion = nodeV;
+      _nodeDownloaded = nodeD;
+      _dartVersion = dartV;
+      _dartDownloaded = dartD;
       _level = level;
       _allowed = allowed;
       _pyPath = py;
@@ -77,6 +93,17 @@ class _RuntimesPageState extends State<RuntimesPage> {
       _busyboxDownloaded = bb;
     });
     if (packages && hasEnv) await _loadPackages();
+    if (packages && nodeV != null) await _loadNpm();
+  }
+
+  Future<void> _loadNpm({bool updates = false}) async {
+    await _doing(updates ? 'Checking npm for updates…' : 'Reading npm packages…', () async {
+      final list = await rt.npmPackages(checkUpdates: updates);
+      if (mounted) setState(() {
+        _npmPackages = list;
+        _checkedNpmUpdates = updates;
+      });
+    });
   }
 
   Future<void> _loadPackages({bool updates = false}) async {
@@ -121,19 +148,40 @@ class _RuntimesPageState extends State<RuntimesPage> {
     });
   }
 
-  /// Runs pip and shows its output in the log.
-  Future<void> _pip(String label, List<String> args) async {
+  /// Runs pip (or npm) and shows its output in the log. pip's download
+  /// progress drives the bar at the top; other lines say what's happening.
+  Future<void> _pip(String label, List<String> args, {bool npm = false}) async {
     await _doing(label, () async {
+      var cmd = args;
+      if (!npm && args.first == 'install' && await rt.pipReportsProgress()) {
+        cmd = [...args, '--progress-bar=raw'];
+      }
       setState(() => _log
         ..clear()
-        ..add('\$ pip ${args.join(' ')}'));
-      final proc = await rt.pip(args);
+        ..add('\$ ${npm ? 'npm' : 'pip'} ${args.join(' ')}'));
+      final proc = npm ? await rt.npm(cmd) : await rt.pip(cmd);
       await for (final line in proc.lines) {
         if (!mounted) break;
-        setState(() => _log.add(line));
+        final clean = line.startsWith(RunningProcess.errorMark) ? line.substring(1) : line;
+        final fraction = npm ? null : Runtimes.pipProgress(clean);
+        if (fraction != null) {
+          setState(() => _progress = fraction);
+          continue;
+        }
+        final t = clean.trim();
+        setState(() {
+          _log.add(line);
+          if (t.startsWith('Downloading ') || t.startsWith('Collecting ')) {
+            _task = t.length > 90 ? '${t.substring(0, 90)}…' : t;
+            _progress = t.startsWith('Downloading ') ? 0 : null;
+          } else if (t.startsWith('Installing collected packages')) {
+            _task = 'Installing…';
+            _progress = null;
+          }
+        });
       }
       final code = await proc.exitCode;
-      if (mounted) setState(() => _log.add(code == 0 ? '✓ done' : '${RunningProcess.errorMark}✗ pip exited with $code'));
+      if (mounted) setState(() => _log.add(code == 0 ? '✓ done' : '${RunningProcess.errorMark}✗ exited with $code'));
     });
     await _refresh();
   }
@@ -159,6 +207,169 @@ class _RuntimesPageState extends State<RuntimesPage> {
       return;
     }
     await _pip('Updating ${outdated.length} packages…', ['install', '--upgrade', ...outdated]);
+  }
+
+  Future<void> _npmInstall() async {
+    final names = _npmInput.text
+        .split(RegExp(r'[\s,]+'))
+        .where((e) => e.isNotEmpty)
+        .map(Runtimes.cleanNpmName)
+        .toList();
+    if (names.isEmpty || names.contains(null)) {
+      _snack('Type package names like: typescript prettier');
+      return;
+    }
+    _npmInput.clear();
+    await _pip('Installing ${names.join(', ')}…', ['install', '-g', ...names.cast<String>()], npm: true);
+  }
+
+  Widget _runtimeCard({
+    required String logo,
+    required String title,
+    required String note,
+    required bool canDownload,
+    required bool downloaded,
+    required String downloadLabel,
+    required Future<void> Function() download,
+    required Future<void> Function() remove,
+    Widget? extra,
+  }) {
+    final tokens = context.tokens;
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Image.asset(logo, width: 26, height: 26),
+            const SizedBox(width: 10),
+            Expanded(child: Text(title, style: Theme.of(context).textTheme.titleMedium)),
+          ]),
+          const SizedBox(height: 8),
+          Text(note, style: TextStyle(color: tokens.subtle, fontSize: 13.5)),
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (canDownload)
+              FilledButton.icon(
+                onPressed: _task != null ? null : () => _doing(downloadLabel, download),
+                icon: const Icon(Icons.download_rounded),
+                label: Text(downloaded ? 'Download again (newest)' : downloadLabel),
+              ),
+            if (downloaded)
+              TextButton.icon(
+                onPressed: _task != null
+                    ? null
+                    : () async {
+                        if (!await _confirm('Remove it?', 'The downloaded copy is removed from the sandbox. Your notes stay.', 'Remove')) {
+                          return;
+                        }
+                        await _doing('Removing…', remove);
+                      },
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: const Text('Remove'),
+              ),
+          ]),
+          if (extra != null) ...[const SizedBox(height: 12), extra],
+        ]),
+      ),
+    );
+  }
+
+  Widget _nodeCard() {
+    return _runtimeCard(
+      logo: 'assets/languages/javaScript.png',
+      title: _nodeVersion == null ? 'Node.js: not set up' : 'Node.js $_nodeVersion',
+      note: Platform.isMacOS
+          ? 'Uses the Node.js installed on your Mac (for example from nodejs.org or Homebrew).'
+          : 'Runs JavaScript and TypeScript blocks in notes without HTML, and node / npm in the terminal. '
+              'Downloaded from nodejs.org (newest LTS) into the sandbox.',
+      canDownload: Runtimes.canDownloadNode,
+      downloaded: _nodeDownloaded,
+      downloadLabel: 'Download Node.js',
+      download: () async {
+        await rt.downloadNode(onProgress: _progressCb);
+        await _refresh();
+      },
+      remove: () async {
+        await rt.removeNode();
+        setState(() => _npmPackages = const []);
+        await _refresh();
+      },
+      extra: _nodeVersion == null ? null : _npmSection(),
+    );
+  }
+
+  Widget _npmSection() {
+    final tokens = context.tokens;
+    final outdated = _npmPackages.where((p) => p.outdated).length;
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+      Row(children: [
+        Expanded(
+          child: TextField(
+            controller: _npmInput,
+            style: monoStyle(context, size: 14),
+            decoration: const InputDecoration(hintText: 'npm install -g …  e.g. typescript prettier', isDense: true),
+            onSubmitted: (_) => _npmInstall(),
+          ),
+        ),
+        const SizedBox(width: 8),
+        FilledButton(onPressed: _task != null ? null : _npmInstall, child: const Text('Install')),
+      ]),
+      const SizedBox(height: 8),
+      Row(children: [
+        Text('${_npmPackages.length} global packages', style: TextStyle(color: tokens.subtle)),
+        if (_checkedNpmUpdates) ...[
+          const SizedBox(width: 8),
+          Text(outdated == 0 ? '· all up to date' : '· $outdated can update',
+              style: TextStyle(color: outdated == 0 ? tokens.success : tokens.pin)),
+        ],
+        const Spacer(),
+        TextButton(onPressed: _task != null ? null : () => _loadNpm(updates: true), child: const Text('Check for updates')),
+        if (outdated > 0)
+          FilledButton.tonal(
+            onPressed: _task != null
+                ? null
+                : () => _pip('Updating npm packages…',
+                    ['install', '-g', for (final p in _npmPackages.where((p) => p.outdated)) '${p.name}@latest'],
+                    npm: true),
+            child: const Text('Update all'),
+          ),
+      ]),
+      for (final pkg in _npmPackages)
+        ListTile(
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+          title: Text(pkg.name, style: monoStyle(context, size: 13.5)),
+          subtitle: Text(pkg.outdated ? '${pkg.version} → ${pkg.latest}' : pkg.version,
+              style: monoStyle(context, size: 12, color: pkg.outdated ? tokens.pin : tokens.subtle)),
+          trailing: IconButton(
+            tooltip: 'Remove',
+            icon: const Icon(Icons.delete_outline_rounded),
+            onPressed: _task != null ? null : () => _pip('Removing ${pkg.name}…', ['uninstall', '-g', pkg.name], npm: true),
+          ),
+        ),
+    ]);
+  }
+
+  Widget _dartCard() {
+    return _runtimeCard(
+      logo: 'assets/languages/dart.png',
+      title: _dartVersion == null ? 'Dart: not set up' : 'Dart $_dartVersion',
+      note: Platform.isMacOS
+          ? 'Uses the Dart SDK installed on your Mac (for example from Homebrew or Flutter).'
+          : 'Runs Dart blocks, and dart in the terminal. The stable SDK from Google\'s official Dart archive '
+              '(about 200 MB once unpacked), kept in the sandbox. Analytics are turned off.',
+      canDownload: Runtimes.canDownloadDart,
+      downloaded: _dartDownloaded,
+      downloadLabel: 'Download Dart',
+      download: () async {
+        await rt.downloadDart(onProgress: _progressCb);
+        await _refresh(packages: false);
+      },
+      remove: () async {
+        await rt.removeDart();
+        await _refresh(packages: false);
+      },
+    );
   }
 
   Future<bool> _confirm(String title, String body, String action) async {
@@ -538,7 +749,30 @@ class _RuntimesPageState extends State<RuntimesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Runtimes and sandbox')),
+      appBar: AppBar(
+        title: const Text('Runtimes and sandbox'),
+        // Always visible, wherever you've scrolled.
+        bottom: _task == null
+            ? null
+            : PreferredSize(
+                preferredSize: const Size.fromHeight(34),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(
+                        child: Text(_task!,
+                            maxLines: 1, overflow: TextOverflow.ellipsis, style: monoStyle(context, size: 12)),
+                      ),
+                      if (_progress != null)
+                        Text('${(_progress! * 100).round()}%', style: monoStyle(context, size: 12, color: context.tokens.success)),
+                    ]),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(value: _progress, minHeight: 4, borderRadius: BorderRadius.circular(2)),
+                  ]),
+                ),
+              ),
+      ),
       body: Align(
         alignment: Alignment.topCenter,
         child: ConstrainedBox(
@@ -546,15 +780,12 @@ class _RuntimesPageState extends State<RuntimesPage> {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 40),
             children: [
-              if (_task != null) ...[
-                LinearProgressIndicator(value: _progress),
-                const SizedBox(height: 6),
-                Text(_task!, style: monoStyle(context, size: 12.5)),
-              ],
               _section('sandbox', [_sandboxCard()]),
               _section('running now', [_runningCard()]),
               _section('python', [_pythonCard()]),
               if (_hasEnv) _section('python packages', [_packagesCard()]),
+              if (Runtimes.nodeSupported) _section('javascript', [_nodeCard()]),
+              if (Runtimes.dartSupported) _section('dart', [_dartCard()]),
               _section('shell', [_shellCard()]),
               _section('sandbox files', [
                 Card(

@@ -58,14 +58,16 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ### Run code, safely sandboxed
 
-- **▶ Run** Python, Bash and PowerShell blocks. Output shows under the code. Save it into the note with one tap.
+- **▶ Run** Python, Bash, PowerShell, JavaScript and TypeScript (Node.js) and Dart blocks. Output shows under the code. Save it into the note with one tap.
+- **Sequences.** A note runs its blocks top to bottom, and a folder runs its notes in an order you set. The **★ primary** one always runs last and keeps running.
 - **One sandbox per folder.** Notes in a folder share it, so a FastAPI backend in one note and its web page in another work together. Press **▶ Run folder** to start everything.
   - **Android:** Android's own app sandbox.
   - **macOS:** Apple's App Sandbox.
   - **Linux:** bubblewrap. Scripts can't see your home folder.
   - **Windows:** a private folder only, so running code is off until you allow it.
 - **Files stay in the sandbox** until you press **Save a copy**.
-- **Built-in terminal**, and **Settings → Runtimes and sandbox** to download Python or Bash from their official sources and to install or update Python packages.
+- **Built-in terminal**, and **Settings → Runtimes and sandbox** to download Python, Node.js, Dart or Bash from their official sources and to install or update Python and npm packages.
+- **Share as `.codenote`:** one note, a folder or everything in one file, with images and app data.
 - **Mini apps:** web page notes can save data (`localStorage` just works). Try the **Snake** game, the **youtube-downloader** folder (yt-dlp with all the options) and **fastapi-todo**.
 
 ### Start from a template
@@ -138,7 +140,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ## What's new
 
-See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.6.0: run Python and Bash in a sandbox (one per folder), ▶ Run folder, a built-in terminal, Python packages in Settings, mini apps that save data, and a YouTube downloader demo.
+See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.7.0: run order for folders and notes with a primary step, Node.js (JavaScript and TypeScript) and Dart, `.codenote` files for sharing, and download progress for packages.
 
 ---
 

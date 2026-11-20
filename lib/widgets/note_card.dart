@@ -60,11 +60,16 @@ class _NoteCardState extends State<NoteCard> {
     return null;
   }
 
+  /// The ★ primary block if the note has one, otherwise the first code.
   CodeBlockEntity? get _codePreview {
+    CodeBlockEntity? first;
     for (final b in note.blocks) {
-      if (b is CodeBlockEntity && (b.text ?? '').trim().isNotEmpty) return b;
+      if (b is CodeBlockEntity && (b.text ?? '').trim().isNotEmpty) {
+        if (b.runRole == RunRole.main) return b;
+        first ??= b;
+      }
     }
-    return null;
+    return first;
   }
 
   ImageProvider? get _cover {
