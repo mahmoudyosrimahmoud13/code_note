@@ -33,7 +33,10 @@ class BlockModel extends BlockEntity {
     
     Language? language;
     if (json['language'] != null) {
-      language = Language.values.firstWhere((e) => e.toString() == json['language']);
+      language = Language.values.firstWhere(
+        (e) => e.toString() == json['language'],
+        orElse: () => Language.none,
+      );
     }
 
     return BlockModel(

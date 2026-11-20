@@ -30,7 +30,10 @@ enum _SaveStatus { saved, editing }
 class NotePage extends StatefulWidget {
   final NoteEntity note;
 
-  const NotePage({super.key, required this.note});
+  /// When set, the note is added to this folder as soon as it's first saved.
+  final String? groupId;
+
+  const NotePage({super.key, required this.note, this.groupId});
 
   @override
   State<NotePage> createState() => _NotePageState();
@@ -43,6 +46,7 @@ class _NotePageState extends State<NotePage> {
   late final TextEditingController _titleController;
   final TextEditingController _tagController = TextEditingController();
   late final NoteBloc _noteBloc;
+  late final NoteGroupBloc _groupBloc;
 
   late List<BlockEntity> _blocks;
   late List<String> _tags;
@@ -67,6 +71,7 @@ class _NotePageState extends State<NotePage> {
   void initState() {
     super.initState();
     _noteBloc = context.read<NoteBloc>();
+    _groupBloc = context.read<NoteGroupBloc>();
     final note = widget.note;
     _titleController = TextEditingController(text: note.title);
     _blocks = List.of(note.blocks);
@@ -137,9 +142,23 @@ class _NotePageState extends State<NotePage> {
     if (_isNew && _isEmpty) return;
     final note = _currentNote();
     _noteBloc.add(UpdateNoteEvent(note));
+    if (_isNew) _addToStartingGroup();
     _isNew = false;
     _lastSaved = note.lastModified;
     if (!_disposing) _status.value = _SaveStatus.saved;
+  }
+
+  /// A note created inside a folder joins that folder on its first save.
+  void _addToStartingGroup() {
+    final groupId = widget.groupId;
+    final state = _groupBloc.state;
+    if (groupId == null || state is! NoteGroupLoaded) return;
+    for (final group in state.groups) {
+      if (group.id == groupId && !group.noteIds.contains(widget.note.id)) {
+        _groupBloc.add(UpdateGroupEvent(
+            group.copyWith(noteIds: [...group.noteIds, widget.note.id])));
+      }
+    }
   }
 
   // ─── Blocks ─────────────────────────────────────────────
@@ -184,6 +203,8 @@ class _NotePageState extends State<NotePage> {
       ..removeCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: const Text('Block deleted'),
+        persist: false, // auto-hide even with an Undo button
+        duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () {
@@ -193,6 +214,17 @@ class _NotePageState extends State<NotePage> {
           },
         ),
       ));
+  }
+
+  void _reorder(int oldIndex, int newIndex) {
+    if (newIndex > oldIndex) newIndex -= 1;
+    if (oldIndex == newIndex) return;
+    HapticFeedback.selectionClick();
+    setState(() {
+      final block = _blocks.removeAt(oldIndex);
+      _blocks.insert(newIndex, block);
+    });
+    _changed();
   }
 
   void _moveUp(String id) => _move(id, -1);
@@ -454,8 +486,7 @@ class _NotePageState extends State<NotePage> {
                       } else {
                         ids.remove(widget.note.id);
                       }
-                      context
-                          .read<NoteGroupBloc>()
+                      _groupBloc
                           .add(UpdateGroupEvent(group.copyWith(noteIds: ids)));
                     },
                   ),
@@ -560,11 +591,13 @@ class _NotePageState extends State<NotePage> {
                 alignment: Alignment.topCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 820),
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                  child: CustomScrollView(
                     keyboardDismissBehavior:
                         ScrollViewKeyboardDismissBehavior.onDrag,
-                    children: [
+                    slivers: [
+                     SliverPadding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      sliver: SliverList.list(children: [
                       ValueListenableBuilder<_SaveStatus>(
                         valueListenable: _status,
                         builder: (context, status, _) => Row(
@@ -650,23 +683,70 @@ class _NotePageState extends State<NotePage> {
                       const SizedBox(height: 12),
                       Divider(color: color.outlineVariant),
                       const SizedBox(height: 4),
-                      for (final block in _blocks)
-                        BlockWidgetFactory.createBlockWidget(
-                          entity: block,
-                          onChanged: _onBlockChanged,
-                          onDelete: _deleteBlock,
-                          onMoveUp: block == _blocks.first ? null : _moveUp,
-                          onMoveDown: block == _blocks.last ? null : _moveDown,
-                        ),
-                      if (_blocks.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 32),
-                          child: Text(
-                            '// empty note. Add a block below.',
-                            textAlign: TextAlign.center,
-                            style: monoStyle(context, color: tokens.subtle),
-                          ),
-                        ),
+                      ]),
+                     ),
+                      // Blocks: drag the grip on a block's header to reorder.
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+                        sliver: _blocks.isEmpty
+                            ? SliverToBoxAdapter(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 32),
+                                  child: Text(
+                                    '// empty note. Add a block below.',
+                                    textAlign: TextAlign.center,
+                                    style: monoStyle(context, color: tokens.subtle),
+                                  ),
+                                ),
+                              )
+                            : SliverReorderableList(
+                                itemCount: _blocks.length,
+                                onReorder: _reorder,
+                                proxyDecorator: (child, index, animation) =>
+                                    Material(
+                                  elevation: 6,
+                                  color: color.surfaceContainer,
+                                  borderRadius:
+                                      BorderRadius.circular(AppBrand.radius),
+                                  child: child,
+                                ),
+                                itemBuilder: (context, index) {
+                                  final block = _blocks[index];
+                                  return KeyedSubtree(
+                                    key: ValueKey('reorder_${block.id}'),
+                                    child: BlockWidgetFactory.createBlockWidget(
+                                      entity: block,
+                                      onChanged: _onBlockChanged,
+                                      onDelete: _deleteBlock,
+                                      onMoveUp: index == 0 ? null : _moveUp,
+                                      onMoveDown: index == _blocks.length - 1
+                                          ? null
+                                          : _moveDown,
+                                      dragHandle: _blocks.length < 2
+                                          ? null
+                                          : ReorderableDragStartListener(
+                                              index: index,
+                                              child: Tooltip(
+                                                message: 'Drag to move',
+                                                child: MouseRegion(
+                                                  cursor: SystemMouseCursors.grab,
+                                                  child: Padding(
+                                                    padding: const EdgeInsets.only(
+                                                        right: 4),
+                                                    child: Icon(
+                                                      Icons.drag_indicator_rounded,
+                                                      size: 18,
+                                                      color: tokens.subtle,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                    ),
+                                  );
+                                },
+                              ),
+                      ),
                     ],
                   ),
                 ),

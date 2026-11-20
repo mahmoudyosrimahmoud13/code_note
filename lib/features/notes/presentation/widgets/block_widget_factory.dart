@@ -12,6 +12,7 @@ class BlockWidgetFactory {
     void Function(String id)? onMoveUp,
     void Function(String id)? onMoveDown,
     void Function(BlockEntity entity)? onChanged,
+    Widget? dragHandle,
   }) {
     if (entity is NoteBlockEntity) {
       return NoteBlock(
@@ -21,6 +22,7 @@ class BlockWidgetFactory {
         moveUp: onMoveUp,
         moveDown: onMoveDown,
         onChanged: onChanged,
+        dragHandle: dragHandle,
       );
     } else if (entity is MarkdownBlockEntity) {
       return MarkdownBlock(
@@ -30,6 +32,7 @@ class BlockWidgetFactory {
         moveUp: onMoveUp,
         moveDown: onMoveDown,
         onChanged: onChanged,
+        dragHandle: dragHandle,
       );
     } else if (entity is CodeBlockEntity) {
       return CodeBlock(
@@ -39,6 +42,7 @@ class BlockWidgetFactory {
         moveUp: onMoveUp,
         moveDown: onMoveDown,
         onChanged: onChanged,
+        dragHandle: dragHandle,
       );
     } else if (entity is ImageBlockEntity) {
       return ImageBlock(
@@ -48,6 +52,7 @@ class BlockWidgetFactory {
         moveUp: onMoveUp,
         moveDown: onMoveDown,
         onChanged: onChanged,
+        dragHandle: dragHandle,
       );
     }
     return const SizedBox.shrink();

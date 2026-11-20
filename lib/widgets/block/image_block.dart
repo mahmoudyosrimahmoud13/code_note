@@ -16,6 +16,7 @@ class ImageBlock extends Block {
     super.moveDown,
     super.delete,
     super.onChanged,
+    super.dragHandle,
   });
 
   @override
@@ -34,6 +35,7 @@ class _ImageBlockState extends State<ImageBlock> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BlockHeader(
+              handle: widget.dragHandle,
             label: 'image',
             icon: Icons.image_outlined,
             quickActions: [

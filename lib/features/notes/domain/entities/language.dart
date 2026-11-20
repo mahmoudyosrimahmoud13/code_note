@@ -1,3 +1,8 @@
+/// Code languages a code block can use.
+///
+/// Saved notes store the name (for example `Language.rust`), so new values
+/// can be added anywhere. Never rename or remove one, or old notes that use
+/// it fall back to plain text.
 enum Language {
   none,
   python,
@@ -20,5 +25,42 @@ enum Language {
   kotlin,
   sql,
   pgSql,
-  json
+  json,
+  // Added in 1.2.0
+  c,
+  rust,
+  swift,
+  ruby,
+  r,
+  scala,
+  lua,
+  perl,
+  yaml,
+  xml,
+  markdown,
+  matlab,
+  haskell,
+  elixir,
+  objectiveC,
+  powershell,
+  makefile,
+  cmake,
+  groovy,
+  gradle,
+  protobuf,
+  graphql,
+  nginx,
+  toml,
+  julia,
+  fSharp,
+  vbNet,
+  clojure,
+  erlang,
+  scss,
+  less,
+  ocaml,
+  fortran,
+  vhdl,
+  verilog,
+  solidity,
 }

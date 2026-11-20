@@ -1,86 +1,140 @@
 import 'package:flutter/material.dart';
-import 'package:icons_plus/icons_plus.dart';
+
+import '../constants/themes.dart';
+import '../core/util/code_languages.dart';
 import '../features/notes/domain/entities/language.dart';
 
-class LanguageDropDown extends StatefulWidget {
+/// The language button on a code block. Tapping it opens a searchable list
+/// of every supported language.
+class LanguageDropDown extends StatelessWidget {
   const LanguageDropDown({
     super.key,
     required this.selectLanguage,
     required this.language,
   });
 
-  final void Function(Language? languages)? selectLanguage;
+  final void Function(Language? language)? selectLanguage;
   final Language language;
 
-  @override
-  State<LanguageDropDown> createState() => _LanguageDropDownState();
-}
-
-class _LanguageDropDownState extends State<LanguageDropDown> {
-  List<DropdownMenuItem<Language>> get _items => [
-    _buildItem(Language.python, Brands.python, 'Python'),
-    _buildItem(Language.cSharp, Brands.c_sharp_logo, 'C#'),
-    _buildItem(Language.dart, Brands.dart, 'Dart'),
-    _buildItem(Language.go, Brands.golang, 'Go'),
-    _buildItem(Language.java, Brands.java, 'Java'),
-    _buildItem(Language.javaScript, Brands.javascript, 'JavaScript', fontSize: 12),
-    _buildItem(Language.typeScript, Brands.typescript, 'TypeScript', fontSize: 12),
-    _buildItem(Language.cpp, Brands.cpp, 'C++'),
-    _buildItem(Language.php, null, 'PHP', icon: BoxIcons.bxl_php),
-    _buildItem(Language.arduino, Brands.arduino, 'Arduino'),
-    _buildItem(Language.armAssembly, Brands.arm_logo, 'ARM Assembly', fontSize: 10),
-    _buildItem(Language.x86Assembly, Brands.amd, 'x86 Assembly', fontSize: 10),
-    _buildItem(Language.bash, Brands.bash, 'Bash'),
-    _buildItem(Language.django, Brands.django, 'Django'),
-    _buildItem(Language.html, Brands.html_5, 'HTML'),
-    _buildItem(Language.css, Brands.css3, 'CSS'),
-    _buildItem(Language.docker, Brands.docker, 'Docker'),
-    _buildItem(Language.kotlin, Brands.kotlin, 'Kotlin'),
-    _buildItem(Language.sql, Brands.my_sql, 'SQL'),
-    _buildItem(Language.pgSql, Brands.postgresql, 'PostgreSQL'),
-    _buildItem(Language.json, null, 'JSON', icon: BoxIcons.bx_code),
-  ];
-
-  DropdownMenuItem<Language> _buildItem(Language value, String? brand, String label, {double? fontSize, IconData? icon}) {
-    return DropdownMenuItem(
-      value: value,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (brand != null) SizedBox(width: 18, height: 18, child: Brand(brand)) else if (icon != null) Icon(icon, size: 18),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              label,
-              style: fontSize != null ? TextStyle(fontSize: fontSize) : null,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
+  Future<void> _open(BuildContext context) async {
+    final picked = await showModalBottomSheet<Language>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _LanguagePickerSheet(current: language),
     );
+    if (picked != null) selectLanguage?.call(picked);
   }
-
 
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 170),
-      child: DropdownButton(
-        isExpanded: true,
-        isDense: true,
-        dropdownColor: color.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(12),
-        style: TextStyle(fontFamily: 'JetBrainsMono', fontSize: 13, color: color.onSurface),
-        underline: const SizedBox.shrink(),
-        items: _items,
-        value: widget.language,
-        onChanged: (value) {
-          setState(() {
-            widget.selectLanguage!(value);
-          });
-        },
+    return Tooltip(
+      message: 'Change language',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+        onTap: () => _open(context),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: context.tokens.success,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                languageInfo(language).label,
+                style: monoStyle(context, size: 13, weight: FontWeight.w500),
+              ),
+              Icon(Icons.expand_more_rounded, size: 18, color: color.onSurfaceVariant),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguagePickerSheet extends StatefulWidget {
+  const _LanguagePickerSheet({required this.current});
+  final Language current;
+
+  @override
+  State<_LanguagePickerSheet> createState() => _LanguagePickerSheetState();
+}
+
+class _LanguagePickerSheetState extends State<_LanguagePickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
+    final q = _query.trim().toLowerCase();
+    final list = menuLanguages.where((l) {
+      if (q.isEmpty) return true;
+      final info = languageInfo(l);
+      return info.label.toLowerCase().contains(q) ||
+          info.short.contains(q) ||
+          info.extension.toLowerCase() == q.replaceAll('.', '') ||
+          info.otherExtensions.contains(q.replaceAll('.', ''));
+    }).toList();
+
+    return SafeArea(
+      child: Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: SizedBox(
+          height: MediaQuery.of(context).size.height * 0.7,
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: TextField(
+                  autofocus: true,
+                  style: monoStyle(context, size: 14),
+                  decoration: InputDecoration(
+                    hintText: 'Search languages or .ext',
+                    hintStyle: monoStyle(context, size: 14, color: context.tokens.subtle),
+                    prefixIcon: Icon(Icons.search_rounded, color: color.primary),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+              ),
+              Expanded(
+                child: list.isEmpty
+                    ? Center(
+                        child: Text('no match',
+                            style: monoStyle(context, color: context.tokens.subtle)),
+                      )
+                    : ListView.builder(
+                        itemCount: list.length,
+                        itemBuilder: (context, i) {
+                          final lang = list[i];
+                          final info = languageInfo(lang);
+                          final selected = lang == widget.current;
+                          return ListTile(
+                            dense: true,
+                            selected: selected,
+                            leading: Icon(
+                              selected ? Icons.check_rounded : Icons.code_rounded,
+                              size: 18,
+                            ),
+                            title: Text(info.label),
+                            trailing: Text('.${info.extension}',
+                                style: monoStyle(context,
+                                    size: 12, color: context.tokens.subtle)),
+                            onTap: () => Navigator.pop(context, lang),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

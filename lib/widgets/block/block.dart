@@ -11,6 +11,9 @@ abstract class Block extends StatefulWidget {
   final void Function(String id)? moveDown;
   final void Function(BlockEntity entity)? onChanged;
 
+  /// Grip shown at the start of the block header; drag it to reorder.
+  final Widget? dragHandle;
+
   const Block({
     super.key,
     required this.entity,
@@ -18,6 +21,7 @@ abstract class Block extends StatefulWidget {
     this.moveUp,
     this.moveDown,
     this.onChanged,
+    this.dragHandle,
   });
 
   String get id => entity.id;

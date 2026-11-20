@@ -11,6 +11,7 @@ import '../../../../widgets/home_grid_view.dart';
 import 'note_page.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../../constants/themes.dart';
+import '../../../../widgets/brand.dart';
 
 class GroupDetailsPage extends StatefulWidget {
   final NoteGroupEntity group;
@@ -105,23 +106,18 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
                         }
 
                         if (notes.isEmpty) {
-                          return Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(Icons.notes_rounded,
-                                    size: 48,
-                                    color: color.outline.withAlpha(100)),
-                                const SizedBox(height: 16),
-                                Text(
-                                  _searchQuery.isEmpty
-                                      ? 'No notes in this group'
-                                      : 'No matches found in group',
-                                  style: TextStyle(color: color.outline),
-                                ),
-                              ],
-                            ),
-                          );
+                          return _searchQuery.isEmpty
+                              ? TerminalEmptyState(
+                                  command: 'ls ~/${currentGroup.name}/',
+                                  output: 'total 0',
+                                  hint:
+                                      'Tap + to write a note here, or drag a note onto this folder from the home screen.',
+                                )
+                              : TerminalEmptyState(
+                                  command:
+                                      'grep -r "$_searchQuery" ~/${currentGroup.name}/',
+                                  output: '0 matches',
+                                );
                         }
 
                         return HomeGridView(
@@ -216,29 +212,21 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 800),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Container(
-            height: 50,
-            decoration: BoxDecoration(
-              color: color.surfaceContainerHighest.withAlpha(100),
-              borderRadius: BorderRadius.circular(25),
-              border: Border.all(color: color.primary.withAlpha(50)),
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: TextField(
+            controller: _searchController,
+            style: monoStyle(context, size: 14),
+            decoration: InputDecoration(
+              hintText: 'grep ${currentGroup.name}/…',
+              hintStyle: monoStyle(context, size: 14, color: context.tokens.subtle),
+              prefixIcon: Icon(Icons.search_rounded, color: color.primary),
             ),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search in ${currentGroup.name}...',
-                prefixIcon: Icon(Icons.search_rounded, color: color.primary),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 12),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _searchQuery = value.toLowerCase();
-                  _dismissedNoteIds.clear(); // Reset filter when searching
-                });
-              },
-            ),
+            onChanged: (value) {
+              setState(() {
+                _searchQuery = value.toLowerCase();
+                _dismissedNoteIds.clear();
+              });
+            },
           ),
         ),
       ),
@@ -253,28 +241,10 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
       lastModified: DateTime.now(),
       blocks: const [],
     );
-    final noteBloc = context.read<NoteBloc>();
-    final groupBloc = context.read<NoteGroupBloc>();
-
-    Navigator.of(context)
-        .push(MaterialPageRoute(
-      builder: (context) => NotePage(note: newNote),
-    ))
-        .then((_) {
-      // Only link the note if it was actually saved (empty notes aren't).
-      final state = noteBloc.state;
-      final saved =
-          state is NoteLoaded && state.notes.any((n) => n.id == newNote.id);
-      final latest = groupBloc.state is NoteGroupLoaded
-          ? (groupBloc.state as NoteGroupLoaded).groups.firstWhere(
-              (g) => g.id == currentGroup.id,
-              orElse: () => currentGroup)
-          : currentGroup;
-      if (saved && !latest.noteIds.contains(newNote.id)) {
-        groupBloc.add(UpdateGroupEvent(
-            latest.copyWith(noteIds: [...latest.noteIds, newNote.id])));
-      }
-    });
+    // The editor adds the note to this folder when it's first saved.
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (context) => NotePage(note: newNote, groupId: currentGroup.id),
+    ));
   }
 
   void _showEditGroupNameDialog(

@@ -7,6 +7,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 
 import '../constants/themes.dart';
+import '../core/util/code_languages.dart';
 import '../features/notes/domain/entities/block.dart';
 import '../features/notes/domain/entities/language.dart';
 import '../features/notes/domain/entities/note.dart';
@@ -15,27 +16,8 @@ import '../features/notes/presentation/bloc/note_event.dart';
 import '../features/notes/presentation/pages/note_page.dart';
 import '../helpers/helper_methods.dart';
 
-/// Short display names for code languages on cards.
-String languageLabel(Language lang) {
-  switch (lang) {
-    case Language.cSharp:
-      return 'c#';
-    case Language.cpp:
-      return 'c++';
-    case Language.javaScript:
-      return 'js';
-    case Language.typeScript:
-      return 'ts';
-    case Language.armAssembly:
-      return 'arm asm';
-    case Language.x86Assembly:
-      return 'x86 asm';
-    case Language.pgSql:
-      return 'postgres';
-    default:
-      return lang.name.toLowerCase();
-  }
-}
+/// Short display name for a code language on cards ("ts", "rust").
+String languageLabel(Language lang) => languageInfo(lang).short;
 
 class NoteCard extends StatefulWidget {
   final NoteEntity note;
@@ -104,6 +86,8 @@ class _NoteCardState extends State<NoteCard> {
       ..removeCurrentSnackBar()
       ..showSnackBar(SnackBar(
         content: Text(message),
+        persist: false, // auto-hide even with an Undo button
+        duration: const Duration(seconds: 4),
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () => bloc.add(UpdateNoteEvent(before)),
@@ -149,6 +133,11 @@ class _NoteCardState extends State<NoteCard> {
     final code = _codePreview;
     final text = _textPreview;
     final title = note.title.trim();
+    final usedLanguages = note.blocks
+        .whereType<CodeBlockEntity>()
+        .map((b) => b.language)
+        .toSet()
+        .toList();
 
     final card = AnimatedContainer(
       duration: const Duration(milliseconds: 160),
@@ -242,6 +231,23 @@ class _NoteCardState extends State<NoteCard> {
                 if (code != null) ...[
                   const SizedBox(height: 8),
                   _CodePreview(block: code),
+                ],
+                if (usedLanguages.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Semantics(
+                    label: 'Languages: ${usedLanguages.map((l) => languageInfo(l).label).join(', ')}',
+                    excludeSemantics: true,
+                    child: Wrap(
+                      spacing: 4,
+                      runSpacing: 4,
+                      children: [
+                        for (final lang in usedLanguages.take(4))
+                          _LanguagePill(label: languageLabel(lang)),
+                        if (usedLanguages.length > 4)
+                          _LanguagePill(label: '+${usedLanguages.length - 4}'),
+                      ],
+                    ),
+                  ),
                 ],
                 if (note.tags.isNotEmpty) ...[
                   const SizedBox(height: 10),
@@ -421,11 +427,6 @@ class _CodePreview extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            languageLabel(block.language),
-            style: monoStyle(context, size: 10, color: tokens.success),
-          ),
-          const SizedBox(height: 4),
-          Text(
             lines,
             style: monoStyle(context, size: 11, color: tokens.subtle)
                 .copyWith(height: 1.4),
@@ -483,6 +484,26 @@ class _DragPreview extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// A small label showing a language used in the note, like `rust`.
+class _LanguagePill extends StatelessWidget {
+  const _LanguagePill({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+      decoration: BoxDecoration(
+        color: tokens.success.withAlpha(28),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: tokens.success.withAlpha(70)),
+      ),
+      child: Text(label, style: monoStyle(context, size: 10, color: tokens.success)),
     );
   }
 }

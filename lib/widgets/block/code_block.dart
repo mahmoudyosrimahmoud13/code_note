@@ -1,30 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
-import 'package:highlight/highlight_core.dart' as highlight;
-import 'package:highlight/languages/arduino.dart';
-import 'package:highlight/languages/armasm.dart';
-import 'package:highlight/languages/bash.dart';
-import 'package:highlight/languages/cpp.dart';
-import 'package:highlight/languages/cs.dart';
-import 'package:highlight/languages/css.dart';
-import 'package:highlight/languages/dart.dart';
-import 'package:highlight/languages/django.dart';
-import 'package:highlight/languages/dockerfile.dart';
-import 'package:highlight/languages/go.dart';
-import 'package:highlight/languages/htmlbars.dart';
-import 'package:highlight/languages/java.dart';
-import 'package:highlight/languages/javascript.dart';
-import 'package:highlight/languages/json.dart';
-import 'package:highlight/languages/kotlin.dart';
-import 'package:highlight/languages/pgsql.dart';
-import 'package:highlight/languages/php.dart';
-import 'package:highlight/languages/python.dart';
-import 'package:highlight/languages/sql.dart';
-import 'package:highlight/languages/typescript.dart';
-import 'package:highlight/languages/x86asm.dart';
 
 import '../../constants/themes.dart';
+import '../../core/util/code_languages.dart';
 import '../../core/util/note_share_helper.dart';
 import '../../features/notes/domain/entities/block.dart';
 import '../../features/notes/domain/entities/language.dart';
@@ -41,6 +20,7 @@ class CodeBlock extends Block {
     super.moveDown,
     super.delete,
     super.onChanged,
+    super.dragHandle,
   });
 
   CodeBlockEntity get codeEntity => entity as CodeBlockEntity;
@@ -78,7 +58,7 @@ class _CodeBlockState extends State<CodeBlock> {
     _language = widget.codeEntity.language;
     _controller = CodeController(
       text: widget.text ?? '',
-      language: _modeFor(_language),
+      language: languageInfo(_language).mode,
     );
     // Only show the symbol bar while editing.
     _focusNode.addListener(() {
@@ -91,55 +71,6 @@ class _CodeBlockState extends State<CodeBlock> {
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
-  }
-
-  highlight.Mode _modeFor(Language lang) {
-    switch (lang) {
-      case Language.python:
-        return python;
-      case Language.cSharp:
-        return cs;
-      case Language.dart:
-        return dart;
-      case Language.go:
-        return go;
-      case Language.java:
-        return java;
-      case Language.javaScript:
-        return javascript;
-      case Language.typeScript:
-        return typescript;
-      case Language.cpp:
-        return cpp;
-      case Language.php:
-        return php;
-      case Language.arduino:
-        return arduino;
-      case Language.armAssembly:
-        return armasm;
-      case Language.x86Assembly:
-        return x86Asm;
-      case Language.bash:
-        return bash;
-      case Language.django:
-        return django;
-      case Language.html:
-        return htmlbars;
-      case Language.css:
-        return css;
-      case Language.docker:
-        return dockerfile;
-      case Language.kotlin:
-        return kotlin;
-      case Language.sql:
-        return sql;
-      case Language.pgSql:
-        return pgsql;
-      case Language.json:
-        return json;
-      default:
-        return python;
-    }
   }
 
   void _notify() {
@@ -197,6 +128,7 @@ class _CodeBlockState extends State<CodeBlock> {
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 4, 4, 0),
             child: BlockHeader(
+              handle: widget.dragHandle,
               label: 'code',
               icon: Icons.code_rounded,
               leading: Align(
@@ -207,7 +139,7 @@ class _CodeBlockState extends State<CodeBlock> {
                     if (lang == null) return;
                     setState(() {
                       _language = lang;
-                      _controller.language = _modeFor(lang);
+                      _controller.language = languageInfo(lang).mode;
                     });
                     _notify();
                   },

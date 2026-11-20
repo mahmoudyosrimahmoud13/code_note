@@ -14,6 +14,7 @@ class NoteBlock extends Block {
     super.moveDown,
     super.delete,
     super.onChanged,
+    super.dragHandle,
   });
 
   @override
@@ -45,6 +46,7 @@ class _NoteBlockState extends State<NoteBlock> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BlockHeader(
+              handle: widget.dragHandle,
             label: 'text',
             icon: Icons.notes_rounded,
             extraActions: [

@@ -33,7 +33,11 @@ class BlockHeader extends StatelessWidget {
     this.onMoveDown,
     this.onDelete,
     this.extraActions = const [],
+    this.handle,
   });
+
+  /// Drag grip for reordering, shown first.
+  final Widget? handle;
 
   final String label;
   final IconData icon;
@@ -74,6 +78,7 @@ class BlockHeader extends StatelessWidget {
       height: 40,
       child: Row(
         children: [
+          if (handle != null) handle!,
           Expanded(
             child: leading ??
                 Row(children: [

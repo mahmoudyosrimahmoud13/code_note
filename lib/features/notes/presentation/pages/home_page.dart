@@ -333,8 +333,8 @@ class _HomePageState extends State<HomePage> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               sliver: SliverGrid(
                 gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 260,
-                  mainAxisExtent: 128,
+                  maxCrossAxisExtent: 300,
+                  mainAxisExtent: 210,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
                 ),

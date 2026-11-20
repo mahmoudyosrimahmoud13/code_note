@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/notes/presentation/bloc/note_bloc.dart';
 import '../../features/notes/presentation/bloc/note_event.dart';
 import '../../features/notes/presentation/pages/note_page.dart';
+import '../util/code_languages.dart';
 import '../util/image_helper.dart';
 import '../../helpers/helper_methods.dart';
 import 'log_service.dart';
@@ -118,7 +119,7 @@ class SharingService {
       final fileName = path.split('/').last;
       final extension = fileName.contains('.') ? fileName.split('.').last.toLowerCase() : '';
 
-      final language = _mapExtensionToLanguage(extension);
+      final language = languageForFileName(fileName);
 
       // Markdown and plain text become text blocks, not code.
       final BlockEntity block;
@@ -144,35 +145,6 @@ class SharingService {
       showMessage(
           message: "Couldn't open that file. CodeNote reads text and code files.",
           type: SnackType.faild);
-    }
-  }
-
-  Language _mapExtensionToLanguage(String ext) {
-    switch (ext) {
-      case 'py': return Language.python;
-      case 'dart': return Language.dart;
-      case 'js': return Language.javaScript;
-      case 'ts': return Language.typeScript;
-      case 'cs': return Language.cSharp;
-      case 'go': return Language.go;
-      case 'java': return Language.java;
-      case 'cpp':
-      case 'cxx':
-      case 'h':
-      case 'hpp': return Language.cpp;
-      case 'php': return Language.php;
-      case 'ino': return Language.arduino;
-      case 'sh': return Language.bash;
-      case 'kt': return Language.kotlin;
-      case 'sql': return Language.sql;
-      case 'pgsql': return Language.pgSql;
-      case 'json': return Language.json;
-      case 'html': return Language.html;
-      case 'css': return Language.css;
-      case 'asm':
-      case 's': return Language.x86Assembly;
-      case 'dockerfile': return Language.docker;
-      default: return Language.none;
     }
   }
 

@@ -10,49 +10,13 @@ import '../../helpers/helper_methods.dart';
 import '../../features/notes/domain/entities/block.dart';
 import '../../features/notes/domain/entities/language.dart';
 import '../../features/notes/domain/entities/note.dart';
+import 'code_languages.dart';
 import 'platform_helper.dart';
 
-class LanguageInfo {
-  final String extension;
-  final String commentStart;
-  final String commentEnd;
-
-  const LanguageInfo({
-    required this.extension,
-    required this.commentStart,
-    this.commentEnd = '',
-  });
-}
-
 class NoteShareHelper {
-  static const Map<Language, LanguageInfo> languageMap = {
-    Language.none: LanguageInfo(extension: 'txt', commentStart: ''),
-    Language.python: LanguageInfo(extension: 'py', commentStart: '# '),
-    Language.cSharp: LanguageInfo(extension: 'cs', commentStart: '// '),
-    Language.dart: LanguageInfo(extension: 'dart', commentStart: '// '),
-    Language.go: LanguageInfo(extension: 'go', commentStart: '// '),
-    Language.java: LanguageInfo(extension: 'java', commentStart: '// '),
-    Language.javaScript: LanguageInfo(extension: 'js', commentStart: '// '),
-    Language.typeScript: LanguageInfo(extension: 'ts', commentStart: '// '),
-    Language.cpp: LanguageInfo(extension: 'cpp', commentStart: '// '),
-    Language.php: LanguageInfo(extension: 'php', commentStart: '// '),
-    Language.arduino: LanguageInfo(extension: 'ino', commentStart: '// '),
-    Language.armAssembly: LanguageInfo(extension: 's', commentStart: '@ '),
-    Language.x86Assembly: LanguageInfo(extension: 'asm', commentStart: '; '),
-    Language.bash: LanguageInfo(extension: 'sh', commentStart: '# '),
-    Language.django: LanguageInfo(extension: 'py', commentStart: '# '),
-    Language.html: LanguageInfo(extension: 'html', commentStart: '<!-- ', commentEnd: ' -->'),
-    Language.css: LanguageInfo(extension: 'css', commentStart: '/* ', commentEnd: ' */'),
-    Language.docker: LanguageInfo(extension: 'Dockerfile', commentStart: '# '),
-    Language.kotlin: LanguageInfo(extension: 'kt', commentStart: '// '),
-    Language.sql: LanguageInfo(extension: 'sql', commentStart: '-- '),
-    Language.pgSql: LanguageInfo(extension: 'sql', commentStart: '-- '),
-    Language.json: LanguageInfo(extension: 'json', commentStart: '// '),
-  };
-
   static String formatNoteAsText(NoteEntity note, {Language? targetLanguage}) {
     final buffer = StringBuffer();
-    final langInfo = languageMap[targetLanguage ?? Language.none]!;
+    final langInfo = languageInfo(targetLanguage ?? Language.none);
     
     buffer.writeln('${langInfo.commentStart}Title: ${note.title}${langInfo.commentEnd}');
     buffer.writeln('${langInfo.commentStart}Last Modified: ${note.lastModified}${langInfo.commentEnd}');
@@ -88,7 +52,7 @@ class NoteShareHelper {
 
   static Future<void> shareNoteAsFile(NoteEntity note, Language language) async {
     final content = formatNoteAsText(note, targetLanguage: language);
-    final langInfo = languageMap[language]!;
+    final langInfo = languageInfo(language);
     final baseName = note.title.isEmpty ? 'note' : note.title.replaceAll(RegExp(r'[^\w\s]+'), '_');
     final fileName = '$baseName.${langInfo.extension}';
     
@@ -101,7 +65,7 @@ class NoteShareHelper {
 
   static Future<void> shareBlockAsFile(BlockEntity block, String title, Language language) async {
     final content = formatBlockAsText(block);
-    final langInfo = languageMap[language]!;
+    final langInfo = languageInfo(language);
     const baseName = 'code_block';
     final fileName = '$baseName.${langInfo.extension}';
     

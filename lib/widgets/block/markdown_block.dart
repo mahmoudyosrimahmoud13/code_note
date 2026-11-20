@@ -15,6 +15,7 @@ class MarkdownBlock extends Block {
     super.moveDown,
     super.delete,
     super.onChanged,
+    super.dragHandle,
   });
 
   @override
@@ -63,6 +64,7 @@ class _MarkdownBlockState extends State<MarkdownBlock> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           BlockHeader(
+              handle: widget.dragHandle,
             label: 'markdown',
             icon: Icons.tag_rounded,
             quickActions: [
