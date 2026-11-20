@@ -59,6 +59,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 ### Run code, safely sandboxed
 
 - **▶ Run** Python, Bash, PowerShell, JavaScript and TypeScript (Node.js) and Dart blocks. Output shows under the code. Save it into the note with one tap.
+- **Python like Jupyter:** blocks in a note share variables, the last line shows its value, and plots, pandas tables and any library's rich output show right under the code (matplotlib, seaborn, plotly, Pillow, PyTorch, tqdm progress bars).
 - **Sequences.** A note runs its blocks top to bottom, and a folder runs its notes in an order you set. The **★ primary** one always runs last and keeps running.
 - **One sandbox per folder.** Notes in a folder share it, so a FastAPI backend in one note and its web page in another work together. Press **▶ Run folder** to start everything.
   - **Android:** Android's own app sandbox.
@@ -140,7 +141,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ## What's new
 
-See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.7.0: run order for folders and notes with a primary step, Node.js (JavaScript and TypeScript) and Dart, `.codenote` files for sharing, and download progress for packages.
+See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.8.0: Python works like Jupyter (shared variables, plots, tables and rich output from any library), a pandas cookbook and PyTorch demo, and a fix for the Linux sandbox.
 
 ---
 

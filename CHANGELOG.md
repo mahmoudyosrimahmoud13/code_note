@@ -3,6 +3,34 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.8.0] - 2026-11-20
+
+### New
+- **Python works like Jupyter.**
+  - **Shared variables:** the Python blocks of a note share one kernel, so `df` made in one block is there in the next.
+  - **Like Jupyter cells:** each run shows its **In [n]** counter, the last line's value is shown automatically, and `display(x)` works anywhere.
+  - **Interrupt** stops a block and keeps the variables. **Restart kernel** forgets them.
+  - **Jupyter's shortcuts:** `!ls` and `%pip install …` lines work as in Jupyter.
+  - **Servers aren't blocked:** ★ primary and keep-running blocks still get their own process, so a server never blocks the notebook.
+- **Rich output, for any library that supports Jupyter's display:**
+  - **Plots:** matplotlib and seaborn plots show as images, even without `plt.show()`.
+  - **Tables:** pandas (and polars) tables show as real tables, with their size.
+  - **Images and markdown:** from Pillow, torchvision and more.
+  - **Interactive HTML** (plotly, folium, pandas Styler) gets an **Open** button.
+  - **Progress bars** (tqdm, pip) redraw in place.
+  - **Saving:** "Save output into the note" keeps plots as image blocks and tables as Markdown tables.
+  - **Started from anywhere:** this also works for Python started from Bash or the terminal.
+- **New notebooks folder:**
+  - **Data science** (numpy, pandas, seaborn)
+  - a **Pandas cookbook** (CSV, filter, groupby, pivot, merge, resample, text, missing values, styling, plots)
+  - **PyTorch** (training a tiny model with tqdm and plotting it)
+
+### Fixed
+- **Linux sandbox:** bubblewrap failed with "Can't mkdir /run/media" on systems without that folder (Zorin, Ubuntu), so the terminal and every run stopped at once.
+  - **Hiding:** the sandbox now hides only folders that exist, plus your real home folder wherever it is.
+  - **Self-test:** CodeNote tests bubblewrap before using it, and Settings explains if it can't be used.
+- **Terminal:** it now notices when the shell closes and offers **Restart shell**, instead of saying "running…" forever.
+
 ## [1.7.0] - 2026-11-20
 
 ### New

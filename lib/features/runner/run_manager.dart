@@ -8,43 +8,107 @@ import '../notes/domain/entities/note.dart';
 import '../notes/domain/entities/note_group.dart';
 import '../notes/domain/entities/run_plan.dart';
 import 'code_runner.dart';
+import 'python_kernel.dart';
 import 'runtimes.dart';
+import 'sandbox.dart';
+
+/// One piece of rich output: an image, a table, markdown or an HTML page
+/// (made by CodeNote's Python helpers, like Jupyter's display).
+class RichOutput {
+  const RichOutput(this.kind, this.path, [this.note = '']);
+  final String kind; // image | table | markdown | html
+  final String path;
+  final String note;
+
+  /// Reads a line like "\u001ecodenote:image:/path|note".
+  static RichOutput? parse(String line) {
+    final text = RunningProcess.plain(line);
+    if (!text.startsWith(outputMark)) return null;
+    final rest = text.substring(outputMark.length);
+    final colon = rest.indexOf(':');
+    if (colon < 0) return null;
+    final kind = rest.substring(0, colon);
+    if (!const {'image', 'table', 'markdown', 'html'}.contains(kind)) return null;
+    final value = rest.substring(colon + 1);
+    final bar = value.lastIndexOf('|');
+    return bar < 0 ? RichOutput(kind, value) : RichOutput(kind, value.substring(0, bar), value.substring(bar + 1));
+  }
+}
 
 /// One run of a code block. It keeps going when the note is closed, so a
 /// server in one note can serve a page in another.
 class RunSession extends ChangeNotifier {
-  RunSession({required this.blockId, required this.title, required this.spaceKey});
+  RunSession({required this.blockId, required this.title, required this.spaceKey, this.inKernel = false, this.noteId});
 
   final String blockId;
   final String title;
   final String spaceKey;
   final DateTime startedAt = DateTime.now();
 
-  /// Output lines; error lines start with [RunningProcess.errorMark].
+  /// Ran in the note's shared Python kernel (variables stay between blocks).
+  final bool inKernel;
+  final String? noteId;
+
+  /// Jupyter's execution count: In [3].
+  int? count;
+
+  /// Output lines; error lines start with [RunningProcess.errorMark], rich
+  /// output lines with [outputMark] (see [RichOutput]).
   final List<String> lines = [];
-  RunningProcess? _process;
+  bool _started = false;
+  void Function()? _stop;
+  void Function(String text)? _send;
+  final _done = Completer<int>();
   int? exitCode;
   String? error;
 
-  bool get running => _process != null && exitCode == null && error == null;
+  /// Finishes with the exit code (0 when all went well).
+  Future<int> get done => _done.future;
+
+  bool get running => _started && exitCode == null && error == null;
 
   static const _maxLines = 3000;
 
   void _add(String line) {
+    final text = RunningProcess.plain(line);
+    if (text.startsWith('${outputMark}count:')) {
+      count = int.tryParse(text.substring(outputMark.length + 6));
+      notifyListeners();
+      return;
+    }
+    // A progress bar redrawing itself replaces its previous line.
+    if (lines.isNotEmpty && lines.last.startsWith(RunningProcess.replaceMark)) lines.removeLast();
     lines.add(line);
     if (lines.length > _maxLines) lines.removeRange(0, lines.length - _maxLines);
     notifyListeners();
   }
 
-  void stop() => _process?.stop();
+  void _finish(int code) {
+    if (exitCode != null) return;
+    exitCode = code;
+    if (!_done.isCompleted) _done.complete(code);
+    notifyListeners();
+  }
+
+  void _fail(String message) {
+    error = message;
+    if (!_done.isCompleted) _done.complete(1);
+    notifyListeners();
+  }
+
+  void stop() => _stop?.call();
 
   void _changed() => notifyListeners();
 
-  void send(String text) => _process?.write(text);
+  void send(String text) => _send?.call(text);
 
-  /// Output as plain text (for "Save output to note").
+  /// Rich outputs (plots, tables…) in order.
+  List<RichOutput> get rich => lines.map(RichOutput.parse).whereType<RichOutput>().toList();
+
+  /// Output as plain text, without rich output lines (for "Save output").
   String get text => lines
-      .map((l) => l.startsWith(RunningProcess.errorMark) ? l.substring(1) : l)
+      .where((l) => RichOutput.parse(l) == null)
+      .map(RunningProcess.plain)
       .join('\n');
 }
 
@@ -56,173 +120,97 @@ class RunManager extends ChangeNotifier {
 
   final Map<String, RunSession> _sessions = {};
 
+  /// Note id → its Python kernel (blocks of one note share variables).
+  final Map<String, PythonKernel> _kernels = {};
+
   RunSession? sessionFor(String blockId) => _sessions[blockId];
 
   List<RunSession> get running => _sessions.values.where((s) => s.running).toList();
 
+  bool hasKernel(String noteId) => _kernels[noteId]?.alive ?? false;
+
+  /// Restart kernel: forgets the note's variables, like Jupyter's restart.
+  void restartKernel(String noteId) {
+    _kernels.remove(noteId)?.shutdown();
+    notifyListeners();
+  }
+
   /// Runs a code block. A block runs once at a time: running it again
   /// stops the old run first.
+  ///
+  /// Python blocks of a note share one kernel, like Jupyter cells, unless
+  /// they're ★ primary or "keep running" (servers): those get their own
+  /// process so they never block the other blocks.
   Future<RunSession> run({
     required String blockId,
     required String title,
     required String spaceKey,
     required Language language,
     required String code,
+    String? noteId,
+    RunRole role = RunRole.normal,
   }) async {
     final old = _sessions[blockId];
     if (old != null && old.running) {
       old.stop();
-      await Future<void>.delayed(const Duration(milliseconds: 300));
+      await old.done.timeout(const Duration(seconds: 4), onTimeout: () => -1);
     }
-    final session = RunSession(blockId: blockId, title: title, spaceKey: spaceKey);
+    final kernel = language == Language.python &&
+        noteId != null &&
+        role != RunRole.main &&
+        role != RunRole.background;
+    final session = RunSession(blockId: blockId, title: title, spaceKey: spaceKey, inKernel: kernel, noteId: noteId);
     _sessions[blockId] = session;
     notifyListeners();
     try {
-      final proc = await CodeRunner.run(spaceKey: spaceKey, language: language, code: code);
-      session._process = proc;
-      session._changed();
-      proc.lines.listen(session._add);
-      unawaited(proc.exitCode.then((code) {
-        session.exitCode = code;
+      if (kernel) {
+        await _runInKernel(session, noteId, spaceKey, code);
+      } else {
+        final proc = await CodeRunner.run(spaceKey: spaceKey, language: language, code: code);
+        session._started = true;
+        session._stop = proc.stop;
+        session._send = proc.write;
         session._changed();
-        notifyListeners();
-      }));
+        proc.lines.listen(session._add);
+        unawaited(proc.exitCode.then((code) {
+          session._finish(code);
+          notifyListeners();
+        }));
+      }
     } on RuntimeException catch (e) {
-      session.error = e.message;
-      session._changed();
+      session._fail(e.message);
     } catch (e) {
-      session.error = '$e';
-      session._changed();
+      session._fail('$e');
     }
     notifyListeners();
     return session;
   }
 
-  /// The blocks a note runs, in order: top to bottom without the skipped
-  /// ones, and the ★ primary block moved to the end.
-  static List<CodeBlockEntity> folderBlocks(NoteEntity note) {
-    final code = note.blocks
-        .whereType<CodeBlockEntity>()
-        .where((b) => CodeRunner.canRunIn(b.language, note.blocks) && (b.text ?? '').trim().isNotEmpty)
-        .where((b) => b.runRole != RunRole.skip)
-        .toList();
-    final primary = code.where((b) => b.runRole == RunRole.main).toList();
-    if (primary.isEmpty) return code;
-    return [...code.where((b) => b != primary.first), primary.first];
-  }
-
-  /// Note id → what its "Run note" sequence is doing now.
-  final Map<String, String> noteStatus = {};
-
-  /// Runs one note's blocks as a sequence. The last block keeps running
-  /// unless [waitForLast]. Returns the first problem, if any.
-  Future<String?> _runNoteSequence(NoteEntity note, String spaceKey,
-      {required bool waitForLast, required String stopKey}) async {
-    final blocks = folderBlocks(note);
-    for (var j = 0; j < blocks.length; j++) {
-      if (_stopping.contains(stopKey)) return 'Stopped.';
-      final b = blocks[j];
-      final last = j == blocks.length - 1;
-      final s = await run(blockId: b.id, title: note.title, spaceKey: spaceKey, language: b.language, code: b.text ?? '');
-      if (s.error != null) return s.error;
-      final waits = last ? waitForLast : b.runRole != RunRole.background;
-      if (waits) {
-        final code = await s._process!.exitCode;
-        if (_stopping.contains(stopKey)) return 'Stopped.';
-        if (code != 0) {
-          return '"${note.title.isEmpty ? 'Untitled' : note.title}" stopped with an error, so the run stopped there. Open it to see the output.';
-        }
-      } else if (!last) {
-        // Keeps running: give it a moment to start before the next block.
-        await Future<void>.delayed(const Duration(milliseconds: 1500));
-      }
+  Future<void> _runInKernel(RunSession session, String noteId, String spaceKey, String code) async {
+    final allowed = await Sandbox.instance.canRun();
+    if (allowed != true) {
+      throw RuntimeException(allowed == null
+          ? 'Running code is off on this computer until you allow it in Settings > Runtimes and sandbox.'
+          : "Code can't run on this device.");
     }
-    return null;
-  }
-
-  /// ▶ Run note: the note's blocks in order, primary last and left running.
-  Future<String?> runNote(NoteEntity note, String spaceKey) async {
-    _stopping.remove(note.id);
-    noteStatus[note.id] = 'running';
-    notifyListeners();
-    try {
-      return await _runNoteSequence(note, spaceKey, waitForLast: false, stopKey: note.id);
-    } finally {
-      noteStatus.remove(note.id);
-      _stopping.remove(note.id);
+    var kernel = _kernels[noteId];
+    if (kernel == null || !kernel.alive) {
+      kernel = await PythonKernel.start(noteId, await Sandbox.instance.space(spaceKey));
+      _kernels[noteId] = kernel;
+    }
+    final k = kernel;
+    session._started = true;
+    session._stop = () => k.interrupt();
+    session._send = k.send;
+    session._changed();
+    unawaited(k.execute(session.blockId, code, session._add).then((status) {
+      if (status == 'died') {
+        session._add('${RunningProcess.errorMark}The Python kernel stopped. Its variables are gone; run the blocks again.');
+        _kernels.remove(noteId);
+      }
+      session._finish(status == 'ok' ? 0 : status == 'interrupted' ? 130 : 1);
       notifyListeners();
-    }
-  }
-
-  void stopNote(NoteEntity note) {
-    if (noteStatus.containsKey(note.id)) _stopping.add(note.id);
-    for (final b in note.blocks) {
-      final s = _sessions[b.id];
-      if (s != null && s.running) s.stop();
-    }
-  }
-
-  /// Folder id → what its sequence is doing now ("step 2 of 4: Backend").
-  final Map<String, String> folderStatus = {};
-  final Set<String> _stopping = {};
-
-  /// The notes of [group] that have something to run, in folder order.
-  static List<NoteEntity> runnableNotes(NoteGroupEntity group, List<NoteEntity> notes) {
-    final byId = {for (final n in notes) n.id: n};
-    return [
-      for (final id in group.noteIds)
-        if (byId[id] != null && !byId[id]!.isTrashed && folderBlocks(byId[id]!).isNotEmpty) byId[id]!,
-    ];
-  }
-
-  /// Runs a folder as a sequence: notes one after another in the folder's
-  /// run order, each finishing before the next starts (unless marked "keep
-  /// running"), and the primary note last, left running. Inside a note,
-  /// blocks run top to bottom. Returns the first problem, if any.
-  Future<String?> runFolder(NoteGroupEntity group, List<NoteEntity> notes, String spaceKey) async {
-    final runnable = runnableNotes(group, notes);
-    final byId = {for (final n in runnable) n.id: n};
-    final steps = (group.runPlan ?? const RunPlan()).steps(runnable.map((n) => n.id).toList());
-    _stopping.remove(group.id);
-    try {
-      for (var i = 0; i < steps.length; i++) {
-        if (_stopping.contains(group.id)) return 'Stopped.';
-        final step = steps[i];
-        final note = byId[step.noteId]!;
-        folderStatus[group.id] =
-            'step ${i + 1} of ${steps.length}: ${note.title.isEmpty ? 'Untitled' : note.title}${step.primary ? ' (primary)' : ''}';
-        notifyListeners();
-        final problem = await _runNoteSequence(note, spaceKey,
-            waitForLast: step.wait, stopKey: group.id);
-        if (problem != null) return problem;
-        if (!step.wait && !step.primary) {
-          // A note that keeps running: give it a moment to start.
-          await Future<void>.delayed(const Duration(milliseconds: 1500));
-        }
-      }
-      return null;
-    } finally {
-      folderStatus.remove(group.id);
-      _stopping.remove(group.id);
-      notifyListeners();
-    }
-  }
-
-  /// True while a folder's sequence is still starting its steps.
-  bool sequenceRunning(String folderId) => folderStatus.containsKey(folderId);
-
-  /// True if any block of these notes is running.
-  bool folderRunning(List<NoteEntity> notes) =>
-      notes.any((n) => anyRunning(n.blocks.map((b) => b.id)));
-
-  void stopFolder(String folderId, List<NoteEntity> notes) {
-    if (folderStatus.containsKey(folderId)) _stopping.add(folderId);
-    for (final n in notes) {
-      for (final b in n.blocks) {
-        final s = _sessions[b.id];
-        if (s != null && s.running) s.stop();
-      }
-    }
+    }));
   }
 
   void clear(String blockId) {

@@ -72,7 +72,12 @@ class _TerminalPageState extends State<TerminalPage> {
     try {
       final proc = await Runtimes.instance.start(exe, [...pre], workDir: home);
       _sub = proc.lines.listen(_onLine, onDone: () {
-        if (mounted) setState(() => _lines.add('${RunningProcess.errorMark}[shell closed]'));
+        if (!mounted || _shell != proc) return;
+        setState(() {
+          _lines.add('${RunningProcess.errorMark}[the shell closed. Press Restart shell to start a new one]');
+          _shell = null;
+          _busy = false;
+        });
       });
       setState(() {
         _home = home;
@@ -126,6 +131,7 @@ class _TerminalPageState extends State<TerminalPage> {
     final shell = _shell;
     if (shell == null) return;
     final cmd = command.trim();
+    if (cmd.isEmpty) return;
     setState(() {
       _lines.add('$_prompt $cmd');
       _busy = true;
@@ -260,6 +266,21 @@ class _TerminalPageState extends State<TerminalPage> {
                       children: [
                         Text(_prompt, style: monoStyle(context, size: 13.5, color: tokens.success)),
                         const SizedBox(width: 8),
+                        if (_shell == null && _home != null)
+                          Expanded(
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: TextButton.icon(
+                                onPressed: () {
+                                  Sandbox.instance.recheck();
+                                  _start();
+                                },
+                                icon: const Icon(Icons.restart_alt_rounded),
+                                label: const Text('Restart shell'),
+                              ),
+                            ),
+                          )
+                        else
                         Expanded(
                           child: Focus(
                             onKeyEvent: _onKey,

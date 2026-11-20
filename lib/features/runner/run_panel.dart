@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 
 import '../../constants/themes.dart';
+import 'rich_output_view.dart';
 import 'run_manager.dart';
 import 'runtimes.dart';
 import 'runtimes_page.dart';
@@ -17,7 +18,7 @@ class RunPanel extends StatefulWidget {
   const RunPanel({super.key, required this.session, this.onSaveOutput});
 
   final RunSession session;
-  final void Function(String output)? onSaveOutput;
+  final void Function(RunSession session)? onSaveOutput;
 
   @override
   State<RunPanel> createState() => _RunPanelState();
@@ -82,6 +83,37 @@ class _RunPanelState extends State<RunPanel> {
     await Navigator.push(context, MaterialPageRoute(builder: (_) => TerminalPage(folder: dir)));
   }
 
+  /// Text lines grouped together, with plots and tables in between, in the
+  /// order the program printed them.
+  List<Widget> _segments(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
+    final out = <Widget>[];
+    final text = <String>[];
+    void flush() {
+      if (text.isEmpty) return;
+      out.add(SelectableText.rich(TextSpan(children: [
+        for (final line in text)
+          TextSpan(
+            text: '${RunningProcess.plain(line)}\n',
+            style: monoStyle(context, size: 12.5, color: RunningProcess.isError(line) ? color.error : null),
+          ),
+      ])));
+      text.clear();
+    }
+
+    for (final line in s.lines) {
+      final rich = RichOutput.parse(line);
+      if (rich == null) {
+        text.add(line);
+      } else {
+        flush();
+        out.add(RichOutputView(rich, key: ValueKey(rich.path)));
+      }
+    }
+    flush();
+    return out;
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = Theme.of(context).colorScheme;
@@ -91,8 +123,10 @@ class _RunPanelState extends State<RunPanel> {
         : s.running
             ? ('running · ${_elapsed()}', tokens.success)
             : s.exitCode == 0
-                ? ('done · exit 0', tokens.success)
-                : ('stopped · exit ${s.exitCode}', color.error);
+                ? (s.inKernel ? 'done' : 'done · exit 0', tokens.success)
+                : s.inKernel
+                    ? (s.exitCode == 130 ? 'interrupted' : 'error', color.error)
+                    : ('stopped · exit ${s.exitCode}', color.error);
 
     return Container(
       decoration: BoxDecoration(
@@ -108,7 +142,8 @@ class _RunPanelState extends State<RunPanel> {
               children: [
                 Icon(s.running ? Icons.circle : Icons.circle_outlined, size: 9, color: statusColor),
                 const SizedBox(width: 8),
-                Text('// output', style: monoStyle(context, size: 12, color: tokens.subtle)),
+                Text(s.inKernel ? 'In [${s.count ?? ' '}]' : '// output',
+                    style: monoStyle(context, size: 12, color: s.inKernel ? color.primary : tokens.subtle)),
                 const SizedBox(width: 8),
                 Flexible(
                   child: Text(statusText,
@@ -120,8 +155,15 @@ class _RunPanelState extends State<RunPanel> {
                   TextButton.icon(
                     onPressed: s.stop,
                     icon: const Icon(Icons.stop_rounded, size: 18),
-                    label: const Text('Stop'),
+                    label: Text(s.inKernel ? 'Interrupt' : 'Stop'),
                     style: TextButton.styleFrom(foregroundColor: color.error),
+                  ),
+                if (s.inKernel && s.noteId != null)
+                  IconButton(
+                    tooltip: 'Restart kernel (forget this note\'s Python variables)',
+                    visualDensity: VisualDensity.compact,
+                    icon: const Icon(Icons.restart_alt_rounded, size: 19),
+                    onPressed: () => RunManager.instance.restartKernel(s.noteId!),
                   ),
                 IconButton(
                   tooltip: 'Sandbox files (save copies from here)',
@@ -140,7 +182,7 @@ class _RunPanelState extends State<RunPanel> {
                     tooltip: 'Save output into the note',
                     visualDensity: VisualDensity.compact,
                     icon: const Icon(Icons.note_add_outlined, size: 19),
-                    onPressed: () => widget.onSaveOutput!(s.text),
+                    onPressed: () => widget.onSaveOutput!(s),
                   ),
                 if (!s.running)
                   IconButton(
@@ -167,7 +209,7 @@ class _RunPanelState extends State<RunPanel> {
             )
           else
             ConstrainedBox(
-              constraints: const BoxConstraints(maxHeight: 260),
+              constraints: BoxConstraints(maxHeight: s.rich.isEmpty ? 260 : 640),
               child: s.lines.isEmpty
                   ? Padding(
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -177,15 +219,10 @@ class _RunPanelState extends State<RunPanel> {
                   : SingleChildScrollView(
                       controller: _scroll,
                       padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                      child: SelectableText.rich(TextSpan(children: [
-                        for (final line in s.lines)
-                          TextSpan(
-                            text: '${line.startsWith(RunningProcess.errorMark) ? line.substring(1) : line}\n',
-                            style: monoStyle(context,
-                                size: 12.5,
-                                color: line.startsWith(RunningProcess.errorMark) ? color.error : null),
-                          ),
-                      ])),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: _segments(context),
+                      ),
                     ),
             ),
           if (s.running)

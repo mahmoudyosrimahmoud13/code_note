@@ -115,6 +115,37 @@ python -m pip show yt-dlp | head -2'''),
       code(Language.dart, _dart),
     ], const ['dart', 'demo'], 6);
 
+    // ── notebooks/ (Jupyter-style: blocks share variables) ───
+    final dataScience = note('Data science: numpy, pandas, seaborn', [
+      md('Works like a **Jupyter notebook**: the Python blocks of a note share their variables, '
+          'the last line of a block shows its value, tables show as tables and plots as images. '
+          'Press **▶ Run note** in the top bar to run every block in order. **Restart kernel** under any output forgets the variables.'),
+      code(Language.python, _ds1),
+      code(Language.python, _ds2),
+      code(Language.python, _ds3),
+      code(Language.python, _ds4),
+      code(Language.python, _ds5),
+    ], const ['python', 'pandas', 'notebook', 'demo'], 0);
+
+    final pandasNote = note('Pandas cookbook', [
+      md('''### Pandas, one task per block
+Each block shows one everyday task and **shares its variables** with the others, like notebook cells.
+Press **▶ Run note** to run them all in order, or **▶** on any block after the ones above it.
+
+Inside: create and save **CSV** · **filter** · new columns and **sort** · **groupby** · **pivot tables** · **merge** ·
+**dates and resample** · **text** with `.str` · **missing values** · **apply/map** · **value_counts** ·
+a **styled table** · **plots** straight from pandas.'''),
+      for (final block in _pandasBlocks) code(Language.python, block),
+    ], const ['python', 'pandas', 'notebook', 'demo'], 0);
+
+    final torchNote = note('PyTorch: train a tiny model', [
+      md('Trains a small neural network on the CPU with a **tqdm** progress bar, then plots the loss and the fit. '
+          'The first block downloads PyTorch (about 200 MB) into CodeNote\'s Python, once.'),
+      code(Language.python, _t1),
+      code(Language.python, _t2),
+      code(Language.python, _t3),
+    ], const ['python', 'pytorch', 'notebook', 'demo'], 0);
+
     final pipeline = NoteGroupEntity(
       id: id(),
       name: 'pipeline',
@@ -123,6 +154,14 @@ python -m pip show yt-dlp | head -2'''),
       runPlan: RunPlan(order: [p1.id, p2.id, p3.id, p4.id], primary: p4.id),
     );
     final groups = [
+      NoteGroupEntity(
+        id: id(),
+        name: 'notebooks',
+        noteIds: [dataScience.id, pandasNote.id, torchNote.id],
+        lastModified: now,
+        // PyTorch is a big download, so Run folder leaves it to you.
+        runPlan: RunPlan(disabled: {torchNote.id}),
+      ),
       NoteGroupEntity(id: id(), name: 'youtube-downloader', noteIds: [ytBackend.id, ytPage.id], lastModified: now),
       NoteGroupEntity(id: id(), name: 'fastapi-todo', noteIds: [apiNote.id, todoPage.id], lastModified: now),
       pipeline,
@@ -136,11 +175,86 @@ python -m pip show yt-dlp | head -2'''),
       ),
     ];
     return (
-      notes: [ytBackend, ytPage, apiNote, todoPage, p1, p2, p3, p4, pPage, snake, pyFile, bashInfo, nodeNote, tsNote, dartNote],
+      notes: [dataScience, pandasNote, torchNote, ytBackend, ytPage, apiNote, todoPage, p1, p2, p3, p4, pPage, snake, pyFile, bashInfo, nodeNote, tsNote, dartNote],
       groups: groups,
     );
   }
 }
+
+const _pandasBlocks = <String>[
+  r'''# Installs what this note uses into CodeNote's Python (once).
+%pip install --quiet pandas matplotlib jinja2''',
+  r'''# 1. Make a DataFrame
+import pandas as pd
+import numpy as np
+
+orders = pd.DataFrame({
+    "order_id": range(1001, 1013),
+    "customer": ["Mona", "Omar", "Sara", "Mona", "Ali", "Sara", "Omar", "Mona", "Nour", "Ali", "Sara", "Nour"],
+    "product": ["Laptop", "Phone", "Phone", "Mouse", "Laptop", "Monitor", "Mouse", "Monitor", "Phone", "Phone", "Laptop", "Mouse"],
+    "qty": [1, 2, 1, 3, 1, 2, 1, 1, 2, 1, 1, 4],
+    "price": [950, 420, 420, 25, 980, 210, 25, 230, 410, 430, 940, 22],
+    "date": pd.to_datetime(["2026-01-03", "2026-01-09", "2026-01-15", "2026-02-02", "2026-02-11", "2026-02-20",
+                            "2026-03-01", "2026-03-08", "2026-03-15", "2026-03-22", "2026-04-02", "2026-04-09"]),
+})
+orders''',
+  r'''# 2. Save to CSV and read it back (the file stays in this folder's sandbox)
+orders.to_csv("orders.csv", index=False)
+again = pd.read_csv("orders.csv", parse_dates=["date"])
+print(again.dtypes)
+again.shape''',
+  r'''# 3. Select columns and filter rows
+orders.loc[(orders["product"] == "Phone") & (orders["price"] > 415), ["customer", "price", "date"]]''',
+  r'''# 4. New columns and sorting
+orders["total"] = orders["qty"] * orders["price"]
+orders["month"] = orders["date"].dt.to_period("M").astype(str)
+orders.sort_values("total", ascending=False).head(5)''',
+  r'''# 5. Group and aggregate
+orders.groupby("customer").agg(
+    orders=("order_id", "count"),
+    items=("qty", "sum"),
+    spent=("total", "sum"),
+    biggest=("total", "max"),
+).sort_values("spent", ascending=False)''',
+  r'''# 6. Pivot table: spending per customer per month
+orders.pivot_table(index="customer", columns="month", values="total", aggfunc="sum", fill_value=0, margins=True)''',
+  r'''# 7. Merge with another table
+customers = pd.DataFrame({
+    "customer": ["Mona", "Omar", "Sara", "Ali", "Nour"],
+    "city": ["Cairo", "Giza", "Alexandria", "Cairo", "Mansoura"],
+    "member_since": [2021, 2024, 2019, 2025, 2023],
+})
+full = orders.merge(customers, on="customer", how="left")
+full[["order_id", "customer", "city", "total"]].head()''',
+  r'''# 8. Dates: resample by month
+monthly = orders.set_index("date")["total"].resample("MS").sum()
+monthly''',
+  r'''# 9. Text columns with .str
+names = pd.Series(["  mona ALI ", "omar   hassan", "SARA mostafa  "])
+names.str.strip().str.split().str.join(" ").str.title()''',
+  r'''# 10. Missing values
+messy = pd.DataFrame({"a": [1, None, 3, None], "b": ["x", "y", None, "z"]})
+print("missing per column:")
+print(messy.isna().sum())
+messy.fillna({"a": messy["a"].mean(), "b": "unknown"})''',
+  r'''# 11. apply and map
+size = {"Laptop": "big", "Monitor": "big", "Phone": "small", "Mouse": "small"}
+orders["size"] = orders["product"].map(size)
+orders["discount"] = orders.apply(lambda r: 0.1 if r["total"] > 900 else 0.0, axis=1)
+orders[["product", "size", "total", "discount"]].head(6)''',
+  r'''# 12. Counting
+orders["product"].value_counts()''',
+  r'''# 13. A styled table (opens as HTML, like in Jupyter)
+(orders.groupby("product")[["qty", "total"]].sum()
+       .style.background_gradient(cmap="Purples").format({"total": "{:,.0f} EGP"}))''',
+  r'''# 14. Quick plots straight from pandas
+import matplotlib.pyplot as plt
+
+fig, axes = plt.subplots(1, 2, figsize=(10, 3.5))
+monthly.plot(ax=axes[0], marker="o", color="#7B5CFF", title="Revenue per month")
+orders.groupby("product")["total"].sum().plot.barh(ax=axes[1], color="#3DDC97", title="Revenue per product")
+plt.tight_layout()''',
+];
 
 const _yt_backend = r'''
 # YouTube downloader backend: a small web server around yt-dlp.
@@ -1064,6 +1178,78 @@ console.log('Wrote', path.resolve('node-notes.json'));
 const words = 'the quick brown fox jumps over the lazy dog the end'.split(' ');
 const counts = words.reduce((m, w) => m.set(w, (m.get(w) || 0) + 1), new Map());
 console.table([...counts].sort((a, b) => b[1] - a[1]).slice(0, 3).map(([word, n]) => ({ word, n })));''';
+
+const _ds1 = r'''
+# Like a Jupyter notebook: the Python blocks of this note share variables.
+# Press ▶ Run note (top bar) to run them all in order, or ▶ one block.
+%pip install --quiet numpy pandas matplotlib seaborn''';
+
+const _ds2 = r'''
+import numpy as np
+import pandas as pd
+
+rng = np.random.default_rng(42)
+days = pd.date_range("2026-01-01", periods=120, freq="D")
+df = pd.DataFrame({
+    "day": days,
+    "city": rng.choice(["Cairo", "Alexandria", "Giza"], len(days)),
+    "orders": rng.poisson(40, len(days)) + np.arange(len(days)) // 10,
+    "rating": rng.normal(4.3, 0.3, len(days)).clip(1, 5).round(2),
+})
+df.head()  # the last line's value shows as a table, like Jupyter''';
+
+const _ds3 = r'''
+df.describe()''';
+
+const _ds4 = r'''
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+sns.set_theme(style="whitegrid")
+sns.lineplot(data=df, x="day", y="orders", hue="city")
+plt.title("Orders per day")
+plt.xticks(rotation=30)
+plt.show()''';
+
+const _ds5 = r'''
+summary = df.groupby("city").agg(orders=("orders", "sum"), rating=("rating", "mean")).round(2)
+summary.plot.bar(y="orders", legend=False, title="Orders by city", color="#7B5CFF")
+summary''';
+
+const _t1 = r'''
+# PyTorch on the CPU (about 200 MB, downloaded once into CodeNote's Python).
+%pip install --quiet torch tqdm --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple''';
+
+const _t2 = r'''
+import torch
+from tqdm import tqdm
+
+torch.manual_seed(0)
+x = torch.linspace(-2, 2, 200).unsqueeze(1)
+y = 3 * x ** 2 - 2 * x + 1 + 0.4 * torch.randn_like(x)
+
+model = torch.nn.Sequential(torch.nn.Linear(1, 32), torch.nn.Tanh(), torch.nn.Linear(32, 1))
+opt = torch.optim.Adam(model.parameters(), lr=0.03)
+losses = []
+for step in tqdm(range(400), desc="training"):
+    loss = torch.nn.functional.mse_loss(model(x), y)
+    opt.zero_grad()
+    loss.backward()
+    opt.step()
+    losses.append(loss.item())
+print(f"final loss: {losses[-1]:.3f}")
+model(torch.tensor([[1.5]]))''';
+
+const _t3 = r'''
+import matplotlib.pyplot as plt
+
+fig, (a, b) = plt.subplots(1, 2, figsize=(10, 3.5))
+a.plot(losses, color="#7B5CFF"); a.set_title("Loss"); a.set_yscale("log")
+with torch.no_grad():
+    b.scatter(x, y, s=8, alpha=0.5, label="data")
+    b.plot(x, model(x), color="#3DDC97", linewidth=3, label="model")
+b.legend(); b.set_title("Fit")
+fig''';
 
 const _ts = r'''
 // TypeScript runs straight on Node.js 22 or newer: no build step.

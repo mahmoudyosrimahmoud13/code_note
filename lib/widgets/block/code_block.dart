@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_code_editor/flutter_code_editor.dart';
@@ -17,6 +19,9 @@ import '../../features/runner/code_runner.dart';
 import '../../features/runner/note_scope.dart';
 import '../../features/runner/run_manager.dart';
 import '../../features/runner/run_panel.dart';
+import '../../features/runner/rich_output_view.dart';
+import '../../features/runner/runtimes.dart';
+import '../../core/util/image_helper.dart';
 import '../../features/runner/running_indicator.dart';
 import '../language_drop_down.dart';
 import 'block.dart';
@@ -218,18 +223,56 @@ class _CodeBlockState extends State<CodeBlock> {
       spaceKey: scope.spaceKey,
       language: _language,
       code: code,
+      noteId: scope.noteId,
+      role: _runRole,
     );
   }
 
-  void _saveOutput(String output) {
-    final text = output.trimRight();
-    if (text.isEmpty) return;
-    const limit = 20000;
-    final cut = text.length > limit ? '${text.substring(text.length - limit)}\n…' : text;
-    widget.onInsertAfter!(
-      widget.id,
-      MarkdownBlockEntity(id: const Uuid().v4(), text: '**Output**\n\n```text\n$cut\n```'),
-    );
+  /// Saves the output under the code block, in order: text as a code
+  /// block, plots as image blocks, tables as Markdown tables.
+  Future<void> _saveOutput(RunSession session) async {
+    final blocks = <BlockEntity>[];
+    final text = <String>[];
+    void flush() {
+      final t = text.join('\n').trimRight();
+      text.clear();
+      if (t.isEmpty) return;
+      const limit = 20000;
+      final cut = t.length > limit ? '…\n${t.substring(t.length - limit)}' : t;
+      blocks.add(MarkdownBlockEntity(id: const Uuid().v4(), text: '```text\n$cut\n```'));
+    }
+
+    for (final line in session.lines) {
+      final rich = RichOutput.parse(line);
+      if (rich == null) {
+        text.add(RunningProcess.plain(line));
+        continue;
+      }
+      flush();
+      switch (rich.kind) {
+        case 'image':
+          final saved = await ImageHelper.persistImage(rich.path);
+          blocks.add(ImageBlockEntity(id: const Uuid().v4(), imagePath: saved));
+        case 'table':
+          final table = OutputTable.read(rich.path);
+          if (table != null) blocks.add(MarkdownBlockEntity(id: const Uuid().v4(), text: table.toMarkdown()));
+        case 'markdown':
+          try {
+            blocks.add(MarkdownBlockEntity(id: const Uuid().v4(), text: await File(rich.path).readAsString()));
+          } catch (_) {}
+        default:
+          blocks.add(MarkdownBlockEntity(
+              id: const Uuid().v4(),
+              text: '*Interactive output (${rich.note.isEmpty ? 'HTML' : rich.note}): run the block again to open it.*'));
+      }
+    }
+    flush();
+    if (blocks.isEmpty || !mounted) return;
+    var after = widget.id;
+    for (final block in blocks) {
+      widget.onInsertAfter!(after, block);
+      after = block.id;
+    }
     showMessage(message: 'Output saved under the code block.');
   }
 

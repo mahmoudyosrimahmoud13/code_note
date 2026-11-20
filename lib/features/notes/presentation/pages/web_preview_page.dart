@@ -58,6 +58,19 @@ $script
 </html>''';
   }
 
+  /// Opens an HTML file made by a script (plotly charts, maps…): inside
+  /// the app on phones, in the browser on desktop.
+  static Future<void> openFile(BuildContext context, String path, {String title = ''}) async {
+    if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
+      final html = await File(path).readAsString();
+      if (!context.mounted) return;
+      await Navigator.push(
+          context, MaterialPageRoute(builder: (_) => _WebPreviewPage(title: title, url: null, html: html)));
+      return;
+    }
+    await launchUrl(Uri.file(path));
+  }
+
   /// Runs the note: inside the app on phones, in the browser on desktop.
   /// Pages can save data with localStorage or codenote.storage; it's kept
   /// per note by CodeNote.

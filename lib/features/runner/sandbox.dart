@@ -84,15 +84,39 @@ class Sandbox {
     return SandboxLevel.folderOnly;
   }
 
-  /// Path to bubblewrap on Linux, or null if it isn't installed.
+  /// Why bubblewrap is installed but can't be used here, if that happens.
+  String? bubblewrapProblem;
+
+  /// Path to bubblewrap on Linux, or null if it isn't installed or can't
+  /// start a sandbox on this system (checked once with a tiny test run).
   Future<String?> bubblewrap() async {
     if (_checked) return _bwrap;
     _checked = true;
+    _bwrap = null;
+    bubblewrapProblem = null;
     if (!Platform.isLinux) return null;
+    String? found;
     for (final candidate in ['/usr/bin/bwrap', '/bin/bwrap', '/usr/local/bin/bwrap']) {
-      if (await File(candidate).exists()) return _bwrap = candidate;
+      if (await File(candidate).exists()) {
+        found = candidate;
+        break;
+      }
     }
-    return null;
+    if (found == null) return null;
+    try {
+      final test = await space('selftest');
+      final args = await _bwrapArgs(writable: test, readOnly: const [], extraWritable: const []);
+      final r = await Process.run(found, [...args, '--', '/bin/sh', '-c', 'exit 0'])
+          .timeout(const Duration(seconds: 10));
+      if (r.exitCode != 0) {
+        bubblewrapProblem = '${r.stderr}'.trim().isEmpty ? 'exit code ${r.exitCode}' : '${r.stderr}'.trim();
+        return null;
+      }
+    } catch (e) {
+      bubblewrapProblem = '$e';
+      return null;
+    }
+    return _bwrap = found;
   }
 
   /// Checks bubblewrap again (after the person installed it).
@@ -174,22 +198,48 @@ class Sandbox {
   }) async {
     final bwrap = await bubblewrap();
     if (bwrap == null) return (executable, args);
+    final flags = await _bwrapArgs(writable: writable, readOnly: readOnly, extraWritable: extraWritable);
+    return (bwrap, [...flags, '--', executable, ...args]);
+  }
+
+  /// bubblewrap flags: the system read-only, private /tmp, your home
+  /// folder and removable drives hidden, only the sandbox writable.
+  /// Only folders that exist are hidden; bubblewrap can't create new ones
+  /// inside the read-only system view.
+  Future<List<String>> _bwrapArgs({
+    required Directory writable,
+    required List<String> readOnly,
+    required List<String> extraWritable,
+  }) async {
     final rootDir = (await root()).path;
-    await Directory(p.join(rootDir, 'cache')).create(recursive: true);
-    return (bwrap, [
+    final cache = p.join(rootDir, 'cache');
+    await Directory(cache).create(recursive: true);
+    final home = Platform.environment['HOME'];
+    final hide = <String>{
+      '/home',
+      '/root',
+      '/media',
+      '/mnt',
+      '/run/media',
+      '/srv',
+      if (home != null && home.isNotEmpty && home != '/') home,
+    };
+    final hidden = <String>[];
+    for (final dir in hide) {
+      // Skip a folder inside one already hidden (it's gone anyway).
+      if (hidden.any((h) => p.isWithin(h, dir))) continue;
+      if (await Directory(dir).exists()) hidden.add(dir);
+    }
+    return [
       '--ro-bind', '/', '/',
       '--dev', '/dev',
       '--proc', '/proc',
       '--tmpfs', '/tmp',
-      '--tmpfs', '/home',
-      '--tmpfs', '/root',
-      '--tmpfs', '/media',
-      '--tmpfs', '/mnt',
-      '--tmpfs', '/run/media',
+      for (final dir in hidden) ...['--tmpfs', dir],
       // Shared caches and runtimes live in the sandbox root.
       '--ro-bind', rootDir, rootDir,
       for (final dir in readOnly) ...['--ro-bind', dir, dir],
-      '--bind', p.join(rootDir, 'cache'), p.join(rootDir, 'cache'),
+      '--bind', cache, cache,
       for (final dir in extraWritable) ...['--bind', dir, dir],
       '--bind', writable.path, writable.path,
       '--chdir', writable.path,
@@ -199,10 +249,7 @@ class Sandbox {
       '--share-net',
       '--die-with-parent',
       '--new-session',
-      '--',
-      executable,
-      ...args,
-    ]);
+    ];
   }
 
   /// Folder sizes and file lists for the Files sheet.

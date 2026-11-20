@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 
 import '../notes/domain/entities/block.dart';
 import '../notes/domain/entities/language.dart';
+import 'python_kernel.dart';
 import 'runtimes.dart';
 import 'sandbox.dart';
 
@@ -81,7 +82,11 @@ class CodeRunner {
         if (py == null) {
           throw RuntimeException('Python isn\'t set up yet. Open Settings > Runtimes and sandbox.');
         }
-        return Runtimes.instance.start(py, ['-u', script.path], workDir: workspace);
+        // Runs like a Jupyter cell: the last line's value and any plots
+        // show as rich output.
+        final helpers = await writePythonHelpers(workspace);
+        return Runtimes.instance.start(py, ['-u', p.join(helpers.path, 'codenote_run.py'), script.path],
+            workDir: workspace);
       case Language.javaScript:
       case Language.typeScript:
         final node = await Runtimes.instance.nodeForRuns();

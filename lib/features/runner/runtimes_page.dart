@@ -418,7 +418,9 @@ class _RuntimesPageState extends State<RuntimesPage> {
           Icons.shield_outlined,
           'Folder sandbox only',
           Platform.isLinux
-              ? "Install bubblewrap for a full sandbox: sudo apt install bubblewrap, then tap Check again. Without it, scripts run in their own folder with their own home and temp folders, but a script could still reach your other files if it tried."
+              ? (sb.bubblewrapProblem != null
+                  ? "bubblewrap is installed but couldn't start a sandbox on this system (${sb.bubblewrapProblem}). Until that's fixed, scripts run in their own folder with their own home and temp folders, but a script could still reach your other files if it tried."
+                  : "Install bubblewrap for a full sandbox: sudo apt install bubblewrap, then tap Check again. Without it, scripts run in their own folder with their own home and temp folders, but a script could still reach your other files if it tried.")
               : "Windows has no simple sandbox CodeNote can use. Scripts run in their own folder with their own home and temp folders, but a script could still reach your other files if it tried. Only run code you trust."
         ),
       _ => (Icons.block_rounded, 'Not available', "This device can't run code."),

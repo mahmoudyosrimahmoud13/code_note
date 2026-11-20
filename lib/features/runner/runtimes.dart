@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
 import '../../core/services/log_service.dart';
+import 'python_kernel.dart';
 import 'sandbox.dart';
 
 class RuntimeException implements Exception {
@@ -25,6 +26,49 @@ class RunningProcess {
   final Future<int> exitCode;
 
   static const errorMark = '\u0000';
+
+  static bool isError(String line) =>
+      line.startsWith(errorMark) || line.startsWith('$replaceMark$errorMark');
+
+  /// The text of an output line without CodeNote's marks.
+  static String plain(String line) => line.replaceAll(replaceMark, '').replaceAll(errorMark, '');
+
+  /// Marks a line that the next line replaces (progress bars that redraw
+  /// themselves with a carriage return, like tqdm and pip).
+  static const replaceMark = '\u0001';
+
+  /// Splits output into lines. A carriage return without a new line means
+  /// "draw over this line", so that line is marked with [replaceMark].
+  static Stream<String> splitLines(Stream<List<int>> bytes, {String prefix = ''}) async* {
+    final buf = StringBuffer();
+    var pendingCr = false; // a \r whose meaning depends on the next character
+    await for (final chunk in bytes.transform(const Utf8Decoder(allowMalformed: true))) {
+      for (var i = 0; i < chunk.length; i++) {
+        final ch = chunk[i];
+        if (pendingCr) {
+          pendingCr = false;
+          if (ch == '\n') {
+            // \r\n: an ordinary line end (Windows).
+            yield '$prefix$buf';
+            buf.clear();
+            continue;
+          }
+          // \r then text: the line is drawn over.
+          if (buf.isNotEmpty) yield '$replaceMark$prefix$buf';
+          buf.clear();
+        }
+        if (ch == '\n') {
+          yield '$prefix$buf';
+          buf.clear();
+        } else if (ch == '\r') {
+          pendingCr = true;
+        } else {
+          buf.write(ch);
+        }
+      }
+    }
+    if (buf.isNotEmpty) yield '$prefix$buf';
+  }
 
   void stop() {
     _process.kill(ProcessSignal.sigterm);
@@ -235,7 +279,7 @@ class Runtimes {
     }
     final runtimes = await Sandbox.instance.runtimesDir();
     return start(py, ['-m', 'pip', ...args],
-        workDir: runtimes, extraWritable: [runtimes.path], extraPath: [await _venvBin()]);
+        workDir: runtimes, extraWritable: [runtimes.path], extraPath: [await _venvBin()], richPython: false);
   }
 
   Future<String> _pipJson(List<String> args) async {
@@ -398,7 +442,7 @@ class Runtimes {
     final cli = await _npmCli();
     if (node == null || cli == null) throw RuntimeException('Set up Node.js first.');
     final runtimes = await Sandbox.instance.runtimesDir();
-    return start(node, [cli, ...args], workDir: runtimes);
+    return start(node, [cli, ...args], workDir: runtimes, richPython: false);
   }
 
   /// Global npm packages in the sandbox, with newer versions when known.
@@ -637,7 +681,12 @@ class Runtimes {
     required Directory workDir,
     List<String> extraWritable = const [],
     List<String> extraPath = const [],
+    Map<String, String> extraEnv = const {},
+    bool richPython = true,
   }) async {
+    // Jupyter-style output for any Python started here, even from Bash or
+    // the terminal: plots and tables show in CodeNote's output.
+    final helpers = richPython ? await writePythonHelpers(workDir) : null;
     final env = await Sandbox.instance.environment(workDir,
         extraPath: [...extraPath, ...await toolPaths()]);
     final runtimes = (await Sandbox.instance.runtimesDir()).path;
@@ -648,6 +697,13 @@ class Runtimes {
       'NPM_CONFIG_UPDATE_NOTIFIER': 'false',
       'NPM_CONFIG_FUND': 'false',
       'PUB_CACHE': p.join(runtimes, 'pub-cache'),
+      if (helpers != null) ...{
+        // Python plots go into the output instead of a window.
+        'MPLBACKEND': 'module://codenote_mpl',
+        'PYTHONPATH': helpers.path,
+        'CODENOTE_OUT': p.join(workDir.path, '.codenote', 'out'),
+      },
+      ...extraEnv,
     });
     // CodeNote's own Python lives in the sandbox too, so notes can
     // `pip install` what they need without touching the system.
@@ -666,14 +722,9 @@ class Runtimes {
       if (--open == 0) controller.close();
     }
 
-    process.stdout
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .transform(const LineSplitter())
+    RunningProcess.splitLines(process.stdout).listen(controller.add, onDone: done);
+    RunningProcess.splitLines(process.stderr, prefix: RunningProcess.errorMark)
         .listen(controller.add, onDone: done);
-    process.stderr
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .transform(const LineSplitter())
-        .listen((l) => controller.add('${RunningProcess.errorMark}$l'), onDone: done);
     LogService().log('Runner: [START] ${p.basename(executable)} in ${workDir.path}');
     return RunningProcess(process, controller.stream, process.exitCode);
   }
