@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../constants/themes.dart';
 import '../core/util/code_languages.dart';
 import '../features/notes/domain/entities/language.dart';
+import 'language_icon.dart';
 
 /// The language button on a code block. Tapping it opens a searchable list
 /// of every supported language.
@@ -38,14 +39,7 @@ class LanguageDropDown extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  color: context.tokens.success,
-                  shape: BoxShape.circle,
-                ),
-              ),
+              LanguageIcon(language, size: 16),
               const SizedBox(width: 8),
               Text(
                 languageInfo(language).label,
@@ -119,14 +113,20 @@ class _LanguagePickerSheetState extends State<_LanguagePickerSheet> {
                           return ListTile(
                             dense: true,
                             selected: selected,
-                            leading: Icon(
-                              selected ? Icons.check_rounded : Icons.code_rounded,
-                              size: 18,
-                            ),
+                            leading: LanguageIcon(lang, size: 22),
                             title: Text(info.label),
-                            trailing: Text('.${info.extension}',
-                                style: monoStyle(context,
-                                    size: 12, color: context.tokens.subtle)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text('.${info.extension}',
+                                    style: monoStyle(context,
+                                        size: 12, color: context.tokens.subtle)),
+                                if (selected) ...[
+                                  const SizedBox(width: 8),
+                                  Icon(Icons.check_rounded, size: 18, color: color.primary),
+                                ],
+                              ],
+                            ),
                             onTap: () => Navigator.pop(context, lang),
                           );
                         },

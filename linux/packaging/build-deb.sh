@@ -29,7 +29,7 @@ ln -s /opt/codenote/code_note "$PKG/usr/bin/codenote"
 
 # Icon and app-menu entry. The .desktop file is named after the app ID so
 # docks (GNOME, KDE) match the running window to the right icon.
-cp "$ROOT/assets/logo/logo.png" "$PKG/usr/share/icons/hicolor/512x512/apps/$APP_ID.png"
+cp "$ROOT/assets/logo/logo_rounded.png" "$PKG/usr/share/icons/hicolor/512x512/apps/$APP_ID.png"
 cat > "$PKG/usr/share/applications/$APP_ID.desktop" <<DESKTOP
 [Desktop Entry]
 Type=Application

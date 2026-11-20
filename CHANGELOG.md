@@ -3,6 +3,21 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.5.0] - 2026-11-20
+
+### New
+- **Ask your notes.** Ask a question in plain words and the AI answers from your own notes, showing which notes it used. Save the answer as a note. Only the few notes that match are sent.
+- **Run HTML, CSS and JS.** Notes with web code get a ▶ button that shows the result live (inside the app on phones, in your browser on desktop).
+- **Real reminder notifications.** Reminders now pop up as system notifications on Android, iOS and macOS, even when CodeNote is closed. On Windows and Linux they appear while the app is open.
+- **Templates.** Start a note from a bug report, dev log, LeetCode, meeting, API endpoint or snippet template, or save any note as your own template.
+- **GitHub Gist import and export.** Paste a gist link to turn it into a note, or upload a note as a secret gist and get the link copied.
+- **Language logos are back.** Code blocks, the language list and note cards show each language's logo again, now for 55 languages.
+
+### Fixed
+- **Opening CodeNote twice on Windows or Linux** now brings the open window to the front instead of starting a broken second copy.
+- **Rounded app icon** on the Windows and Linux taskbar (same logo, no more sharp square corners). macOS uses the standard rounded shape too.
+- If CodeNote ever can't open your notes at startup, it now says so clearly instead of showing an empty screen.
+
 ## [1.4.0] - 2026-11-20
 
 ### New

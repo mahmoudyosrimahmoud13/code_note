@@ -30,9 +30,63 @@ void main() async {
     LogService().log("App: [SUCCESS] Dependencies initialized.");
   } catch (e) {
     LogService().log("App: [FATAL] Dependency initialization failed: $e");
+    // Don't start a broken app: explain what happened instead.
+    runApp(StartupErrorApp(error: '$e'));
+    return;
   }
 
   runApp(const MyApp());
+}
+
+/// Shown when CodeNote can't open its notes, most often because another
+/// copy of the app is already running and has them open.
+class StartupErrorApp extends StatelessWidget {
+  const StartupErrorApp({super.key, required this.error});
+  final String error;
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'CodeNote',
+      theme: mainTheme,
+      darkTheme: darkTheme,
+      home: Scaffold(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const BrandMark(size: 56),
+                  const SizedBox(height: 20),
+                  const Text(
+                    "CodeNote couldn't open your notes",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    'This usually means CodeNote is already open in another window. '
+                    'Close this one and use that window. Your notes are safe.',
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  SelectableText(
+                    error,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontFamily: 'JetBrainsMono', fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {

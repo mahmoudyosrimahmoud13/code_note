@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/services/log_service.dart';
+import '../../../reminders/reminder_service.dart';
 import '../../domain/entities/note.dart';
 import '../../domain/repositories/note_repository.dart';
 import '../../domain/usecases/get_notes.dart';
@@ -60,7 +61,7 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     final result = await repository.updateNote(note);
     result.fold(
       (_) => LogService().log('NoteBloc: [ERROR] Could not save note ${note.id}'),
-      (_) {},
+      (_) => ReminderService.instance.sync(note),
     );
   }
 
@@ -69,6 +70,7 @@ class NoteBloc extends Bloc<NoteEvent, NoteState> {
     if (current is NoteLoaded) {
       emit(NoteLoaded(current.notes.where((n) => n.id != event.id).toList()));
     }
+    ReminderService.instance.cancel(event.id);
     final result = await repository.deleteNote(event.id);
     result.fold(
       (_) => LogService().log('NoteBloc: [ERROR] Could not delete note ${event.id}'),

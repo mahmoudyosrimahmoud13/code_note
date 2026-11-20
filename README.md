@@ -45,7 +45,9 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ### Notes made of blocks
 - **Text, code, markdown and image blocks** in any order, in one note.
-- **Code blocks** with highlighting for 20+ languages (Python, Dart, JavaScript, TypeScript, Go, Java, Kotlin, C#, C++, PHP, SQL, PostgreSQL, Bash, HTML, CSS, JSON, Docker, Django, Arduino, ARM and x86 assembly), line numbers and the JetBrains Mono font.
+- **Code blocks** with highlighting for 58 languages, each with its logo, plus line numbers and the JetBrains Mono font.
+- **Run HTML, CSS and JS** right from a note with the ▶ button.
+- **Templates** for bug reports, dev logs, LeetCode, meetings, API endpoints and snippets, or save your own.
 - **A symbol bar** while you type code: `{}` `()` `[]` `""` `;` `=>` and an indent key, inserted where your cursor is.
 - **Markdown** with a live preview. Tap to edit, tap away to see it rendered.
 - **Scan text from a photo** (Android and iOS) and drop it in as a text or code block.
@@ -56,10 +58,11 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 - **Pin** important notes to the top. **Archive** what you don't need every day.
 - **Search** across titles, tags, text and code.
 - **Trash** keeps deleted notes for 30 days, then removes them and their images for good. Every swipe has **Undo**.
-- **Reminders** list for notes you need to come back to.
+- **Reminders** that pop up as real notifications.
 
 ### AI that respects your privacy
 - **✨ Explain code, find bugs, suggest improvements** on any code block, and **save the answer into the note**.
+- **Ask your notes:** ask a question and get an answer from your own notes, with the notes it used.
 - Use **Claude**, any **OpenAI-compatible** API, or run fully offline with **Ollama** or **LM Studio**. CodeNote finds your local models automatically.
 - Off until you set it up. Only the block you ask about is sent, and your key never leaves the device.
 
@@ -71,6 +74,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 ### Built for developers
 - **Command palette (Ctrl+K):** every action, note and folder from the keyboard. Plus **Ctrl+N** new note and **Ctrl+F** search.
 - **Share code as an image** with nice backgrounds, ready for X, LinkedIn or Discord.
+- **GitHub Gist:** import any gist as a note, or upload a note as a gist.
 - **Share into CodeNote** on Android: share text, a link, a photo or a code file from any app. Files like `.py`, `.dart`, `.js`, `.sql` become code blocks with the right language. `.md` becomes markdown.
 - **Open with CodeNote** for source files from your file manager.
 - **Share out** a note as text, as a `.txt`, or as a source file (`.py`, `.dart`, ...).
@@ -86,7 +90,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 ## What's new
 
-See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.4.0: backup and restore, share code as an image, the command palette, update checks, and automatic local AI model discovery.
+See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.5.0: Ask your notes, run HTML/CSS/JS live, real reminder notifications, templates, GitHub Gist import and export, and language logos for 55 languages.
 
 ---
 
@@ -156,5 +160,8 @@ More detail in **[PROJECT_OVERVIEW.md](PROJECT_OVERVIEW.md)**.
 Issues and pull requests are welcome. Every pull request is checked by the build: analysis, tests, and builds for all four platforms.
 
 ## License
+
+Language logos come from [Devicon](https://devicon.dev) (MIT license).
+
 
 GNU Affero General Public License v3.0. See [LICENSE](LICENSE). JetBrains Mono is under the SIL Open Font License (`assets/fonts/JetBrainsMono-OFL.txt`).

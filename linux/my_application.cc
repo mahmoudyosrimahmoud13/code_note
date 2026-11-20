@@ -17,6 +17,15 @@ G_DEFINE_TYPE(MyApplication, my_application, GTK_TYPE_APPLICATION)
 // Implements GApplication::activate.
 static void my_application_activate(GApplication* application) {
   MyApplication* self = MY_APPLICATION(application);
+
+  // Only one CodeNote at a time (its notes storage can't be shared).
+  // Opening it again just brings the existing window to the front.
+  GList* existing = gtk_application_get_windows(GTK_APPLICATION(application));
+  if (existing != nullptr) {
+    gtk_window_present(GTK_WINDOW(existing->data));
+    return;
+  }
+
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
 
@@ -48,6 +57,19 @@ static void my_application_activate(GApplication* application) {
   }
 
   gtk_window_set_default_size(window, 1280, 720);
+  // Taskbar / alt-tab icon: the rounded logo bundled with the app's assets,
+  // so it shows even when CodeNote is run from the .tar.gz without installing.
+  {
+    g_autofree gchar* exe = g_file_read_link("/proc/self/exe", nullptr);
+    if (exe != nullptr) {
+      g_autofree gchar* dir = g_path_get_dirname(exe);
+      g_autofree gchar* icon_path = g_build_filename(
+          dir, "data", "flutter_assets", "assets", "logo", "logo_rounded.png",
+          nullptr);
+      gtk_window_set_icon_from_file(window, icon_path, nullptr);
+    }
+  }
+
   gtk_widget_show(GTK_WIDGET(window));
 
   g_autoptr(FlDartProject) project = fl_dart_project_new();
@@ -119,6 +141,6 @@ static void my_application_init(MyApplication* self) {}
 MyApplication* my_application_new() {
   return MY_APPLICATION(g_object_new(my_application_get_type(),
                                      "application-id", APPLICATION_ID,
-                                     "flags", G_APPLICATION_NON_UNIQUE,
+                                     "flags", static_cast<GApplicationFlags>(0),
                                      nullptr));
 }

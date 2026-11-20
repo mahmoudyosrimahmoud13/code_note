@@ -15,6 +15,7 @@ import '../features/notes/presentation/bloc/note_bloc.dart';
 import '../features/notes/presentation/bloc/note_event.dart';
 import '../features/notes/presentation/pages/note_page.dart';
 import '../helpers/helper_methods.dart';
+import 'language_icon.dart';
 
 /// Short display name for a code language on cards ("ts", "rust").
 String languageLabel(Language lang) => languageInfo(lang).short;
@@ -242,7 +243,7 @@ class _NoteCardState extends State<NoteCard> {
                       runSpacing: 4,
                       children: [
                         for (final lang in usedLanguages.take(4))
-                          _LanguagePill(label: languageLabel(lang)),
+                          _LanguagePill(label: languageLabel(lang), language: lang),
                         if (usedLanguages.length > 4)
                           _LanguagePill(label: '+${usedLanguages.length - 4}'),
                       ],
@@ -490,8 +491,9 @@ class _DragPreview extends StatelessWidget {
 
 /// A small label showing a language used in the note, like `rust`.
 class _LanguagePill extends StatelessWidget {
-  const _LanguagePill({required this.label});
+  const _LanguagePill({required this.label, this.language});
   final String label;
+  final Language? language;
 
   @override
   Widget build(BuildContext context) {
@@ -503,7 +505,16 @@ class _LanguagePill extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         border: Border.all(color: tokens.success.withAlpha(70)),
       ),
-      child: Text(label, style: monoStyle(context, size: 10, color: tokens.success)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (language != null && LanguageIcon.hasLogo(language!)) ...[
+            LanguageIcon(language!, size: 12),
+            const SizedBox(width: 4),
+          ],
+          Text(label, style: monoStyle(context, size: 10, color: tokens.success)),
+        ],
+      ),
     );
   }
 }

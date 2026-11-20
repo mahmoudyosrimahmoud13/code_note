@@ -46,6 +46,9 @@ class DesktopSidebar extends StatelessWidget {
     required this.onNewNote,
     required this.onSearch,
     required this.onOpenSettings,
+    this.onNewFromTemplate,
+    this.onAskNotes,
+    this.onGist,
   });
 
   final List<SidebarView> views;
@@ -61,6 +64,9 @@ class DesktopSidebar extends StatelessWidget {
   final VoidCallback onNewNote;
   final VoidCallback onSearch;
   final VoidCallback onOpenSettings;
+  final VoidCallback? onNewFromTemplate;
+  final VoidCallback? onAskNotes;
+  final VoidCallback? onGist;
 
   @override
   Widget build(BuildContext context) {
@@ -115,7 +121,32 @@ class DesktopSidebar extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14),
+            child: Row(
+              children: [
+                if (onNewFromTemplate != null)
+                  Expanded(
+                    child: _ToolButton(
+                        icon: Icons.dashboard_customize_outlined,
+                        label: 'template',
+                        onTap: onNewFromTemplate!),
+                  ),
+                if (onAskNotes != null)
+                  Expanded(
+                    child: _ToolButton(
+                        icon: Icons.forum_outlined, label: 'ask', onTap: onAskNotes!),
+                  ),
+                if (onGist != null)
+                  Expanded(
+                    child: _ToolButton(
+                        icon: Icons.download_rounded, label: 'gist', onTap: onGist!),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -352,6 +383,40 @@ class _FolderItem extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+
+class _ToolButton extends StatelessWidget {
+  const _ToolButton({required this.icon, required this.label, required this.onTap});
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return Tooltip(
+      message: switch (label) {
+        'template' => 'New from template',
+        'ask' => 'Ask your notes (AI)',
+        _ => 'Import from GitHub Gist',
+      },
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            children: [
+              Icon(icon, size: 18, color: tokens.subtle),
+              const SizedBox(height: 3),
+              Text(label, style: monoStyle(context, size: 10, color: tokens.subtle)),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

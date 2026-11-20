@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,6 +13,12 @@ import '../../../../core/services/update_dialog.dart';
 import '../../../../core/services/update_service.dart';
 import '../../../../injection_container.dart' as di;
 import '../../../backup/backup_service.dart';
+import '../../../reminders/reminder_service.dart';
+import '../../../templates/templates.dart';
+import '../../../ai/ask_notes_page.dart';
+import '../../../gist/gist_page.dart';
+import '../../domain/repositories/note_repository.dart';
+import 'package:intl/intl.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../../widgets/brand.dart';
 import '../../../../widgets/command_palette.dart';
@@ -76,6 +84,7 @@ class _HomePageState extends State<HomePage> {
     context.read<NoteBloc>().add(PurgeOldTrashEvent());
     SharingService().init(context);
     LogService().log('HomePage: ready (local-only).');
+    _startReminders();
     // Daily backup to the chosen folder (Windows, Linux), if turned on.
     di.sl<BackupService>().runDailyBackupIfDue();
     // Look for a newer version a few seconds after start (once a day).
@@ -85,8 +94,54 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Timer? _reminderTimer;
+
+  /// Phones and Mac: re-schedule system notifications.
+  /// Windows and Linux: check every 30 seconds and show a pop-up.
+  Future<void> _startReminders() async {
+    final notes = (await di.sl<NoteRepository>().getNotes()).getOrElse(() => const []);
+    if (ReminderService.systemNotifications) {
+      ReminderService.instance.syncAll(notes);
+      return;
+    }
+    _reminderTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      final state = context.read<NoteBloc>().state;
+      if (state is! NoteLoaded || !mounted) return;
+      final due = await ReminderService.instance.dueReminders(state.notes);
+      for (final note in due) {
+        if (!mounted) return;
+        await _showReminderPopup(note);
+      }
+    });
+  }
+
+  Future<void> _showReminderPopup(NoteEntity note) {
+    final r = note.reminder!;
+    return showDialog<void>(
+      context: context,
+      builder: (c) => AlertDialog(
+        icon: Icon(Icons.alarm_rounded, color: c.tokens.pin, size: 32),
+        title: Text(note.title.trim().isEmpty ? 'Reminder' : note.title.trim()),
+        content: Text(r.message.trim().isEmpty
+            ? DateFormat.MMMEd().add_jm().format(r.dateTime)
+            : r.message),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Dismiss')),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(c);
+              _openPage(NotePage(note: note));
+            },
+            child: const Text('Open note'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   void dispose() {
+    _reminderTimer?.cancel();
     _searchController.dispose();
     SharingService().dispose();
     super.dispose();
@@ -122,6 +177,15 @@ class _HomePageState extends State<HomePage> {
       blocks: const [],
     );
     Navigator.of(context).push(MaterialPageRoute(builder: (_) => NotePage(note: note)));
+  }
+
+  Future<void> _addFromTemplate() async {
+    final note = await showTemplatePicker(context);
+    if (note == null || !mounted) return;
+    final withTag = _tag == null || note.tags.contains(_tag)
+        ? note
+        : note.copyWith(tags: [...note.tags, _tag!]);
+    _openPage(NotePage(note: withTag));
   }
 
   void _createGroup() {
@@ -302,6 +366,9 @@ class _HomePageState extends State<HomePage> {
 
     showCommandPalette(context, [
       PaletteItem(label: 'New note', icon: Icons.add_rounded, hint: 'Ctrl+N', run: _addNote, keywords: 'create write'),
+      PaletteItem(label: 'New from template', icon: Icons.dashboard_customize_outlined, run: _addFromTemplate, keywords: 'template bug devlog leetcode meeting api snippet'),
+      PaletteItem(label: 'Ask your notes', icon: Icons.forum_outlined, run: () => _openPage(const AskNotesPage()), keywords: 'ai question chat search'),
+      PaletteItem(label: 'Import from GitHub Gist', icon: Icons.download_rounded, run: () => _openPage(const GistPage()), keywords: 'gist github import export'),
       PaletteItem(label: 'New folder', icon: Icons.create_new_folder_outlined, run: _createGroup, keywords: 'group create'),
       PaletteItem(label: 'Search notes', icon: Icons.search_rounded, hint: 'Ctrl+F', run: _openSearch, keywords: 'find grep'),
       for (final view in HomeView.values)
@@ -412,6 +479,9 @@ class _HomePageState extends State<HomePage> {
         if (tag != null && _view != HomeView.notes) _view = HomeView.notes;
       }),
       onNewNote: _addNote,
+      onNewFromTemplate: _addFromTemplate,
+      onAskNotes: () => _openPage(const AskNotesPage()),
+      onGist: () => _openPage(const GistPage()),
       onSearch: _openSearch,
       onOpenSettings: () => Navigator.push(
           context, MaterialPageRoute(builder: (_) => const SettingsPage())),

@@ -14,6 +14,9 @@ import '../../../../constants/themes.dart';
 import '../../../../core/util/image_helper.dart';
 import '../../../../core/util/note_share_helper.dart';
 import '../../../../widgets/note_navigation_bar.dart';
+import '../../../reminders/reminder_service.dart';
+import '../../../templates/templates.dart';
+import '../../../gist/gist_page.dart';
 import '../../domain/entities/block.dart';
 import '../../domain/entities/note.dart';
 import '../bloc/note_bloc.dart';
@@ -24,6 +27,7 @@ import '../bloc/note_group_state.dart';
 import '../bloc/note_state.dart';
 import '../widgets/block_widget_factory.dart';
 import 'scan_document_page.dart';
+import 'web_preview_page.dart';
 
 enum _SaveStatus { saved, editing }
 
@@ -111,6 +115,16 @@ class _NotePageState extends State<NotePage> {
       _tags.isEmpty &&
       _reminder == null &&
       _blocks.every((b) => b is! ImageBlockEntity && (b.text ?? '').trim().isEmpty);
+
+  Future<void> _saveAsTemplate() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Templates.saveAsTemplate(_currentNote());
+    messenger.showSnackBar(const SnackBar(
+      content: Text('Saved as a template. Find it under "New from template".'),
+      persist: false,
+      duration: Duration(seconds: 4),
+    ));
+  }
 
   NoteEntity _currentNote() => widget.note.copyWith(
         title: _titleController.text,
@@ -253,7 +267,10 @@ class _NotePageState extends State<NotePage> {
   void _onBlockChanged(BlockEntity updated) {
     final index = _blocks.indexWhere((b) => b.id == updated.id);
     if (index == -1) return;
+    final couldPreview = WebPreview.canPreview(_blocks);
     _blocks[index] = updated;
+    // Rebuild only when the ▶ preview button should appear or disappear.
+    if (couldPreview != WebPreview.canPreview(_blocks)) setState(() {});
     _changed();
   }
 
@@ -357,7 +374,9 @@ class _NotePageState extends State<NotePage> {
                     size: 13, color: Theme.of(dialogContext).colorScheme.primary)),
             const SizedBox(height: 6),
             Text(
-              'It shows in your Reminders list. Pop-up alerts are not in this version yet.',
+              ReminderService.systemNotifications
+                  ? "You'll get a notification at that time, even if CodeNote is closed."
+                  : 'A reminder pops up at that time while CodeNote is open.',
               style: Theme.of(dialogContext).textTheme.bodySmall?.copyWith(
                   color: dialogContext.tokens.subtle),
             ),
@@ -387,6 +406,7 @@ class _NotePageState extends State<NotePage> {
           ),
           FilledButton(
             onPressed: () {
+              ReminderService.instance.requestPermission();
               setState(() => _reminder = NoteReminderEntity(
                     dateTime: when,
                     message: messageController.text.trim(),
@@ -518,6 +538,12 @@ class _NotePageState extends State<NotePage> {
       child: Scaffold(
         appBar: AppBar(
           actions: [
+            if (WebPreview.canPreview(_blocks))
+              IconButton(
+                tooltip: 'Run preview (HTML, CSS, JS)',
+                icon: Icon(Icons.play_arrow_rounded, color: tokens.success),
+                onPressed: () => WebPreview.open(context, _currentNote()),
+              ),
             IconButton(
               tooltip: _reminder == null ? 'Add reminder' : 'Edit reminder',
               icon: Icon(
@@ -544,6 +570,10 @@ class _NotePageState extends State<NotePage> {
                     _addToGroup();
                   case 'share':
                     _shareNote();
+                  case 'template':
+                    _saveAsTemplate();
+                  case 'gist':
+                    exportNoteToGist(context, _currentNote());
                   case 'archive':
                     _toggleArchive();
                   case 'trash':
@@ -564,6 +594,22 @@ class _NotePageState extends State<NotePage> {
                   child: ListTile(
                     leading: Icon(Icons.ios_share_rounded),
                     title: Text('Share'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'template',
+                  child: ListTile(
+                    leading: Icon(Icons.dashboard_customize_outlined),
+                    title: Text('Save as template'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'gist',
+                  child: ListTile(
+                    leading: Icon(Icons.upload_rounded),
+                    title: Text('Upload as gist'),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
