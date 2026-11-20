@@ -29,7 +29,8 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 | --- | --- |
 | Android | `CodeNote-<version>-android.apk` (works on every phone, Android 7.0+) |
 | Windows | `CodeNote-<version>-windows-x64.zip` (unzip, run `code_note.exe`) |
-| Linux | `CodeNote-<version>-linux-x64.tar.gz` (extract, run `./code_note`) |
+| Ubuntu, Debian, Mint, Zorin | `CodeNote-<version>-linux-amd64.deb`: install with `sudo apt install ./CodeNote-<version>-linux-amd64.deb`, then open CodeNote from the app menu or run `codenote` |
+| Other Linux | `CodeNote-<version>-linux-x64.tar.gz` (extract, run `./code_note`) |
 | macOS | `CodeNote-<version>-macos.zip` (unzip, then right-click the app > Open the first time, because it isn't notarized) |
 
 **Updating on Android:** install the new APK over the old one. Your notes stay. Starting with 1.2.0, every release is signed with the same key and has a higher version number, so Android accepts it as an update.
@@ -79,7 +80,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 - **Shared items are saved right away**, shared photos are no longer ignored, and `.md` and `.txt` files open as text.
 - **New look with a terminal personality:** prompt-style headers, `// comment` section labels, code previews on cards, a real code font, quieter block controls (one `⋯` menu instead of a row of big buttons), labeled toolbar, new onboarding.
 - **Accessible:** every icon button has a label for screen readers and a tooltip.
-- **Builds for Android, Windows, Linux and macOS** on every push, with signed Android releases that update cleanly.
+- **Builds for Android, Windows, Linux (.deb and .tar.gz) and macOS** on every push, with signed Android releases that update cleanly.
 
 ---
 

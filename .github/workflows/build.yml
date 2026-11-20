@@ -168,10 +168,18 @@ jobs:
           mkdir -p "$name"
           cp -r build/linux/x64/release/bundle/* "$name/"
           tar -czf "$name.tar.gz" "$name"
+      - name: Build the .deb installer
+        run: bash linux/packaging/build-deb.sh "${{ needs.version.outputs.version }}"
+      - name: Check the .deb
+        run: |
+          dpkg-deb --info CodeNote-*-linux-amd64.deb
+          dpkg-deb --contents CodeNote-*-linux-amd64.deb | head -20
       - uses: actions/upload-artifact@v4
         with:
           name: linux
-          path: CodeNote-*-linux-x64.tar.gz
+          path: |
+            CodeNote-*-linux-x64.tar.gz
+            CodeNote-*-linux-amd64.deb
 
   macos:
     name: macOS
