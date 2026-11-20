@@ -7,9 +7,9 @@ import '../../../../constants/themes.dart';
 import '../../../../core/services/log_service.dart';
 import '../../../../core/services/log_viewer_page.dart';
 import '../../../../core/services/sharing_service.dart';
-import '../../../../core/util/platform_helper.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../../widgets/brand.dart';
+import '../../../../widgets/desktop_sidebar.dart';
 import '../../../../widgets/group_card.dart';
 import '../../../../widgets/home_grid_view.dart';
 import '../../../../widgets/home_navigation_bar.dart';
@@ -194,48 +194,136 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final isDesktop = PlatformHelper.isDesktopOrWeb;
+    // Layout follows the window width, not the platform:
+    //   wide (>= 1000): full sidebar   medium: slim rail   narrow: phone layout
+    final width = MediaQuery.sizeOf(context).width;
+    final wide = width >= 1000;
+    final medium = width >= 720 && !wide;
+    final narrow = !wide && !medium;
 
-    return Scaffold(
-      body: SafeArea(
-        child: Row(
-          children: [
-            if (isDesktop) _buildRail(),
-            Expanded(
-              // Swiped cards are hidden right away (Dismissible needs that).
-              // Once storage reports the change, show the real list again,
-              // so an Undo brings the note straight back.
-              child: BlocConsumer<NoteBloc, NoteState>(
-                listener: (context, state) => _dismissedNoteIds.clear(),
-                builder: (context, noteState) =>
-                    BlocBuilder<NoteGroupBloc, NoteGroupState>(
-                  builder: (context, groupState) {
-                    if (noteState is! NoteLoaded || groupState is! NoteGroupLoaded) {
-                      return const Center(child: CircularProgressIndicator());
-                    }
-                    return _buildContent(noteState.notes, groupState.groups);
-                  },
-                ),
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyN, control: true): _addNote,
+        const SingleActivator(LogicalKeyboardKey.keyN, meta: true): _addNote,
+        const SingleActivator(LogicalKeyboardKey.keyF, control: true): _openSearch,
+        const SingleActivator(LogicalKeyboardKey.keyF, meta: true): _openSearch,
+        const SingleActivator(LogicalKeyboardKey.keyK, control: true): _openSearch,
+        const SingleActivator(LogicalKeyboardKey.keyK, meta: true): _openSearch,
+        const SingleActivator(LogicalKeyboardKey.escape): () {
+          if (_isSearching) setState(_closeSearch);
+        },
+      },
+      child: Focus(
+        autofocus: true,
+        child: Scaffold(
+          body: SafeArea(
+            // Swiped cards are hidden right away (Dismissible needs that).
+            // Once storage reports the change, show the real list again,
+            // so an Undo brings the note straight back.
+            child: BlocConsumer<NoteBloc, NoteState>(
+              listener: (context, state) => _dismissedNoteIds.clear(),
+              builder: (context, noteState) =>
+                  BlocBuilder<NoteGroupBloc, NoteGroupState>(
+                builder: (context, groupState) {
+                  if (noteState is! NoteLoaded || groupState is! NoteGroupLoaded) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final notes = noteState.notes;
+                  final groups = groupState.groups;
+                  return Row(
+                    children: [
+                      if (wide) _buildSidebar(notes, groups),
+                      if (medium) _buildRail(),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          // Keep lines readable on very wide screens.
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 1400),
+                            child: _buildContent(notes, groups, wide: wide),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-          ],
+          ),
+          bottomNavigationBar: narrow
+              ? NavBar(
+                  selectedIndex: _view.index,
+                  onIndexChanged: (i) => _select(HomeView.values[i]),
+                  addNote: _addNote,
+                )
+              : null,
+          floatingActionButton: medium
+              ? FloatingActionButton.extended(
+                  onPressed: _addNote,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('New note'),
+                  tooltip: 'New note (Ctrl+N)',
+                )
+              : null,
         ),
       ),
-      bottomNavigationBar: isDesktop
-          ? null
-          : NavBar(
-              selectedIndex: _view.index,
-              onIndexChanged: (i) => _select(HomeView.values[i]),
-              addNote: _addNote,
-            ),
-      floatingActionButton: isDesktop
-          ? FloatingActionButton.extended(
-              onPressed: _addNote,
-              icon: const Icon(Icons.add_rounded),
-              label: const Text('New note'),
-              tooltip: 'New note',
-            )
-          : null,
+    );
+  }
+
+  void _openSearch() => setState(() => _isSearching = true);
+
+  void _openGroup(NoteGroupEntity group) => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => GroupDetailsPage(group: group)),
+      );
+
+  Widget _buildSidebar(List<NoteEntity> all, List<NoteGroupEntity> groups) {
+    int count(bool Function(NoteEntity) test) => all.where(test).length;
+    final tags = all.where((n) => !n.isTrashed).expand((n) => n.tags).toSet().toList()
+      ..sort();
+    return DesktopSidebar(
+      views: [
+        SidebarView(
+          label: 'Notes',
+          icon: Icons.description_outlined,
+          selectedIcon: Icons.description_rounded,
+          count: count((n) => !n.isArchived && !n.isTrashed),
+        ),
+        SidebarView(
+          label: 'Reminders',
+          icon: Icons.alarm_outlined,
+          selectedIcon: Icons.alarm_rounded,
+          count: count((n) => n.reminder != null && !n.isTrashed),
+        ),
+        SidebarView(
+          label: 'Archive',
+          icon: Icons.archive_outlined,
+          selectedIcon: Icons.archive_rounded,
+          count: count((n) => n.isArchived && !n.isTrashed),
+        ),
+        SidebarView(
+          label: 'Trash',
+          icon: Icons.delete_outline_rounded,
+          selectedIcon: Icons.delete_rounded,
+          count: count((n) => n.isTrashed),
+        ),
+      ],
+      selectedView: _view.index,
+      onSelectView: (i) => _select(HomeView.values[i]),
+      groups: groups,
+      notes: all,
+      onOpenGroup: _openGroup,
+      onNewGroup: _createGroup,
+      tags: tags,
+      selectedTag: _tag,
+      onSelectTag: (tag) => setState(() {
+        _tag = tag;
+        if (tag != null && _view != HomeView.notes) _view = HomeView.notes;
+      }),
+      onNewNote: _addNote,
+      onSearch: _openSearch,
+      onOpenSettings: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const SettingsPage())),
     );
   }
 
@@ -273,7 +361,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  Widget _buildContent(List<NoteEntity> all, List<NoteGroupEntity> allGroups) {
+  Widget _buildContent(List<NoteEntity> all, List<NoteGroupEntity> allGroups,
+      {bool wide = false}) {
     final searching = _isSearching && _query.trim().isNotEmpty;
 
     // Pick the notes for this view.
@@ -319,8 +408,9 @@ class _HomePageState extends State<HomePage> {
 
     return CustomScrollView(
       slivers: [
-        SliverToBoxAdapter(child: _buildHeader(visibleCount, allGroups.length)),
-        if (tags.isNotEmpty && _view != HomeView.trash)
+        SliverToBoxAdapter(
+            child: _buildHeader(visibleCount, allGroups.length, wide: wide)),
+        if (tags.isNotEmpty && _view != HomeView.trash && !wide)
           SliverToBoxAdapter(child: _buildTagBar(tags)),
         if (_view == HomeView.trash && list.isNotEmpty)
           SliverToBoxAdapter(child: _buildTrashBanner(list)),
@@ -341,11 +431,7 @@ class _HomePageState extends State<HomePage> {
                 delegate: SliverChildBuilderDelegate(
                   (context, i) => GroupCard(
                     group: groups[i],
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => GroupDetailsPage(group: groups[i])),
-                    ),
+                    onTap: () => _openGroup(groups[i]),
                   ),
                   childCount: groups.length,
                 ),
@@ -386,7 +472,7 @@ class _HomePageState extends State<HomePage> {
         HomeView.trash => 'trash',
       };
 
-  Widget _buildHeader(int noteCount, int groupCount) {
+  Widget _buildHeader(int noteCount, int groupCount, {bool wide = false}) {
     final color = Theme.of(context).colorScheme;
     final tokens = context.tokens;
 
@@ -432,17 +518,17 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           IconButton(
-            tooltip: 'Search',
+            tooltip: 'Search (Ctrl+K)',
             icon: const Icon(Icons.search_rounded),
-            onPressed: () => setState(() => _isSearching = true),
+            onPressed: _openSearch,
           ),
-          if (_view == HomeView.notes)
+          if (_view == HomeView.notes && !wide)
             IconButton(
               tooltip: 'New group',
               icon: const Icon(Icons.create_new_folder_outlined),
               onPressed: _createGroup,
             ),
-          BlocBuilder<SettingsBloc, SettingsState>(
+          if (!wide) BlocBuilder<SettingsBloc, SettingsState>(
             builder: (context, state) {
               final settings = state is SettingsLoaded ? state.settings : null;
               return IconButton(
