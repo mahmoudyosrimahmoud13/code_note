@@ -254,6 +254,31 @@ os.environ.setdefault("MPLBACKEND", "module://codenote_mpl")
 
 from codenote_display import MARK, display, show_figures  # noqa: E402
 
+# The same kernel runs on phones inside Pyodide (Python in WebAssembly).
+# There the app loads packages before a block runs, and there's no shell.
+IN_BROWSER = sys.platform == "emscripten"
+
+if IN_BROWSER:
+    # time.sleep in Pyodide doesn't notice Interrupt: sleep in short steps
+    # and ask the app between them.
+    import time as _time
+
+    import js  # the worker
+
+    _real_sleep = _time.sleep
+
+    def _sleep(seconds):
+        end = _time.monotonic() + max(0.0, float(seconds))
+        while True:
+            if js.codenoteInterrupted():
+                raise KeyboardInterrupt
+            left = end - _time.monotonic()
+            if left <= 0:
+                return
+            _real_sleep(min(left, 0.05))
+
+    _time.sleep = _sleep
+
 builtins.display = display
 _stdin = sys.stdin
 
@@ -322,6 +347,12 @@ def _expand(source):
             continue
         indent, kind, rest = m.groups()
         pip = kind != "!"
+        if IN_BROWSER:
+            # Phones: CodeNote already loaded the %pip packages; shell
+            # commands need a computer.
+            note = None if pip else f"!{rest.strip()}: shell commands only run on a computer."
+            out.append(f"{indent}print({note!r})" if note else f"{indent}pass")
+            continue
         cmd = rest if not pip else f'"{sys.executable}" -m pip {rest.strip()}'
         out.append(f"{indent}__codenote_sh__({cmd!r}, {pip!r})")
     return "\n".join(out)
@@ -349,6 +380,45 @@ def run_cell(path):
             display(value)
             namespace["_"] = value
     show_figures()
+
+
+def _report_error():
+    """Prints the error like Jupyter: without the kernel's own frames."""
+    etype, value, tb = sys.exc_info()
+    hidden = {"codenote_kernel.py", "_base.py"}
+    frames = [f for f in traceback.extract_tb(tb) if os.path.basename(f.filename) not in hidden]
+    print("Traceback (most recent call last):", file=sys.stderr)
+    print("".join(traceback.format_list(frames)).rstrip(), file=sys.stderr)
+    print("".join(traceback.format_exception_only(etype, value)).rstrip(), file=sys.stderr, flush=True)
+
+
+async def run_cell_async(cell, source):
+    """Phones (Pyodide): runs one block like run_cell, with top-level await,
+    and prints the same count and done markers as the desktop kernel."""
+    from pyodide.code import eval_code_async
+
+    global count
+    count += 1
+    print(f"{MARK}count:{count}", flush=True)
+    status = "ok"
+    try:
+        namespace["__file__"] = "<block>"
+        value = await eval_code_async(_expand(source), globals=namespace, filename="<block>")
+        if value is not None:
+            display(value)
+            namespace["_"] = value
+        show_figures()
+    except KeyboardInterrupt:
+        status = "interrupted"
+        print("KeyboardInterrupt: stopped", file=sys.stderr, flush=True)
+    except SystemExit:
+        pass
+    except BaseException:
+        status = "error"
+        _report_error()
+    sys.stdout.flush()
+    sys.stderr.flush()
+    print(f"{MARK}done:{cell}:{status}", flush=True)
 
 
 def _watch_interrupts():
@@ -401,12 +471,7 @@ def main():
             status = "ok"
         except BaseException:
             status = "error"
-            etype, value, tb = sys.exc_info()
-            # Hide the kernel's own frames, like Jupyter does.
-            frames = [f for f in traceback.extract_tb(tb) if os.path.basename(f.filename) != "codenote_kernel.py"]
-            print("Traceback (most recent call last):", file=sys.stderr)
-            print("".join(traceback.format_list(frames)).rstrip(), file=sys.stderr)
-            print("".join(traceback.format_exception_only(etype, value)).rstrip(), file=sys.stderr, flush=True)
+            _report_error()
         sys.stdout.flush()
         sys.stderr.flush()
         print(f"{MARK}done:{cell}:{status}", flush=True)

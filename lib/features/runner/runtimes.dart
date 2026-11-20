@@ -729,6 +729,10 @@ class Runtimes {
     return RunningProcess(process, controller.stream, process.exitCode);
   }
 
+  /// Downloads [url] into [to], reporting 0..1 progress.
+  Future<void> downloadFile(Uri url, File to, void Function(double fraction) onProgress) =>
+      _download(url, to, onProgress);
+
   Future<void> _download(Uri url, File to, void Function(double fraction) onProgress) async {
     final client = http.Client();
     try {

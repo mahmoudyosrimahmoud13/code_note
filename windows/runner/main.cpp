@@ -74,6 +74,19 @@ void RegisterCodenoteFiles() {
   SetUserRegistryValue(L"Software\\Classes\\CodeNote.File\\DefaultIcon",
                        L"\"" + std::wstring(exe) + L"\",0");
   SetUserRegistryValue(command_key, command);
+  // Jupyter notebooks: CodeNote shows up under "Open with", without taking
+  // over the default app (Jupyter or VS Code keep double-click).
+  SetUserRegistryValue(L"Software\\Classes\\CodeNote.Notebook", L"Jupyter notebook");
+  SetUserRegistryValue(
+      L"Software\\Classes\\CodeNote.Notebook\\shell\\open\\command", command);
+  HKEY progids;
+  if (::RegCreateKeyExW(HKEY_CURRENT_USER,
+                        L"Software\\Classes\\.ipynb\\OpenWithProgids", 0,
+                        nullptr, 0, KEY_SET_VALUE, nullptr, &progids,
+                        nullptr) == ERROR_SUCCESS) {
+    ::RegSetValueExW(progids, L"CodeNote.Notebook", 0, REG_NONE, nullptr, 0);
+    ::RegCloseKey(progids);
+  }
   ::SHChangeNotify(SHCNE_ASSOCCHANGED, SHCNF_IDLIST, nullptr, nullptr);
 }
 

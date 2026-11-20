@@ -6,6 +6,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../../constants/themes.dart';
 import '../notes/presentation/pages/web_preview_page.dart';
+import 'pyodide/pyodide_runtime.dart';
 import 'run_manager.dart';
 import 'sandbox_files_sheet.dart';
 
@@ -69,6 +70,7 @@ class RichOutputView extends StatelessWidget {
       'image' => _ImageOutput(path: output.path),
       'table' => _TableOutput(path: output.path),
       'markdown' => _MarkdownOutput(path: output.path),
+      'missing' => MissingPackagesCard(names: output.path.split(',').where((n) => n.isNotEmpty).toList()),
       _ => _HtmlOutput(output: output),
     };
   }
@@ -223,6 +225,112 @@ class _HtmlOutput extends StatelessWidget {
         icon: const Icon(Icons.open_in_new_rounded, size: 18),
         label: Text('Open interactive output${output.note.isEmpty ? '' : ' (${output.note})'}'),
       ),
+    );
+  }
+}
+
+
+/// Under a block on a phone: Python or a package isn't downloaded yet.
+/// One tap downloads it (with a progress bar), then ▶ runs the block again.
+/// "@python" means Python itself.
+class MissingPackagesCard extends StatefulWidget {
+  const MissingPackagesCard({super.key, required this.names});
+  final List<String> names;
+
+  @override
+  State<MissingPackagesCard> createState() => _MissingPackagesCardState();
+}
+
+class _MissingPackagesCardState extends State<MissingPackagesCard> {
+  double? _progress;
+  String? _status;
+  bool _done = false;
+  String? _error;
+
+  bool get _python => widget.names.contains('@python');
+  List<String> get _packages => widget.names.where((n) => n != '@python').toList();
+
+  Future<void> _download() async {
+    setState(() {
+      _progress = 0;
+      _error = null;
+    });
+    final rt = PyodideRuntime.instance;
+    void report(double x, String s) {
+      if (!mounted) return;
+      setState(() {
+        _progress = x;
+        _status = s;
+      });
+    }
+
+    try {
+      if (_python) await rt.downloadCore(onProgress: report);
+      if (_packages.isNotEmpty) {
+        final notFound = await rt.downloadPackages(_packages, onProgress: report);
+        if (notFound.isNotEmpty) {
+          _error = "Couldn't find ${notFound.join(', ')} for phones. Packages need a pure-Python or Pyodide build.";
+        }
+      }
+      _done = _error == null;
+    } catch (e) {
+      _error = '$e'.replaceFirst('RuntimeException: ', '');
+    }
+    if (mounted) setState(() => _progress = null);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
+    final what = [if (_python) 'Python', ..._packages].join(', ');
+    final title = _done
+        ? 'Downloaded. Press ▶ to run the block again.'
+        : _python
+            ? "Python isn't on this phone yet"
+            : '${_packages.length == 1 ? 'This block needs' : 'This block needs these packages'}: ${_packages.join(', ')}';
+    final body = _done
+        ? 'It stays on this phone, so it works offline from now on.'
+        : _python
+            ? 'Download it once (about 12 MB). It goes into CodeNote\'s sandbox and works offline afterwards.'
+            : 'Download ${_packages.length == 1 ? 'it' : 'them'} once into CodeNote\'s sandbox. '
+                'Manage downloads in Settings > Runtimes and sandbox.';
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.primaryContainer.withAlpha(90),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.primary.withAlpha(90)),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(_done ? Icons.check_circle_rounded : Icons.download_rounded, color: color.primary),
+          const SizedBox(width: 10),
+          Expanded(child: Text(title, style: const TextStyle(fontWeight: FontWeight.w600))),
+        ]),
+        const SizedBox(height: 6),
+        Text(body, style: TextStyle(color: color.onSurfaceVariant, fontSize: 13.5)),
+        if (_progress != null) ...[
+          const SizedBox(height: 10),
+          LinearProgressIndicator(value: _progress == 0 ? null : _progress),
+          if (_status != null) ...[
+            const SizedBox(height: 4),
+            Text(_status!, style: TextStyle(color: color.onSurfaceVariant, fontSize: 12.5)),
+          ],
+        ],
+        if (_error != null) ...[
+          const SizedBox(height: 8),
+          Text(_error!, style: TextStyle(color: color.error, fontSize: 13)),
+        ],
+        if (!_done && _progress == null) ...[
+          const SizedBox(height: 10),
+          FilledButton.icon(
+            onPressed: _download,
+            icon: const Icon(Icons.download_rounded, size: 18),
+            label: Text('Download $what'),
+          ),
+        ],
+      ]),
     );
   }
 }

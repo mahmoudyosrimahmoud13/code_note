@@ -1,4 +1,8 @@
 import '../../features/backup/codenote_files.dart';
+import '../../features/notebook/ipynb_import.dart';
+import '../../features/workspace/workspace_actions.dart';
+import '../../features/workspace/workspace_service.dart';
+import 'package:path/path.dart' as p;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
@@ -132,6 +136,17 @@ class SharingService {
     }
   }
 
+  static Future<bool> _looksLikeNotebook(String path) async {
+    try {
+      final raf = await File(path).open();
+      final head = await raf.read(4096);
+      await raf.close();
+      return IpynbImport.looksLikeNotebook(String.fromCharCodes(head));
+    } catch (_) {
+      return false;
+    }
+  }
+
   void _createNoteFromFile(BuildContext context, String path) async {
     // A .codenote file: import its notes, folders, images and app data.
     // Android sometimes hands over a copy without the file name, so the
@@ -143,6 +158,22 @@ class SharingService {
         messenger?.showSnackBar(SnackBar(content: Text('Imported: $summary'), persist: false));
       } catch (e) {
         messenger?.showSnackBar(SnackBar(content: Text("Couldn't open that file: $e"), persist: false));
+      }
+      return;
+    }
+    // A data file: open it in the data viewer, inside a new workspace.
+    if (WorkspaceService.dataExtensions.contains(p.extension(path).toLowerCase())) {
+      if (context.mounted) await WorkspaceActions.openDataPath(context, path);
+      return;
+    }
+    // A Jupyter notebook: cells become blocks, saved outputs come along.
+    if (path.toLowerCase().endsWith('.ipynb') || await _looksLikeNotebook(path)) {
+      try {
+        final note = await IpynbImport.fromFile(path);
+        if (context.mounted) _openAndSave(context, note);
+      } catch (e) {
+        LogService().log('SharingService: notebook import failed: $e');
+        showMessage(message: "Couldn't open that notebook: $e", type: SnackType.faild);
       }
       return;
     }

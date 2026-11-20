@@ -68,11 +68,18 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
   - **Windows:** a private folder only, so running code is off until you allow it.
 - **Files stay in the sandbox** until you press **Save a copy**.
 - **Built-in terminal**, and **Settings → Runtimes and sandbox** to download Python, Node.js, Dart or Bash from their official sources and to install or update Python and npm packages.
-- **Share as `.codenote`:** one note, a folder or everything in one file, with images and app data. *(Coming in 1.8.1: double-click a `.codenote` file to open it.)*
+- **Share as `.codenote`:** one note, a folder or everything in one file, with images and app data. Double-click a `.codenote` file to open it.
 - **Mini apps:** web page notes can save data (`localStorage` just works). Try the **Snake** game, the **youtube-downloader** folder (yt-dlp with all the options) and **fastapi-todo**.
-- **Open Jupyter notebooks** *(coming in 1.8.1)*: open an `.ipynb` from Jupyter, Colab or Kaggle and it becomes a note. Markdown cells become Markdown blocks, code cells become code blocks, and saved outputs and plots come along. Use **Ctrl+K → Open a Jupyter notebook**, or "Open with" from your file manager.
-- **Jupyter keyboard shortcuts** *(coming in 1.8.1)*: **Shift+Enter** runs and moves to the next block, **Ctrl+Enter** runs and stays, **Alt+Enter** runs and adds a block below. **Esc** selects the block, then **A / B** add a block above or below, **D D** deletes, **M** makes it Markdown, **I I** stops the code and **0 0** restarts the kernel.
-- **Expose sandbox** *(coming in 1.8.1)*: off by default. When you trust the code, let it read and change your own files (Linux, Windows). Plus **Open the sandbox folder** in your file manager.
+- **Open Jupyter notebooks** *(new in 1.9.0)*: open an `.ipynb` from Jupyter, Colab or Kaggle and it becomes a note. Markdown cells become Markdown blocks, code cells become code blocks, and saved outputs and plots come along. Use **Ctrl+K → Open a Jupyter notebook**, or "Open with" from your file manager.
+- **Jupyter keyboard shortcuts** *(new in 1.9.0)*: **Shift+Enter** runs and moves to the next block, **Ctrl+Enter** runs and stays, **Alt+Enter** runs and adds a block below. **Esc** selects the block, then **A / B** add a block above or below, **D D** deletes, **M** makes it Markdown, **I I** stops the code and **0 0** restarts the kernel.
+- **Expose sandbox** *(new in 1.9.0)*: off by default. When you trust the code, let it read and change your own files (Linux, Windows). Plus **Open the sandbox folder** in your file manager.
+
+### Data science in your pocket
+
+- **Python on your phone** *(new in 1.9.0)*: the same Jupyter-style kernel as on computers, running in CodeNote's sandbox with Pyodide. Download Python and the data science set (numpy, pandas, matplotlib, seaborn, scipy, scikit-learn) once from **Settings → Runtimes and sandbox**, then it works offline.
+- **Workspaces** *(new in 1.9.0)*: open a folder (computer) or files (phone) like a small IDE. Open each file as a file (edit, run) or as a note (`.ipynb` cells, `.py` split at `# %%`), and **Save back** to the original folder.
+- **Data viewer** *(new in 1.9.0)*: CSV, TSV and JSON as a table you can search and sort, a summary of every column, a chart per column, and **Analyze in a notebook** to get the pandas code written for you.
+- **Snippets and export** *(new in 1.9.0)*: insert ready-made pandas, chart and scikit-learn code; export a note as `.ipynb` or as an HTML report.
 
 ### Start from a template
 
@@ -146,7 +153,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 
 See **[CHANGELOG.md](CHANGELOG.md)** for every version. Highlights of 1.8.0: Python works like Jupyter (shared variables, plots, tables and rich output from any library), a pandas cookbook and PyTorch demo, and a fix for the Linux sandbox.
 
-**Coming in 1.8.1:** open Jupyter notebooks (`.ipynb`) as notes, Jupyter keyboard shortcuts, an **Expose sandbox** setting (off by default), double-click `.codenote` files to open them, and a clearer `%pip install`.
+**New in 1.9.0, data science in your pocket:** Python on phones (same Jupyter-style kernel, packages downloaded from Settings), **workspaces** that open a folder like an IDE, a **data viewer** for CSV and JSON with stats and charts, data science **snippets**, export to **.ipynb** or an **HTML report**, plus Jupyter notebooks as notes, Jupyter keyboard shortcuts and an **Expose sandbox** setting.
 
 ---
 

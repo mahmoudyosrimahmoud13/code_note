@@ -406,8 +406,8 @@ footer a { color: var(--muted); }
           <li><b>In [n]</b> counters, <b>Interrupt</b> that keeps your variables, and <b>Restart kernel</b></li>
           <li><code>%pip install</code> and <code>!commands</code> in any block, and <code>input()</code> works too</li>
           <li><b>Save the output</b> under the block: text, tables and plots become blocks of the note</li>
-          <li><b>Open Jupyter notebooks</b> (<code>.ipynb</code>) as notes: cells become blocks, and saved outputs and plots come along<span class="soon" data-since="1.8.1">coming in 1.8.1</span></li>
-          <li><b>Jupyter shortcuts:</b> <kbd>Shift</kbd> <kbd>Enter</kbd> runs and moves on, <kbd>Esc</kbd> then <kbd>A</kbd> / <kbd>B</kbd> / <kbd>D</kbd> <kbd>D</kbd> / <kbd>M</kbd> like in Jupyter<span class="soon" data-since="1.8.1">coming in 1.8.1</span></li>
+          <li><b>Open Jupyter notebooks</b> (<code>.ipynb</code>) as notes: cells become blocks, and saved outputs and plots come along<span class="soon" data-since="1.9.0">coming in 1.9.0</span></li>
+          <li><b>Jupyter shortcuts:</b> <kbd>Shift</kbd> <kbd>Enter</kbd> runs and moves on, <kbd>Esc</kbd> then <kbd>A</kbd> / <kbd>B</kbd> / <kbd>D</kbd> <kbd>D</kbd> / <kbd>M</kbd> like in Jupyter<span class="soon" data-since="1.9.0">coming in 1.9.0</span></li>
         </ul>
       </div>
       <div class="shot"><div class="win">
@@ -440,7 +440,7 @@ df = pd.<span class="f">read_csv</span>(<span class="s">"orders.csv"</span>)</pr
           <li><b>Linux:</b> bubblewrap hides your home folder and drives from scripts</li>
           <li><b>Windows:</b> scripts get their own folder, and running code needs your OK first</li>
           <li>On Windows and Linux, runtimes download from their <b>official sources</b> into the sandbox, never into your system (macOS uses the ones you have). Update packages, or clear everything, from Settings</li>
-          <li><b>Expose sandbox</b>, off by default: when you trust the code, let it reach your own files (Linux, Windows)<span class="soon" data-since="1.8.1">coming in 1.8.1</span></li>
+          <li><b>Expose sandbox</b>, off by default: when you trust the code, let it reach your own files (Linux, Windows)<span class="soon" data-since="1.9.0">coming in 1.9.0</span></li>
         </ul>
       </div>
       <div class="shot"><div class="win">
@@ -462,9 +462,9 @@ df = pd.<span class="f">read_csv</span>(<span class="s">"orders.csv"</span>)</pr
       <div class="card reveal"><h3><span class="ic">≡</span>Live progress</h3><p>Package downloads show a progress bar, and a ring on ▶ shows what's still running.</p></div>
       <div class="card reveal"><h3><span class="ic">⧉</span>Share as .codenote</h3><p>Send a note or a whole folder as one file: blocks, images, run order and saved app data.</p></div>
       <div class="card reveal"><h3><span class="ic">$</span>Bash everywhere</h3><p>Bash and shell blocks run on Linux, macOS and Android. On Windows CodeNote downloads BusyBox for you.</p></div>
-      <div class="card reveal"><h3><span class="ic">◫</span>Open .ipynb</h3><p>Open a notebook from Jupyter, Colab or Kaggle and it becomes a note you can run. <span class="soon" data-since="1.8.1">coming in 1.8.1</span></p></div>
-      <div class="card reveal"><h3><span class="ic">↵</span>Double-click to open</h3><p>Double-click a <code>.codenote</code> file and it opens in CodeNote, even when CodeNote is already open. <span class="soon" data-since="1.8.1">coming in 1.8.1</span></p></div>
-      <div class="card reveal"><h3><span class="ic">⌗</span>Sandbox folder</h3><p>Open the sandbox in your file manager from Settings, to see what your scripts made. <span class="soon" data-since="1.8.1">coming in 1.8.1</span></p></div>
+      <div class="card reveal"><h3><span class="ic">◫</span>Open .ipynb</h3><p>Open a notebook from Jupyter, Colab or Kaggle and it becomes a note you can run. <span class="soon" data-since="1.9.0">coming in 1.9.0</span></p></div>
+      <div class="card reveal"><h3><span class="ic">↵</span>Double-click to open</h3><p>Double-click a <code>.codenote</code> file and it opens in CodeNote, even when CodeNote is already open. <span class="soon" data-since="1.9.0">coming in 1.9.0</span></p></div>
+      <div class="card reveal"><h3><span class="ic">⌗</span>Sandbox folder</h3><p>Open the sandbox in your file manager from Settings, to see what your scripts made. <span class="soon" data-since="1.9.0">coming in 1.9.0</span></p></div>
       <div class="card reveal"><h3><span class="ic">&gt;_</span>Terminal</h3><p>A shell that starts in the note's sandbox folder, one tap away from any run.</p></div>
       <div class="card reveal"><h3><span class="ic">◇</span>Dart and TypeScript</h3><p>The Dart SDK and TypeScript run straight from a block. On Windows and Linux CodeNote downloads them once.</p></div>
     </div>
@@ -622,10 +622,10 @@ df = pd.<span class="f">read_csv</span>(<span class="s">"orders.csv"</span>)</pr
       <div class="card key"><span>New note</span><span><kbd>Ctrl</kbd> <kbd>N</kbd></span></div>
       <div class="card key"><span>Search</span><span><kbd>Ctrl</kbd> <kbd>F</kbd></span></div>
       <div class="card key"><span>Close</span><span><kbd>Esc</kbd></span></div>
-      <div class="card key"><span>Run, move on<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>Shift</kbd> <kbd>Enter</kbd></span></div>
-      <div class="card key"><span>Run block<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>Ctrl</kbd> <kbd>Enter</kbd></span></div>
-      <div class="card key"><span>Block mode<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>Esc</kbd></span></div>
-      <div class="card key"><span>Stop · restart<span class="soon" data-since="1.8.1">coming in 1.8.1</span></span><span><kbd>I</kbd><kbd>I</kbd> · <kbd>0</kbd><kbd>0</kbd></span></div>
+      <div class="card key"><span>Run, move on<span class="soon" data-since="1.9.0">coming in 1.9.0</span></span><span><kbd>Shift</kbd> <kbd>Enter</kbd></span></div>
+      <div class="card key"><span>Run block<span class="soon" data-since="1.9.0">coming in 1.9.0</span></span><span><kbd>Ctrl</kbd> <kbd>Enter</kbd></span></div>
+      <div class="card key"><span>Block mode<span class="soon" data-since="1.9.0">coming in 1.9.0</span></span><span><kbd>Esc</kbd></span></div>
+      <div class="card key"><span>Stop · restart<span class="soon" data-since="1.9.0">coming in 1.9.0</span></span><span><kbd>I</kbd><kbd>I</kbd> · <kbd>0</kbd><kbd>0</kbd></span></div>
     </div>
   </div>
 </section>

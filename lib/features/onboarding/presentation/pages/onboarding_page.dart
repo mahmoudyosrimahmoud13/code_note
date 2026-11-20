@@ -40,9 +40,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
       scene: _Scene.organize,
     ),
     _Page(
-      title: 'Run code, safely',
-      body: 'Python, Bash and web pages run inside a sandbox. Each folder has its own. '
-          'Scripts can\'t touch your files, and what they make stays there until you save a copy.',
+      title: 'Data science in your pocket',
+      body: 'Python runs like Jupyter, on your computer and your phone, inside a sandbox. '
+          'Open a CSV or Excel file to see it as a table with charts, or a folder to work like in an IDE. '
+          'Tap the folder button at the top to start.',
       scene: _Scene.sandbox,
     ),
     _Page(

@@ -42,7 +42,7 @@ Icon=$APP_ID
 Terminal=false
 Categories=Development;Utility;TextEditor;
 Keywords=notes;code;snippets;markdown;
-MimeType=application/x-codenote;
+MimeType=application/x-codenote;application/x-ipynb+json;
 StartupWMClass=code_note
 DESKTOP
 

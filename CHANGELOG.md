@@ -3,9 +3,20 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
-## [1.8.1] - 2026-11-20
+## [1.9.0] - 2026-11-20
+
+Data science in your pocket.
 
 ### New
+- **Python on phones.** Python blocks now run on Android (and iPhone) with Pyodide, Python built for WebAssembly, inside CodeNote's own sandbox. It's the same kernel as on computers, so notes, Run note, Run folder, the run order and workspaces all work the same: blocks share variables, tables and plots show under the code, Interrupt and Restart work.
+  - **Download what you need, like the other runtimes:** Settings > Runtimes and sandbox has "Download Python" (about 12 MB) and a data science set (numpy, pandas, matplotlib, seaborn, scipy, scikit-learn, openpyxl), plus any other Pyodide or pure-Python package. Everything works offline afterwards.
+  - If a block imports something you haven't downloaded, a card under it says what's missing with a **Download** button.
+  - Python runs in a background worker, so heavy code never freezes the app.
+- **Workspaces (open a folder like an IDE).** On a computer open a folder, on a phone pick files. They're copied into a sandbox and shown as a file tree. Open a file **as a file** (edit, Save, Run) or **as a note**: `.ipynb` becomes cells, `.py` splits into blocks at `# %%` lines. Notes remember their file and save back into it. **Save back** copies changed files into the original folder after showing you the list. Every CodeNote folder now has a **Files** button that opens it as a workspace.
+- **Data viewer.** Open a CSV, TSV, JSON or JSON Lines file and get a table you can search and sort, a summary of every column (numbers or text, missing values, smallest, largest, average, median, most common values) and a chart per column. Big files load in the background and scroll smoothly. **Analyze in a notebook** writes a pandas notebook for the file: first rows, types, summary, missing values, histograms and a correlation chart. Excel and Parquet files open straight in that notebook.
+- **Snippets.** Python blocks get a **Snippet** button: load, look, clean, shape, chart, model (scikit-learn) and save, ready to run.
+- **Export** a note as a **Jupyter notebook** (`.ipynb`) or as an **HTML report** with its text, code, tables and plots.
+- A folder button on the home screen opens a folder, a data file or a notebook. Data files shared into CodeNote open in the data viewer.
 - **Open Jupyter notebooks** (`.ipynb`) as notes: Markdown cells become Markdown blocks, code cells become code blocks in the notebook's language, and saved outputs (text, tables, plots, errors) come along. Ctrl+K → "Open a Jupyter notebook", share or "Open with" on Android, Linux and Windows.
 - **Jupyter keyboard shortcuts** in code blocks: Shift+Enter runs and moves to the next block (adds one at the end), Ctrl+Enter runs and stays, Alt+Enter runs and adds a block below. Esc selects the block (command mode), where A / B add a block above / below, D D deletes, M turns it into Markdown, ↑ ↓ (or K J) move between blocks, I I stops the code and 0 0 restarts the Python kernel. The full list is in the note's ⋮ menu under Keyboard shortcuts.
 - **Expose sandbox** (Settings > Runtimes and sandbox, off by default): lets code you trust read and change your own files, not only its sandbox folder. Your real home folder is in `$CODENOTE_HOME`. Asks before turning on, and the sandbox card says when it's on. Linux and Windows; Android and macOS keep CodeNote in its own space. Also new: **Open the sandbox folder** in your file manager.
@@ -13,7 +24,7 @@ Each release on GitHub uses the matching section below as its notes.
 - **Share menu:** "CodeNote file (.codenote)" is now the first choice in a note's share sheet.
 
 ### Fixed
-- `%pip install --quiet …` no longer looks stuck: a ticking line shows it's still downloading, and the end says "✓ pip finished" or why it stopped. Interrupt also stops the download.
+- `%pip install --quiet …` on computers no longer looks stuck: a ticking line shows it's still downloading, and the end says "✓ pip finished" or why it stopped. Interrupt also stops the download.
 - Shell commands in Python blocks (`!cmd`, `%pip`) can't read the kernel's own input anymore.
 
 ## [1.8.0] - 2026-11-20

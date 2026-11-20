@@ -5,6 +5,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../constants/themes.dart';
 import '../../widgets/brand.dart';
+import 'pyodide/pyodide_runtime.dart';
 import 'run_manager.dart';
 import 'runtimes.dart';
 import 'sandbox.dart';
@@ -25,6 +26,9 @@ class _RuntimesPageState extends State<RuntimesPage> {
   SandboxLevel? _level;
   bool _allowed = false;
   bool _exposed = false;
+  bool _pyoInstalled = false;
+  List<DownloadedPackage> _pyoPackages = const [];
+  final _pyoInput = TextEditingController();
   String? _pyVersion;
   String? _pyPath;
   bool _pyDownloaded = false;
@@ -58,6 +62,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
     RunManager.instance.removeListener(_refreshRuns);
     _pkgInput.dispose();
     _npmInput.dispose();
+    _pyoInput.dispose();
     super.dispose();
   }
 
@@ -96,6 +101,14 @@ class _RuntimesPageState extends State<RuntimesPage> {
       _shell = shell;
       _busyboxDownloaded = bb;
     });
+    if (PyodideRuntime.usedHere) {
+      final installed = await PyodideRuntime.instance.isInstalled();
+      final pkgs = installed ? await PyodideRuntime.instance.downloaded() : const <DownloadedPackage>[];
+      if (mounted) setState(() {
+        _pyoInstalled = installed;
+        _pyoPackages = pkgs;
+      });
+    }
     if (packages && hasEnv) await _loadPackages();
     if (packages && nodeV != null) await _loadNpm();
   }
@@ -477,7 +490,8 @@ class _RuntimesPageState extends State<RuntimesPage> {
               ),
           ],
           if (_level == SandboxLevel.unavailable)
-            Text('iPhone and iPad don\'t allow apps to run code.', style: TextStyle(color: color.error)),
+            Text("iPhone and iPad don't let apps run programs. Python still runs inside CodeNote's web view (below).",
+                style: TextStyle(color: color.error)),
           if (_level != null && _level != SandboxLevel.unavailable) ...[
             const Divider(height: 28),
             _exposeSwitch(),
@@ -543,8 +557,163 @@ class _RuntimesPageState extends State<RuntimesPage> {
     ]);
   }
 
+  // ---------- Python on phones (Pyodide) ----------
+
+  Future<void> _pyoDownload(List<String> names) async {
+    await _doing('Starting the download…', () async {
+      final rt = PyodideRuntime.instance;
+      if (!_pyoInstalled) await rt.downloadCore(onProgress: _progressCb);
+      if (names.isNotEmpty) {
+        final notFound = await rt.downloadPackages(names, onProgress: _progressCb);
+        if (notFound.isNotEmpty) {
+          _snack("Couldn't find ${notFound.join(', ')} for phones. It needs a pure-Python or Pyodide build.");
+        }
+      }
+    });
+    await _refresh(packages: false);
+  }
+
+  String _mb(int bytes) => bytes >= 1048576 ? '${(bytes / 1048576).toStringAsFixed(1)} MB' : '${(bytes / 1024).ceil()} KB';
+
+  Widget _phonePythonCard() {
+    final tokens = context.tokens;
+    final total = _pyoPackages.fold<int>(0, (a, b) => a + b.bytes);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Row(children: [
+            Icon(_pyoInstalled ? Icons.check_circle_rounded : Icons.download_rounded,
+                color: _pyoInstalled ? tokens.success : tokens.subtle),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(_pyoInstalled ? 'Python ${PyodideRuntime.version} for phones' : 'Python for phones',
+                  style: Theme.of(context).textTheme.titleMedium),
+            ),
+          ]),
+          const SizedBox(height: 8),
+          Text(_pyoInstalled
+              ? 'Python runs inside CodeNote, in its own sandbox, and works offline. Blocks in a note share '
+                  'variables, like Jupyter. Packages you download below are ready to import.'
+              : 'Download Python once (about 12 MB) to run Python blocks on this phone, like a Jupyter notebook. '
+                  'It stays in CodeNote\'s sandbox and works offline.'),
+          const SizedBox(height: 12),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            if (!_pyoInstalled)
+              FilledButton.icon(
+                onPressed: _task != null ? null : () => _pyoDownload(const []),
+                icon: const Icon(Icons.download_rounded),
+                label: const Text('Download Python'),
+              ),
+            if (_pyoInstalled)
+              TextButton.icon(
+                onPressed: _task != null
+                    ? null
+                    : () async {
+                        if (!await _confirm('Remove Python for phones?',
+                            'Python and every downloaded package are removed. Your notes stay.', 'Remove')) {
+                          return;
+                        }
+                        await PyodideRuntime.instance.removeAll();
+                        await _refresh(packages: false);
+                      },
+                icon: const Icon(Icons.delete_outline_rounded),
+                label: Text('Remove (${_mb(total)} of packages)'),
+              ),
+          ]),
+        ]),
+      ),
+    );
+  }
+
+  Widget _phonePackagesCard() {
+    final tokens = context.tokens;
+    final have = {for (final p in _pyoPackages) PyodideRuntime.norm(p.name)};
+    final missingSet = PyodideRuntime.dataScience.where((n) => !have.contains(PyodideRuntime.norm(n))).toList();
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          Text('Data science set', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 6),
+          Text('Tap a package to download it, or get the whole set. What they need comes along.',
+              style: TextStyle(color: tokens.subtle, fontSize: 13.5)),
+          const SizedBox(height: 10),
+          Wrap(spacing: 8, runSpacing: 8, children: [
+            for (final n in PyodideRuntime.dataScience)
+              FilterChip(
+                label: Text(n),
+                selected: have.contains(PyodideRuntime.norm(n)),
+                showCheckmark: true,
+                onSelected: _task != null || have.contains(PyodideRuntime.norm(n)) ? null : (_) => _pyoDownload([n]),
+              ),
+          ]),
+          if (missingSet.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: FilledButton.tonalIcon(
+                onPressed: _task != null ? null : () => _pyoDownload(missingSet),
+                icon: const Icon(Icons.download_rounded),
+                label: Text(missingSet.length == PyodideRuntime.dataScience.length
+                    ? 'Download the whole set'
+                    : 'Download the rest (${missingSet.length})'),
+              ),
+            ),
+          ],
+          const Divider(height: 28),
+          Text('Another package', style: Theme.of(context).textTheme.titleSmall),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(
+              child: TextField(
+                controller: _pyoInput,
+                decoration: const InputDecoration(hintText: 'e.g. sympy statsmodels plotly', isDense: true),
+                onSubmitted: (_) => _pyoAdd(),
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton(onPressed: _task != null ? null : _pyoAdd, child: const Text('Download')),
+          ]),
+          const SizedBox(height: 6),
+          Text('Packages built for Pyodide, or pure-Python ones from PyPI.',
+              style: TextStyle(color: tokens.subtle, fontSize: 12.5)),
+          if (_pyoPackages.isNotEmpty) ...[
+            const Divider(height: 28),
+            Text('${_pyoPackages.length} downloaded', style: TextStyle(color: tokens.subtle)),
+            for (final pkg in _pyoPackages)
+              ListTile(
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                title: Text(pkg.name),
+                subtitle: Text('${pkg.version} · ${_mb(pkg.bytes)}${pkg.fromPypi ? ' · from PyPI' : ''}'),
+                trailing: IconButton(
+                  tooltip: 'Remove ${pkg.name}',
+                  icon: const Icon(Icons.close_rounded, size: 18),
+                  onPressed: _task != null
+                      ? null
+                      : () async {
+                          await PyodideRuntime.instance.removePackage(pkg);
+                          await _refresh(packages: false);
+                        },
+                ),
+              ),
+          ],
+        ]),
+      ),
+    );
+  }
+
+  Future<void> _pyoAdd() async {
+    final names = _pyoInput.text.split(RegExp(r'[\s,]+')).where((e) => e.isNotEmpty).toList();
+    if (names.isEmpty) return;
+    _pyoInput.clear();
+    await _pyoDownload(names);
+  }
+
   Widget _pythonCard() {
     final tokens = context.tokens;
+    if (PyodideRuntime.usedHere) return _phonePythonCard();
     if (!Runtimes.pythonSupported) {
       return const Card(
         child: ListTile(
@@ -850,6 +1019,7 @@ class _RuntimesPageState extends State<RuntimesPage> {
               _section('running now', [_runningCard()]),
               _section('python', [_pythonCard()]),
               if (_hasEnv) _section('python packages', [_packagesCard()]),
+              if (PyodideRuntime.usedHere && _pyoInstalled) _section('python packages', [_phonePackagesCard()]),
               if (Runtimes.nodeSupported) _section('javascript', [_nodeCard()]),
               if (Runtimes.dartSupported) _section('dart', [_dartCard()]),
               _section('shell', [_shellCard()]),

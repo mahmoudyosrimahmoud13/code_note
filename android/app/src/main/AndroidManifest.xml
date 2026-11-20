@@ -82,6 +82,9 @@
                 <data android:pathPattern=".*\\.codenote" />
                 <data android:pathPattern=".*\\..*\\.codenote" />
                 <data android:pathPattern=".*\\..*\\..*\\.codenote" />
+                <!-- Jupyter notebooks open as notes -->
+                <data android:pathPattern=".*\\.ipynb" />
+                <data android:pathPattern=".*\\..*\\.ipynb" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

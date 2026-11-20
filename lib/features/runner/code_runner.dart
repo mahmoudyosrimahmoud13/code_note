@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import '../notes/domain/entities/block.dart';
 import '../notes/domain/entities/language.dart';
 import 'python_kernel.dart';
+import 'pyodide/pyodide_runtime.dart';
 import 'runtimes.dart';
 import 'sandbox.dart';
 
@@ -15,7 +16,10 @@ class CodeRunner {
 
   /// Languages that get a ▶ Run button on this device.
   static bool canRun(Language language) {
-    if (kIsWeb || !Sandbox.supported) return false;
+    if (kIsWeb) return false;
+    // Phones run Python in Pyodide, which the web view keeps sandboxed.
+    if (language == Language.python && PyodideRuntime.usedHere) return true;
+    if (!Sandbox.supported) return false;
     switch (language) {
       case Language.python:
         return Runtimes.pythonSupported;

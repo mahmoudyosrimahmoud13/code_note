@@ -31,9 +31,31 @@ class KernelCell {
   final done = Completer<String>(); // ok | error | interrupted | died
 }
 
+/// A note's Python kernel: keeps variables between blocks, like Jupyter.
+/// Computers use [PythonKernel] (a Python process); phones use
+/// PyodideKernel (Python in the web view). Both run CodeNote's same
+/// codenote_kernel.py and speak the same markers, so notes, Run note,
+/// Run folder and workspaces work the same everywhere.
+abstract class NotebookKernel {
+  bool get alive;
+  String get version;
+
+  /// Runs [code]; output goes to [onLine]. Ends with ok, error,
+  /// interrupted or died.
+  Future<String> execute(String id, String code, void Function(String line) onLine);
+
+  /// Answers input() in the running block.
+  void send(String text);
+
+  /// Stops the running block, keeping the variables when possible.
+  Future<void> interrupt();
+
+  void shutdown();
+}
+
 /// A Python process per note that keeps variables between blocks, like a
 /// Jupyter kernel. Blocks run one at a time, in the order they're sent.
-class PythonKernel {
+class PythonKernel implements NotebookKernel {
   PythonKernel._(this.noteId, this._process, this.workspace);
 
   final String noteId;
@@ -42,9 +64,11 @@ class PythonKernel {
   final _queue = <KernelCell>[];
   KernelCell? _current;
   bool _dead = false;
+  @override
   String version = '';
   final _ready = Completer<void>();
 
+  @override
   bool get alive => !_dead;
 
   static Future<PythonKernel> start(String noteId, Directory workspace) async {
@@ -112,6 +136,7 @@ class PythonKernel {
 
   /// Runs [code] in the kernel. Output goes to [onLine]; the future says
   /// how it ended: ok, error, interrupted or died.
+  @override
   Future<String> execute(String id, String code, void Function(String line) onLine) async {
     if (_dead) return 'died';
     final dir = Directory(p.join(workspace.path, '.codenote', 'cells'))..createSync(recursive: true);
@@ -124,6 +149,7 @@ class PythonKernel {
   }
 
   /// Answers input() in the running block.
+  @override
   void send(String text) => _process.write(text);
 
   static String _flagPath(Directory workspace, String noteId) =>
@@ -132,6 +158,7 @@ class PythonKernel {
   /// Stops the running block but keeps the variables, like Jupyter's
   /// interrupt. If the block doesn't stop within 3 seconds (stuck in
   /// native code), the kernel restarts.
+  @override
   Future<void> interrupt() async {
     final cell = _current;
     if (cell == null) return;
@@ -142,6 +169,7 @@ class PythonKernel {
     });
   }
 
+  @override
   void shutdown() {
     _dead = true;
     _process.stop();

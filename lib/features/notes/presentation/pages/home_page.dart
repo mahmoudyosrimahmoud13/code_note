@@ -9,6 +9,9 @@ import '../../../../constants/themes.dart';
 import '../../../../core/services/log_service.dart';
 import '../../../../core/services/log_viewer_page.dart';
 import '../../../../core/services/sharing_service.dart';
+import '../../../../core/util/platform_helper.dart';
+import 'package:file_selector/file_selector.dart';
+import '../../../workspace/workspace_actions.dart';
 import '../../../../core/services/open_files_service.dart';
 import '../../../../core/services/update_dialog.dart';
 import '../../../../core/services/update_service.dart';
@@ -147,6 +150,20 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
     );
+  }
+
+  /// Picks a Jupyter notebook and opens it as a note.
+  Future<void> _openNotebook() async {
+    final file = await openFile(acceptedTypeGroups: const [
+      XTypeGroup(
+        label: 'Jupyter notebook',
+        extensions: ['ipynb'],
+        mimeTypes: ['application/x-ipynb+json', 'application/json', 'application/octet-stream'],
+        uniformTypeIdentifiers: ['public.json', 'public.data'],
+      ),
+    ]);
+    if (file == null || !mounted) return;
+    SharingService().openFile(context, file.path);
   }
 
   @override
@@ -387,6 +404,9 @@ class _HomePageState extends State<HomePage> {
           PaletteItem(label: 'Stop all running code (${RunManager.instance.running.length})', icon: Icons.stop_circle_outlined, run: RunManager.instance.stopAll, keywords: 'kill server'),
       ],
       PaletteItem(label: 'Open a .codenote file', icon: Icons.file_open_outlined, run: () => CodenoteFiles.pickAndImport(context), keywords: 'import share file note folder'),
+      PaletteItem(label: PlatformHelper.isDesktopOrWeb ? 'Open a folder as a workspace' : 'Open files as a workspace', icon: Icons.folder_open_rounded, run: () => WorkspaceActions.openWorkspace(context), keywords: 'ide directory project files data science'),
+      PaletteItem(label: 'Open a data file (CSV, Excel, JSON)', icon: Icons.table_chart_rounded, run: () => WorkspaceActions.openDataFile(context), keywords: 'csv excel xlsx json parquet table data viewer pandas'),
+      PaletteItem(label: 'Open a Jupyter notebook (.ipynb)', icon: Icons.menu_book_outlined, run: _openNotebook, keywords: 'jupyter ipynb import notebook colab kaggle'),
       PaletteItem(label: 'New folder', icon: Icons.create_new_folder_outlined, run: _createGroup, keywords: 'group create'),
       PaletteItem(label: 'Search notes', icon: Icons.search_rounded, hint: 'Ctrl+F', run: _openSearch, keywords: 'find grep'),
       for (final view in HomeView.values)
@@ -706,6 +726,45 @@ class _HomePageState extends State<HomePage> {
             tooltip: 'Commands (Ctrl+K)',
             icon: const Icon(Icons.keyboard_command_key_rounded),
             onPressed: _openPalette,
+          ),
+          // Data science: open a folder, a data file or a notebook.
+          PopupMenuButton<String>(
+            tooltip: 'Open files, data or a notebook',
+            icon: const Icon(Icons.folder_open_rounded),
+            onSelected: (v) => switch (v) {
+              'workspace' => WorkspaceActions.openWorkspace(context),
+              'data' => WorkspaceActions.openDataFile(context),
+              _ => _openNotebook(),
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'workspace',
+                child: ListTile(
+                  leading: const Icon(Icons.folder_open_rounded),
+                  title: Text(PlatformHelper.isDesktopOrWeb ? 'Open a folder' : 'Open files'),
+                  subtitle: const Text('Like an IDE: files, notebooks, run'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'data',
+                child: ListTile(
+                  leading: Icon(Icons.table_chart_rounded),
+                  title: Text('Open a data file'),
+                  subtitle: Text('CSV, Excel, JSON: table, stats, charts'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'notebook',
+                child: ListTile(
+                  leading: Icon(Icons.menu_book_outlined),
+                  title: Text('Open a Jupyter notebook'),
+                  subtitle: Text('.ipynb from Jupyter, Colab or Kaggle'),
+                  contentPadding: EdgeInsets.zero,
+                ),
+              ),
+            ],
           ),
           if (_view == HomeView.notes && !wide)
             IconButton(

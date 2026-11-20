@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -18,6 +19,8 @@ import '../../../reminders/reminder_service.dart';
 import '../../../templates/templates.dart';
 import '../../../gist/gist_page.dart';
 import '../../../backup/codenote_files.dart';
+import '../../../notebook/html_report.dart';
+import '../../../notebook/ipynb_import.dart';
 import '../../../runner/notebook_focus.dart';
 import '../../../miniapps/mini_app_storage.dart';
 import '../../../runner/note_scope.dart';
@@ -315,6 +318,19 @@ class _NotePageState extends State<NotePage> {
           },
         ),
       ));
+  }
+
+  /// Saves (desktop) or shares (phone) an export of this note.
+  Future<void> _export(String text, String ext, String mime, String label) async {
+    final title = _titleController.text.trim().isEmpty ? 'note' : _titleController.text.trim();
+    final safe = title.replaceAll(RegExp(r'[^A-Za-z0-9 _.-]'), '').trim().replaceAll(' ', '-');
+    final saved = await NoteShareHelper.saveOrShareBytes(
+      Uint8List.fromList(utf8.encode(text)),
+      fileName: '${safe.isEmpty ? 'note' : safe}.$ext',
+      mimeType: mime,
+      typeLabel: label,
+    );
+    if (saved != null) _toast('Saved $label.');
   }
 
   // ---------- Jupyter-style keyboard moves between code blocks ----------
@@ -760,6 +776,26 @@ class _NotePageState extends State<NotePage> {
                     exportNoteToGist(context, _currentNote());
                   case 'codenote':
                     CodenoteFiles.shareNote(context, _currentNote());
+                  case 'ipynb':
+                    _export(
+                      IpynbExport.fromNote(_currentNote(), readImage: (path) {
+                        try {
+                          return File(path).readAsBytesSync();
+                        } catch (_) {
+                          return null;
+                        }
+                      }),
+                      'ipynb',
+                      'application/x-ipynb+json',
+                      'Jupyter notebook',
+                    );
+                  case 'report':
+                    _export(
+                      HtmlReport.fromNote(_currentNote(), readImage: HtmlReport.readFile),
+                      'html',
+                      'text/html',
+                      'HTML report',
+                    );
                   case 'shortcuts':
                     showNotebookShortcuts(context);
                   case 'appdata':
@@ -809,6 +845,22 @@ class _NotePageState extends State<NotePage> {
                   child: ListTile(
                     leading: Icon(Icons.description_outlined),
                     title: Text('Share as .codenote file'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'ipynb',
+                  child: ListTile(
+                    leading: Icon(Icons.menu_book_outlined),
+                    title: Text('Export as Jupyter notebook'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'report',
+                  child: ListTile(
+                    leading: Icon(Icons.article_outlined),
+                    title: Text('Export as HTML report'),
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),

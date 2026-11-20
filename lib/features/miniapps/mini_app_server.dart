@@ -6,6 +6,7 @@ import 'dart:math';
 import 'package:path/path.dart' as p;
 
 import '../../core/services/log_service.dart';
+import '../runner/pyodide/pyodide_runtime.dart';
 import '../runner/sandbox.dart';
 import 'mini_app_storage.dart';
 
@@ -43,6 +44,16 @@ class MiniAppServer {
     _pages[noteId] = document;
     if (spaceKey != null) _spaces[noteId] = spaceKey;
     return Uri.parse('http://127.0.0.1:${server.port}/$_secret/app/${Uri.encodeComponent(noteId)}');
+  }
+
+  /// The page that runs Python on phones (see PyodideRuntime).
+  Future<Uri?> pyodidePage() async {
+    final server = await (_starting ??= _start());
+    if (server == null) {
+      _starting = null;
+      return null;
+    }
+    return Uri.parse('http://127.0.0.1:${server.port}/$_secret/pyodide/host.html');
   }
 
   Future<HttpServer?> _start() async {
@@ -96,6 +107,8 @@ class MiniAppServer {
         res.statusCode = HttpStatus.noContent;
       } else if (kind == 'files' && parts.length >= 4 && req.method == 'GET') {
         await _sendFile(res, parts[2], parts.sublist(3));
+      } else if (kind == 'pyodide' && req.method == 'GET') {
+        await PyodideRuntime.instance.handle(req, res, parts.sublist(2));
       } else if (kind == 'proxy' && parts.length >= 3) {
         await _proxy(req, res, parts[2], parts.sublist(3));
       } else {

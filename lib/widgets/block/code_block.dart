@@ -18,6 +18,7 @@ import '../../helpers/helper_methods.dart';
 import '../../features/runner/code_runner.dart';
 import '../../features/runner/note_scope.dart';
 import '../../features/runner/notebook_focus.dart';
+import '../../features/runner/snippets.dart';
 import '../../features/runner/run_manager.dart';
 import '../../features/runner/run_panel.dart';
 import '../../features/runner/rich_output_view.dart';
@@ -288,6 +289,18 @@ class _CodeBlockState extends State<CodeBlock> {
 
   /// Puts [symbol] where the cursor is (not at the end of the code),
   /// replacing any selected text.
+  /// Data science snippets: typed in at the cursor, on a line of their own.
+  Future<void> _insertSnippet() async {
+    final snippet = await pickSnippet(context);
+    if (snippet == null || !mounted) return;
+    final value = _controller.value;
+    final text = value.text;
+    final at = value.selection.isValid ? value.selection.start.clamp(0, text.length) : text.length;
+    final before = at == 0 || text[at - 1] == '\n' ? '' : '\n';
+    final after = at < text.length && text[at] != '\n' ? '\n' : '';
+    _insert('$before${snippet.code}$after', after.length);
+  }
+
   void _insert(String symbol, int stepBack) {
     final value = _controller.value;
     final text = value.text;
@@ -388,6 +401,8 @@ class _CodeBlockState extends State<CodeBlock> {
           try {
             blocks.add(MarkdownBlockEntity(id: const Uuid().v4(), text: await File(rich.path).readAsString()));
           } catch (_) {}
+        case 'missing':
+          break; // the download card isn't output
         default:
           blocks.add(MarkdownBlockEntity(
               id: const Uuid().v4(),
@@ -510,6 +525,12 @@ class _CodeBlockState extends State<CodeBlock> {
                 ),
               ],
               extraActions: [
+                if (_language == Language.python)
+                  BlockAction(
+                    label: 'Insert a data science snippet',
+                    icon: Icons.auto_awesome_motion_rounded,
+                    onTap: _insertSnippet,
+                  ),
                 if (_runnable(context)) ...[
                   BlockAction(
                     label: _runRole == RunRole.main ? 'Unset primary block' : '★ Primary block (runs last)',
@@ -596,6 +617,21 @@ class _CodeBlockState extends State<CodeBlock> {
                       scrollDirection: Axis.horizontal,
                       padding: const EdgeInsets.symmetric(horizontal: 8),
                       children: [
+                        if (_language == Language.python)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 6),
+                            child: TextButton.icon(
+                              style: TextButton.styleFrom(
+                                minimumSize: const Size(40, 32),
+                                padding: const EdgeInsets.symmetric(horizontal: 10),
+                                backgroundColor: color.primaryContainer,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              ),
+                              onPressed: _insertSnippet,
+                              icon: const Icon(Icons.auto_awesome_motion_rounded, size: 16),
+                              label: const Text('Snippet'),
+                            ),
+                          ),
                         for (final (symbol, back) in _symbols)
                           Padding(
                             padding: const EdgeInsets.symmetric(

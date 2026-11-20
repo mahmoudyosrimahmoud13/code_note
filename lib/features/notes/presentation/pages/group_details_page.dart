@@ -11,6 +11,8 @@ import '../../../../widgets/home_grid_view.dart';
 import 'note_page.dart';
 import 'web_preview_page.dart';
 import '../../../backup/codenote_files.dart';
+import '../../../workspace/workspace_page.dart';
+import '../../../workspace/workspace_service.dart';
 import '../../../runner/run_manager.dart';
 import '../../../runner/sandbox.dart';
 import '../../../runner/run_order_sheet.dart';
@@ -67,6 +69,18 @@ class _GroupDetailsPageState extends State<GroupDetailsPage> {
                 style: monoStyle(context, size: 17, weight: FontWeight.w700)),
             actions: [
               _RunFolderButton(group: currentGroup),
+              // Every folder has a sandbox: see its files like an IDE.
+              IconButton(
+                tooltip: 'Files (workspace)',
+                icon: const Icon(Icons.folder_copy_outlined),
+                onPressed: () async {
+                  final info = await WorkspaceService.instance.get(currentGroup.id) ??
+                      WorkspaceInfo(groupId: currentGroup.id, name: currentGroup.name);
+                  await WorkspaceService.instance.save(info);
+                  if (!context.mounted) return;
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => WorkspacePage(info: info)));
+                },
+              ),
               IconButton(
                 tooltip: 'Share folder as a .codenote file',
                 icon: const Icon(Icons.ios_share_rounded),

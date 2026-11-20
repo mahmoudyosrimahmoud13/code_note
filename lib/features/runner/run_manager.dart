@@ -8,6 +8,8 @@ import '../notes/domain/entities/note.dart';
 import '../notes/domain/entities/note_group.dart';
 import '../notes/domain/entities/run_plan.dart';
 import 'code_runner.dart';
+import 'pyodide/pyodide_kernel.dart';
+import 'pyodide/pyodide_runtime.dart';
 import 'python_kernel.dart';
 import 'runtimes.dart';
 import 'sandbox.dart';
@@ -16,7 +18,7 @@ import 'sandbox.dart';
 /// (made by CodeNote's Python helpers, like Jupyter's display).
 class RichOutput {
   const RichOutput(this.kind, this.path, [this.note = '']);
-  final String kind; // image | table | markdown | html
+  final String kind; // image | table | markdown | html | missing (packages to download; path = names)
   final String path;
   final String note;
 
@@ -28,7 +30,7 @@ class RichOutput {
     final colon = rest.indexOf(':');
     if (colon < 0) return null;
     final kind = rest.substring(0, colon);
-    if (!const {'image', 'table', 'markdown', 'html'}.contains(kind)) return null;
+    if (!const {'image', 'table', 'markdown', 'html', 'missing'}.contains(kind)) return null;
     final value = rest.substring(colon + 1);
     final bar = value.lastIndexOf('|');
     return bar < 0 ? RichOutput(kind, value) : RichOutput(kind, value.substring(0, bar), value.substring(bar + 1));
@@ -121,7 +123,7 @@ class RunManager extends ChangeNotifier {
   final Map<String, RunSession> _sessions = {};
 
   /// Note id → its Python kernel (blocks of one note share variables).
-  final Map<String, PythonKernel> _kernels = {};
+  final Map<String, NotebookKernel> _kernels = {};
 
   RunSession? sessionFor(String blockId) => _sessions[blockId];
 
@@ -155,10 +157,11 @@ class RunManager extends ChangeNotifier {
       old.stop();
       await old.done.timeout(const Duration(seconds: 4), onTimeout: () => -1);
     }
+    // Phones have no Python processes: every Python block runs in the
+    // note's kernel there (servers can't run on a phone anyway).
     final kernel = language == Language.python &&
         noteId != null &&
-        role != RunRole.main &&
-        role != RunRole.background;
+        (PyodideRuntime.usedHere || (role != RunRole.main && role != RunRole.background));
     final session = RunSession(blockId: blockId, title: title, spaceKey: spaceKey, inKernel: kernel, noteId: noteId);
     _sessions[blockId] = session;
     notifyListeners();
@@ -187,7 +190,7 @@ class RunManager extends ChangeNotifier {
   }
 
   Future<void> _runInKernel(RunSession session, String noteId, String spaceKey, String code) async {
-    final allowed = await Sandbox.instance.canRun();
+    final allowed = PyodideRuntime.usedHere ? true : await Sandbox.instance.canRun();
     if (allowed != true) {
       throw RuntimeException(allowed == null
           ? 'Running code is off on this computer until you allow it in Settings > Runtimes and sandbox.'
@@ -195,7 +198,19 @@ class RunManager extends ChangeNotifier {
     }
     var kernel = _kernels[noteId];
     if (kernel == null || !kernel.alive) {
-      kernel = await PythonKernel.start(noteId, await Sandbox.instance.space(spaceKey));
+      final workspace = await Sandbox.instance.space(spaceKey);
+      if (PyodideRuntime.usedHere) {
+        if (!await PyodideRuntime.instance.isInstalled()) {
+          // Shows a "Download Python" button under the block.
+          session._started = true;
+          session._add('${outputMark}missing:@python');
+          session._finish(1);
+          return;
+        }
+        kernel = await PyodideKernel.start(noteId, workspace);
+      } else {
+        kernel = await PythonKernel.start(noteId, workspace);
+      }
       _kernels[noteId] = kernel;
     }
     final k = kernel;
