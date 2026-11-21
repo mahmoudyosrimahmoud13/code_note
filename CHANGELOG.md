@@ -3,6 +3,11 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.9.2] - 2026-11-21
+
+### Fixed
+- Phones: the top bar had too many buttons, so the title and note count were cut off. It now keeps search, open and your profile, with Commands and New group in a ⋮ menu, and the title fits.
+
 ## [1.9.1] - 2026-11-21
 
 ### Fixed

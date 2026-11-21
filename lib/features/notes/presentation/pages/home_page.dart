@@ -716,8 +716,13 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
+    // Phones: fewer buttons in the top bar so the title fits. Commands and
+    // New group move into the ⋮ menu.
+    final phone = MediaQuery.sizeOf(context).width < 720;
+    final dense = phone ? VisualDensity.compact : null;
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 14, 12, 4),
+      padding: EdgeInsets.fromLTRB(phone ? 16 : 20, 14, phone ? 4 : 12, 4),
       child: Row(
         children: [
           Expanded(
@@ -727,7 +732,7 @@ class _HomePageState extends State<HomePage> {
                 PromptLine(path: _view.path, size: 18),
                 const SizedBox(height: 2),
                 Text(
-                  '$noteCount ${noteCount == 1 ? 'note' : 'notes'} · $groupCount ${groupCount == 1 ? 'group' : 'groups'} · stored on this device',
+                  '$noteCount ${noteCount == 1 ? 'note' : 'notes'} · $groupCount ${groupCount == 1 ? 'group' : 'groups'}${phone ? '' : ' · stored on this device'}',
                   style: monoStyle(context, size: 11, color: tokens.subtle),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -736,17 +741,20 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
           IconButton(
+            visualDensity: dense,
             tooltip: 'Search (Ctrl+F)',
             icon: const Icon(Icons.search_rounded),
             onPressed: _openSearch,
           ),
-          IconButton(
-            tooltip: 'Commands (Ctrl+K)',
-            icon: const Icon(Icons.keyboard_command_key_rounded),
-            onPressed: _openPalette,
-          ),
+          if (!phone)
+            IconButton(
+              tooltip: 'Commands (Ctrl+K)',
+              icon: const Icon(Icons.keyboard_command_key_rounded),
+              onPressed: _openPalette,
+            ),
           // Data science: open a folder, a data file or a notebook.
           PopupMenuButton<String>(
+            style: phone ? IconButton.styleFrom(visualDensity: VisualDensity.compact) : null,
             tooltip: 'Open files, data or a notebook',
             icon: const Icon(Icons.folder_open_rounded),
             onSelected: (v) => switch (v) {
@@ -784,16 +792,43 @@ class _HomePageState extends State<HomePage> {
               ),
             ],
           ),
-          if (_view == HomeView.notes && !wide)
+          if (_view == HomeView.notes && !wide && !phone)
             IconButton(
               tooltip: 'New group',
               icon: const Icon(Icons.create_new_folder_outlined),
               onPressed: _createGroup,
             ),
+          if (phone)
+            PopupMenuButton<String>(
+              style: IconButton.styleFrom(visualDensity: VisualDensity.compact),
+              tooltip: 'More',
+              icon: const Icon(Icons.more_vert_rounded),
+              onSelected: (v) => v == 'group' ? _createGroup() : _openPalette(),
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                  value: 'commands',
+                  child: ListTile(
+                    leading: Icon(Icons.keyboard_command_key_rounded),
+                    title: Text('Commands'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
+                if (_view == HomeView.notes)
+                  const PopupMenuItem(
+                    value: 'group',
+                    child: ListTile(
+                      leading: Icon(Icons.create_new_folder_outlined),
+                      title: Text('New group'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+              ],
+            ),
           if (!wide) BlocBuilder<SettingsBloc, SettingsState>(
             builder: (context, state) {
               final settings = state is SettingsLoaded ? state.settings : null;
               return IconButton(
+                visualDensity: dense,
                 tooltip: 'Settings',
                 onPressed: () => Navigator.push(context,
                     MaterialPageRoute(builder: (_) => const SettingsPage())),
@@ -802,7 +837,7 @@ class _HomePageState extends State<HomePage> {
                   child: UserAvatar(
                     imageUrl: settings?.profileImagePath,
                     seed: settings?.userHandle ?? 'codenote',
-                    radius: 15,
+                    radius: phone ? 14 : 15,
                   ),
                 ),
               );
