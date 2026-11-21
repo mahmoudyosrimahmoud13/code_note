@@ -606,10 +606,28 @@ class _HomePageState extends State<HomePage> {
 
     final visibleCount = all.where((n) => !n.isTrashed && !n.isArchived).length;
 
+    final phone = MediaQuery.sizeOf(context).width < 720;
     return CustomScrollView(
+      // Always scrollable, so a short list still pulls and settles normally.
+      physics: const AlwaysScrollableScrollPhysics(),
       slivers: [
-        SliverToBoxAdapter(
-            child: _buildHeader(visibleCount, allGroups.length, wide: wide)),
+        // Phones: the header is a real app bar that stays at the top while
+        // the notes scroll under it, like other Android apps.
+        if (phone)
+          SliverAppBar(
+            pinned: true,
+            automaticallyImplyLeading: false,
+            titleSpacing: 0,
+            toolbarHeight: 68,
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            surfaceTintColor: Theme.of(context).colorScheme.primary,
+            scrolledUnderElevation: 3,
+            shadowColor: Colors.black26,
+            title: _buildHeader(visibleCount, allGroups.length, wide: wide),
+          )
+        else
+          SliverToBoxAdapter(
+              child: _buildHeader(visibleCount, allGroups.length, wide: wide)),
         if (tags.isNotEmpty && _view != HomeView.trash && !wide)
           SliverToBoxAdapter(child: _buildTagBar(tags)),
         if (_view == HomeView.trash && list.isNotEmpty)

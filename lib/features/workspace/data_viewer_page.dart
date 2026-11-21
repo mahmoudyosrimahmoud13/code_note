@@ -177,7 +177,9 @@ class _DataViewState extends State<DataView> {
   static String _num(double? v) {
     if (v == null) return '–';
     if (v == v.roundToDouble() && v.abs() < 1e12) return v.toStringAsFixed(0);
-    return v.abs() >= 100 ? v.toStringAsFixed(1) : v.toStringAsFixed(3);
+    final s = v.abs() >= 100 ? v.toStringAsFixed(1) : v.toStringAsFixed(3);
+    // 17.100 -> 17.1
+    return s.replaceFirst(RegExp(r'0+$'), '').replaceFirst(RegExp(r'\.$'), '');
   }
 
   static String _oneLine(ColumnStats s) {
@@ -210,7 +212,7 @@ class _DataViewState extends State<DataView> {
 
     final totalWidth = 56 + _widths.fold<double>(0, (a, b) => a + b);
     final mono = monoStyle(context, size: 12.5);
-    return Column(children: [
+    return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
       Padding(
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
         child: Row(children: [

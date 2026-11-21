@@ -87,6 +87,41 @@ class NotesSliverGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Phones and short lists: plain columns with an exact height. The lazy
+    // masonry sliver can misjudge its height on touch screens, which
+    // stopped scrolling before the last notes.
+    final width = MediaQuery.sizeOf(context).width;
+    final columns = noteColumnsFor(width - 32);
+    if (width < 720 || notes.length <= 60) {
+      return SliverPadding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        sliver: SliverToBoxAdapter(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (var c = 0; c < columns; c++) ...[
+                if (c > 0) const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    children: [
+                      for (var i = c; i < notes.length; i += columns)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _card(
+                            notes[i],
+                            isTrashView: isTrashView,
+                            onNoteDismissed: onNoteDismissed,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
     return SliverLayoutBuilder(
       builder: (context, constraints) => SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16),

@@ -3,6 +3,13 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.9.1] - 2026-11-21
+
+### Fixed
+- Phones: the notes list could stop scrolling before the last notes. It now always scrolls to the end.
+- Phones: the top bar (title, search, commands, open) stays at the top while the notes scroll under it, like other Android apps.
+- Data viewer: on wide screens the table now starts at the left, and numbers show without extra zeros (17.1, not 17.100).
+
 ## [1.9.0] - 2026-11-20
 
 Data science in your pocket.
