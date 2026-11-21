@@ -55,7 +55,7 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 - **A symbol bar** while you type code: `{}` `()` `[]` `""` `;` `=>` and an indent key, inserted where your cursor is.
 - **Markdown** with a live preview. Tap to edit, tap away to see it rendered.
 - **Link previews** *(new in 1.11.0)*: links in text blocks are highlighted and get a card with the page's picture, title and site. Tap it to open, long-press to copy. Note cards on the home screen show it too. Turn it off in **Settings → Links** and CodeNote never contacts the sites.
-- **Scan text from a photo** (Android and iOS) and drop it in as a text or code block.
+- **Scan text from a photo** (Android and iOS): take a photo or pick one, check the text, and add it as a text block or a code block in the right language.
 
 ### Run code, safely sandboxed
 

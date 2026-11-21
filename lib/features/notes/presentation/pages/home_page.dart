@@ -114,7 +114,12 @@ class _HomePageState extends State<HomePage> {
   Future<void> _startReminders() async {
     final notes = (await di.sl<NoteRepository>().getNotes()).getOrElse(() => const []);
     if (ReminderService.systemNotifications) {
-      ReminderService.instance.syncAll(notes);
+      final service = ReminderService.instance;
+      service.onTap = _reminderTapped;
+      await service.init();
+      final launch = service.takeLaunchTap();
+      if (launch != null) _reminderTapped(launch.noteId, launch.actionId);
+      service.syncAll(notes);
       return;
     }
     _reminderTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
@@ -128,27 +133,132 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  NoteEntity? _noteById(String id) {
+    final state = context.read<NoteBloc>().state;
+    if (state is! NoteLoaded) return null;
+    for (final n in state.notes) {
+      if (n.id == id) return n;
+    }
+    return null;
+  }
+
+  /// A reminder notification was tapped: open the note, or snooze it.
+  void _reminderTapped(String noteId, String? actionId) {
+    if (!mounted) return;
+    final note = _noteById(noteId);
+    if (note == null) return;
+    if (actionId == ReminderService.snoozeAction) {
+      _snooze(note);
+    } else {
+      _openPage(NotePage(note: note));
+    }
+  }
+
+  void _snooze(NoteEntity note) {
+    final r = note.reminder;
+    if (r == null) return;
+    final at = DateTime.now().add(ReminderService.snoozeFor);
+    context.read<NoteBloc>().add(UpdateNoteEvent(note.copyWith(
+          reminder: NoteReminderEntity(dateTime: at, message: r.message),
+        )));
+    showMessage(message: 'Snoozed until ${DateFormat.jm().format(at)}');
+  }
+
   Future<void> _showReminderPopup(NoteEntity note) {
     final r = note.reminder!;
+    final title = note.title.trim().isEmpty ? 'Reminder' : note.title.trim();
     return showDialog<void>(
       context: context,
-      builder: (c) => AlertDialog(
-        icon: Icon(Icons.alarm_rounded, color: c.tokens.pin, size: 32),
-        title: Text(note.title.trim().isEmpty ? 'Reminder' : note.title.trim()),
-        content: Text(r.message.trim().isEmpty
-            ? DateFormat.MMMEd().add_jm().format(r.dateTime)
-            : r.message),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(c), child: const Text('Dismiss')),
-          FilledButton(
-            onPressed: () {
-              Navigator.pop(c);
-              _openPage(NotePage(note: note));
-            },
-            child: const Text('Open note'),
+      builder: (c) {
+        final color = Theme.of(c).colorScheme;
+        final tokens = c.tokens;
+        final textTheme = Theme.of(c).textTheme;
+        return Dialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppBrand.radius),
+            side: BorderSide(color: color.outlineVariant.withAlpha(160)),
           ),
-        ],
-      ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 420),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(22, 22, 22, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: tokens.pin.withAlpha(36),
+                          borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+                        ),
+                        child: Icon(Icons.alarm_rounded, color: tokens.pin, size: 24),
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          '// reminder · ${DateFormat.jm().format(r.dateTime)}',
+                          style: monoStyle(c, size: 12, weight: FontWeight.w700, color: tokens.pin),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Dismiss',
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(Icons.close_rounded, size: 20, color: tokens.subtle),
+                        onPressed: () => Navigator.pop(c),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(title,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                      style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700)),
+                  if (r.message.trim().isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: color.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+                      ),
+                      child: Text(r.message.trim(),
+                          style: textTheme.bodyMedium?.copyWith(height: 1.45)),
+                    ),
+                  ],
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      TextButton.icon(
+                        onPressed: () {
+                          Navigator.pop(c);
+                          _snooze(note);
+                        },
+                        icon: const Icon(Icons.snooze_rounded, size: 18),
+                        label: const Text('Snooze 10 min'),
+                      ),
+                      const Spacer(),
+                      FilledButton.icon(
+                        onPressed: () {
+                          Navigator.pop(c);
+                          _openPage(NotePage(note: note));
+                        },
+                        icon: const Icon(Icons.open_in_new_rounded, size: 18),
+                        label: const Text('Open note'),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

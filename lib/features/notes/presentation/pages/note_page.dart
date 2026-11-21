@@ -293,11 +293,7 @@ class _NotePageState extends State<NotePage> {
 
   void _scanDoc() async {
     final result = await Navigator.of(context).push(MaterialPageRoute<BlockEntity>(
-      builder: (context) => ScanDocument(
-        onPressed: _deleteBlock,
-        moveDown: _moveDown,
-        moveUp: _moveUp,
-      ),
+      builder: (context) => const ScanDocument(),
     ));
     if (result != null && mounted) _addBlock(result);
   }
@@ -1133,9 +1129,7 @@ class _NotePageState extends State<NotePage> {
               addMarkdown: () => _addBlock(MarkdownBlockEntity(id: _uuid.v4())),
               addImage: _addImage,
               // Text recognition (ML Kit) only exists on phones.
-              scanDoc: !kIsWeb && (Platform.isAndroid || Platform.isIOS)
-                  ? _scanDoc
-                  : null,
+              scanDoc: ScanDocument.supported ? _scanDoc : null,
             ),
           ],
         ),

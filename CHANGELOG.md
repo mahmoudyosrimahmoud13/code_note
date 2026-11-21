@@ -3,6 +3,19 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.12.0] - 2026-11-21
+
+### New
+- **Reminders look better and do more.** On Android the reminder alert uses CodeNote's violet, shows the whole message when you pull it down, and says when it was due. Tapping it opens the note (it used to just open the app), and **Snooze 10 min** brings it back later. On iPhone and Mac it shows the time and groups reminders together.
+- **New reminder pop-up on Windows and Linux**, in the app's style, with the time, the message in its own box, **Snooze 10 min** and **Open note**.
+- **Clearer messages at the bottom of the screen.** They all have the same rounded shape and spacing now, and confirmations and errors get an icon. Errors stay up a little longer so you can read them.
+
+### Fixed
+- **Scan text was rebuilt.** You can now take a photo with the camera, not only pick one from the gallery. The text is read right away (no separate Extract button), with a progress bar while it works. Before, a large "Choose Image" title didn't fit on phones, the add buttons were unlabeled icons under the keyboard, and the full-size photo used a lot of memory.
+  - The result has a line count and a **Copy** button, and you can fix it before adding it.
+  - Choose **Text** or **Code**. CodeNote guesses which one it is, and for code it guesses the language (you can change it).
+  - **Retake** or pick **Other photo** at any time. If no text is found, it says how to take a better photo.
+
 ## [1.11.0] - 2026-11-21
 
 ### New

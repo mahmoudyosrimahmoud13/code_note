@@ -10,22 +10,31 @@ void showMessage(
     {required String message, SnackType type = SnackType.success}) {
   final context = navigatorKey.currentContext;
   if (context == null) return;
-  ScaffoldMessenger.of(context).removeCurrentSnackBar();
-
-  ScaffoldMessenger.of(navigatorKey.currentContext!).showSnackBar(
-    SnackBar(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15), // Adjust the radius as needed
+  final failed = type == SnackType.faild;
+  final color = Theme.of(context).colorScheme;
+  ScaffoldMessenger.of(context)
+    ..removeCurrentSnackBar()
+    ..showSnackBar(
+      SnackBar(
+        // Shape, margin and colors come from the app theme.
+        backgroundColor: failed ? color.error : null,
+        duration: Duration(seconds: failed ? 5 : 3),
+        content: Row(
+          children: [
+            Icon(
+              failed ? Icons.error_outline_rounded : Icons.check_circle_outline_rounded,
+              size: 20,
+              color: failed ? color.onError : const Color(0xFFB3A2FF),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(message,
+                  style: failed ? TextStyle(color: color.onError) : null),
+            ),
+          ],
+        ),
       ),
-      margin: const EdgeInsets.all(20),
-      backgroundColor: type == SnackType.success
-          ? null // the theme's snackbar color
-          : Theme.of(navigatorKey.currentContext!).colorScheme.error,
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 3),
-      content: Text(message),
-    ),
-  );
+    );
 }
 
 void navigateTo(

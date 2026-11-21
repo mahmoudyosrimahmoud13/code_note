@@ -198,10 +198,15 @@ ThemeData _build(Brightness brightness) {
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: isDark ? const Color(0xFF2E3058) : const Color(0xFF1D1F38),
-      contentTextStyle: const TextStyle(color: Colors.white),
+      contentTextStyle: const TextStyle(
+          color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500, height: 1.35),
       actionTextColor: AppBrand.violetLight,
+      elevation: 6,
+      insetPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+      closeIconColor: Colors.white70,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+        side: BorderSide(color: AppBrand.violet.withAlpha(isDark ? 90 : 60)),
       ),
     ),
     chipTheme: ChipThemeData(

@@ -1,6 +1,8 @@
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart' show Color;
+import 'package:intl/intl.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
@@ -24,18 +26,52 @@ class ReminderService {
   static bool get systemNotifications =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS || Platform.isMacOS);
 
-  static const _channel = AndroidNotificationDetails(
-    'codenote_reminders',
-    'Reminders',
-    channelDescription: 'Reminders you set on notes',
-    importance: Importance.high,
-    priority: Priority.high,
-  );
-  static const _details = NotificationDetails(
-    android: _channel,
-    iOS: DarwinNotificationDetails(),
-    macOS: DarwinNotificationDetails(),
-  );
+  static const snoozeAction = 'snooze';
+  static const snoozeFor = Duration(minutes: 10);
+
+  /// Called when the person taps a reminder ([actionId] is null) or its
+  /// Snooze button. Set by the home screen.
+  void Function(String noteId, String? actionId)? onTap;
+
+  /// A tap that started the app, waiting for the home screen.
+  ({String noteId, String? actionId})? _launchTap;
+
+  /// The tap that opened CodeNote from a closed state, once.
+  ({String noteId, String? actionId})? takeLaunchTap() {
+    final t = _launchTap;
+    _launchTap = null;
+    return t;
+  }
+
+  /// How a reminder looks: CodeNote's violet, the full message when it's
+  /// pulled down, the time, and Snooze / Open buttons.
+  static NotificationDetails _details(String title, String body, DateTime when) {
+    final time = DateFormat.jm().format(when);
+    return NotificationDetails(
+      android: AndroidNotificationDetails(
+        'codenote_reminders',
+        'Reminders',
+        channelDescription: 'Reminders you set on notes',
+        importance: Importance.high,
+        priority: Priority.high,
+        category: AndroidNotificationCategory.reminder,
+        color: const Color(0xFF7B5CFF),
+        subText: 'Reminder · $time',
+        ticker: title,
+        styleInformation: BigTextStyleInformation(
+          body,
+          contentTitle: title,
+          summaryText: 'Reminder · $time',
+        ),
+        actions: const [
+          AndroidNotificationAction(snoozeAction, 'Snooze 10 min', showsUserInterface: true),
+          AndroidNotificationAction('open', 'Open note', showsUserInterface: true),
+        ],
+      ),
+      iOS: DarwinNotificationDetails(subtitle: 'Reminder · $time', threadIdentifier: 'reminders'),
+      macOS: DarwinNotificationDetails(subtitle: 'Reminder · $time', threadIdentifier: 'reminders'),
+    );
+  }
 
   /// A stable number for a note id (notification ids must be ints, and
   /// String.hashCode can change between app runs).
@@ -57,10 +93,27 @@ class ReminderService {
           iOS: DarwinInitializationSettings(),
           macOS: DarwinInitializationSettings(),
         ),
+        onDidReceiveNotificationResponse: _tapped,
       );
       _ready = true;
+      final launch = await _plugin.getNotificationAppLaunchDetails();
+      final r = launch?.notificationResponse;
+      if (launch?.didNotificationLaunchApp == true && r?.payload != null) {
+        _launchTap = (noteId: r!.payload!, actionId: r.actionId);
+      }
     } catch (e) {
       LogService().log('Reminders: setup failed: $e');
+    }
+  }
+
+  void _tapped(NotificationResponse r) {
+    final id = r.payload;
+    if (id == null) return;
+    final handler = onTap;
+    if (handler == null) {
+      _launchTap = (noteId: id, actionId: r.actionId);
+    } else {
+      handler(id, r.actionId);
     }
   }
 
@@ -91,15 +144,17 @@ class ReminderService {
           reminder.dateTime.isBefore(DateTime.now())) {
         return;
       }
+      final title = note.title.trim().isEmpty ? 'Reminder' : note.title.trim();
+      final body = reminder.message.trim().isEmpty ? 'Tap to open the note' : reminder.message.trim();
       await _plugin.zonedSchedule(
         id: id,
         // An exact instant, so the device's time zone is handled for us.
         scheduledDate: tz.TZDateTime.from(reminder.dateTime, tz.UTC),
-        notificationDetails: _details,
+        notificationDetails: _details(title, body, reminder.dateTime),
         // Inexact needs no special permission; it fires within a minute or two.
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        title: note.title.trim().isEmpty ? 'Reminder' : note.title.trim(),
-        body: reminder.message.trim().isEmpty ? 'Open CodeNote' : reminder.message.trim(),
+        title: title,
+        body: body,
         payload: note.id,
       );
     } catch (e) {
