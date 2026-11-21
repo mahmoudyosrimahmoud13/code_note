@@ -30,6 +30,14 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
 
+            <!-- codenote:// links: inPace's "Practice in CodeNote" button -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="codenote" />
+            </intent-filter>
+
             <!-- PRO TIP: Professional Apps register as Share Targets -->
             <!-- Intent filter for sharing text -->
             <intent-filter>

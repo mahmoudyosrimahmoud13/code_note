@@ -106,7 +106,12 @@ static gboolean my_application_local_command_line(GApplication* application, gch
     for (int i = 0; self->dart_entrypoint_arguments[i] != nullptr; i++) {
       const gchar* arg = self->dart_entrypoint_arguments[i];
       if (arg[0] == '-') continue;
-      g_autofree gchar* full = g_canonicalize_filename(arg, nullptr);
+      // codenote:// links pass as they are; file:// addresses become paths.
+      g_autofree gchar* full =
+          g_str_has_prefix(arg, "file://") ? g_filename_from_uri(arg, nullptr, nullptr)
+          : g_strstr_len(arg, -1, "://") != nullptr ? g_strdup(arg)
+                                          : g_canonicalize_filename(arg, nullptr);
+      if (full == nullptr) continue;
       g_autofree gchar* name =
           g_strdup_printf("%" G_GINT64_FORMAT "-%d.path", g_get_real_time(), i);
       g_autofree gchar* file = g_build_filename(inbox, name, nullptr);

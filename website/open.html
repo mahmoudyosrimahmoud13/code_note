@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Open in CodeNote</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="img/favicon.png">
+<style>
+@font-face { font-family: 'JB'; src: url('fonts/JetBrainsMono-Regular.woff2') format('woff2'); font-weight: 400; }
+@font-face { font-family: 'JB'; src: url('fonts/JetBrainsMono-Bold.woff2') format('woff2'); font-weight: 700; }
+:root { --violet: #7B5CFF; --mint: #3DDC97; --magenta: #C04BFF; --bg: #F7F5FF; --surface: #fff; --text: #1B1830;
+  --muted: #5C5778; --subtle: #8C88A8; --line: rgba(27,24,48,.10); --accent: #6A49F2; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0F0E1A; --surface: #17162A; --text: #ECEAF6; --muted: #A09CBC;
+  --subtle: #6F6A90; --line: rgba(255,255,255,.09); --accent: #A993FF; } }
+* { box-sizing: border-box; }
+body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  background: radial-gradient(700px 500px at 85% 0%, rgba(123,92,255,.18), transparent 60%), var(--bg);
+  color: var(--text); font: 17px/1.6 Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; }
+.card { width: 100%; max-width: 520px; background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
+  padding: 30px; box-shadow: 0 30px 70px rgba(70,50,160,.18); }
+.brand { display: flex; align-items: center; gap: 10px; font: 700 18px 'JB', monospace; }
+.brand img { width: 34px; height: 34px; border-radius: 9px; }
+.brand i { width: 9px; height: 18px; background: var(--mint); display: inline-block; }
+h1 { font-size: 26px; line-height: 1.2; margin: 22px 0 6px; letter-spacing: -.5px; }
+.lesson { font-family: 'JB', monospace; font-size: 14px; color: var(--accent); }
+p { color: var(--muted); margin: 10px 0 0; }
+.btns { display: grid; gap: 10px; margin-top: 22px; }
+.btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 13px 18px; border-radius: 12px;
+  font-weight: 650; text-decoration: none; border: 1px solid var(--line); color: var(--text); background: transparent;
+  cursor: pointer; font-size: 16px; }
+.btn.primary { background: linear-gradient(90deg, var(--violet), var(--magenta)); color: #fff; border: 0; }
+.err { color: #d4475c; }
+small { display: block; margin-top: 18px; color: var(--subtle); font-family: 'JB', monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="brand"><img src="img/logo.png" alt="">codenote<i></i></div>
+  <h1 id="title">Opening CodeNote…</h1>
+  <div class="lesson" id="lesson"></div>
+  <p id="msg">If nothing happens, CodeNote may not be installed on this device.</p>
+  <div class="btns">
+    <a class="btn primary" id="open" href="#">Open in CodeNote</a>
+    <button class="btn" id="download" hidden>Download this lesson as a .md file</button>
+    <a class="btn" href="./#download">Get CodeNote, free</a>
+  </div>
+  <small>CodeNote runs your lesson's code on your computer or phone. Nothing here is sent anywhere.</small>
+</div>
+<script>
+(function () {
+  var body = (location.hash || '').slice(1);
+  var title = document.getElementById('title'), lesson = document.getElementById('lesson'),
+      msg = document.getElementById('msg'), open = document.getElementById('open'),
+      download = document.getElementById('download');
+  if (!body) {
+    title.textContent = 'Nothing to open';
+    msg.textContent = 'This page opens lessons sent from inPace. The link seems to be missing its lesson.';
+    open.hidden = true;
+    return;
+  }
+  var link = 'codenote://open/' + body;
+  open.href = link;
+
+  // Decode the lesson (zlib, URL-safe base64 without padding), all in this browser.
+  function decode(b) {
+    var s = b.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    var bytes = Uint8Array.from(atob(s), function (c) { return c.charCodeAt(0); });
+    var stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate'));
+    return new Response(stream).text().then(JSON.parse);
+  }
+
+  if (typeof DecompressionStream !== 'undefined') {
+    decode(body).then(function (data) {
+      if (!data || data.codenote !== 'lesson') return;
+      var src = data.source || {};
+      lesson.textContent = [src.course_title || src.course, src.lesson_title || src.lesson].filter(Boolean).join(' › ');
+      download.hidden = false;
+      download.onclick = function () {
+        var meta = { codenote: 'lesson', v: data.v || 1, title: data.title };
+        ['language', 'task', 'source'].forEach(function (k) { if (data[k]) meta[k] = data[k]; });
+        var front = Object.keys(meta).map(function (k) { return k + ': ' + JSON.stringify(meta[k]); }).join('\n');
+        var md = '---\n' + front + '\n---\n' + (data.markdown || '');
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([md], { type: 'text/markdown' }));
+        a.download = (data.title || 'lesson').replace(/[\\/:*?"<>|]+/g, ' ').trim().slice(0, 120) + '.md';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      };
+    }).catch(function () {
+      msg.innerHTML = '<span class="err">This link looks broken or cut short.</span> Try the button in inPace again.';
+    });
+  }
+
+  // Try the app right away; the page stays as a fallback.
+  setTimeout(function () { location.href = link; }, 300);
+  setTimeout(function () {
+    title.textContent = 'Open this lesson in CodeNote';
+    msg.textContent = 'Press the button below. No CodeNote yet? Get it, or download the lesson and open it in CodeNote later.';
+  }, 2500);
+})();
+</script>
+</body>
+</html>

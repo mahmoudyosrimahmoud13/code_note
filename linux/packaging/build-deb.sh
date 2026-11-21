@@ -37,12 +37,12 @@ Type=Application
 Name=CodeNote
 GenericName=Code notebook
 Comment=Notes for code, ideas and snippets, stored on this device
-Exec=/opt/codenote/code_note %F
+Exec=/opt/codenote/code_note %U
 Icon=$APP_ID
 Terminal=false
 Categories=Development;Utility;TextEditor;
 Keywords=notes;code;snippets;markdown;
-MimeType=application/x-codenote;application/x-ipynb+json;
+MimeType=application/x-codenote;application/x-ipynb+json;x-scheme-handler/codenote;
 StartupWMClass=code_note
 DESKTOP
 

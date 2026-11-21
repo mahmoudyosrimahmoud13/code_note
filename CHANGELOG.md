@@ -3,6 +3,16 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.10.0] - 2026-11-21
+
+### New
+- **Works with inPace.** In inPace (1.31.0 and newer), lessons with code and practical tasks get a **Practice in CodeNote** button. It opens the lesson in CodeNote as a note: the text becomes Markdown blocks and every code example a block you can run, on your computer or your phone. A practical task comes with its prompt and an empty block for your answer.
+  - The note says which course and lesson it came from, and its ⋮ menu has **Back to inPace** and **Export for inPace** (an HTML report with your code, output and charts, to attach to the task as your work).
+  - Opening the same lesson again opens your note. If the lesson changed in inPace, CodeNote asks whether to open your note or get the new version as a new note.
+  - CodeNote registers `codenote://` links on Android, Windows, Linux (installed .deb) and macOS, which is also how inPace knows CodeNote is installed.
+- **Markdown files open as runnable notes.** Any `.md` file (shared into CodeNote, opened from the file manager, or opened as a note in a workspace) becomes text blocks plus a code block for every ``` example.
+- **Open page on the website** for `codenote://` links when CodeNote isn't installed: it can download the lesson as a `.md` file to open later.
+
 ## [1.9.2] - 2026-11-21
 
 ### Fixed

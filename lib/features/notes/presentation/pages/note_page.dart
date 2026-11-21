@@ -20,6 +20,7 @@ import '../../../templates/templates.dart';
 import '../../../gist/gist_page.dart';
 import '../../../backup/codenote_files.dart';
 import '../../../notebook/html_report.dart';
+import '../../../notebook/inpace_bridge.dart';
 import '../../../notebook/ipynb_import.dart';
 import '../../../runner/notebook_focus.dart';
 import '../../../miniapps/mini_app_storage.dart';
@@ -67,6 +68,7 @@ class _NotePageState extends State<NotePage> {
   late final NoteGroupBloc _groupBloc;
 
   late List<BlockEntity> _blocks;
+  InpaceLink? _inpace;
   late List<String> _tags;
   late bool _isPinned;
   late bool _isArchived;
@@ -91,6 +93,10 @@ class _NotePageState extends State<NotePage> {
     _noteBloc = context.read<NoteBloc>();
     _groupBloc = context.read<NoteGroupBloc>();
     final note = widget.note;
+    // A lesson from inPace gets "Back to inPace" and "Export for inPace".
+    InpaceBridge.linkFor(note.id).then((link) {
+      if (mounted && link != null) setState(() => _inpace = link);
+    });
     _titleController = TextEditingController(text: note.title);
     _blocks = List.of(note.blocks);
     _tags = List.of(note.tags);
@@ -776,6 +782,15 @@ class _NotePageState extends State<NotePage> {
                     exportNoteToGist(context, _currentNote());
                   case 'codenote':
                     CodenoteFiles.shareNote(context, _currentNote());
+                  case 'inpace-export':
+                    _export(
+                      HtmlReport.fromNote(_currentNote(), readImage: HtmlReport.readFile),
+                      'html',
+                      'text/html',
+                      'HTML report for inPace',
+                    );
+                  case 'inpace-back':
+                    if (_inpace != null) InpaceBridge.back(context, _inpace!);
                   case 'ipynb':
                     _export(
                       IpynbExport.fromNote(_currentNote(), readImage: (path) {
@@ -848,6 +863,26 @@ class _NotePageState extends State<NotePage> {
                     contentPadding: EdgeInsets.zero,
                   ),
                 ),
+                if (_inpace != null) ...[
+                  const PopupMenuItem(
+                    value: 'inpace-export',
+                    child: ListTile(
+                      leading: Icon(Icons.task_alt_rounded),
+                      title: Text('Export for inPace'),
+                      subtitle: Text('An HTML report to attach as your work'),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                  ),
+                  if ((_inpace!.back ?? '').isNotEmpty)
+                    const PopupMenuItem(
+                      value: 'inpace-back',
+                      child: ListTile(
+                        leading: Icon(Icons.school_outlined),
+                        title: Text('Back to inPace'),
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                ],
                 const PopupMenuItem(
                   value: 'ipynb',
                   child: ListTile(

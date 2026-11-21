@@ -1,5 +1,7 @@
 import '../../features/backup/codenote_files.dart';
+import '../../features/notebook/inpace_bridge.dart';
 import '../../features/notebook/ipynb_import.dart';
+import '../../features/notebook/lesson_import.dart';
 import '../../features/workspace/workspace_actions.dart';
 import '../../features/workspace/workspace_service.dart';
 import 'package:path/path.dart' as p;
@@ -68,7 +70,9 @@ class SharingService {
 
     final images = <String>[];
     for (var file in media) {
-      if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
+      if (LessonImport.isLink(file.path)) {
+        InpaceBridge.openLink(context, file.path);
+      } else if (file.type == SharedMediaType.text || file.type == SharedMediaType.url) {
         _createNoteFromText(context, file.path);
       } else if (file.type == SharedMediaType.image) {
         images.add(file.path);
@@ -120,7 +124,14 @@ class SharingService {
   /// Opens a file given to CodeNote by the system: a `.codenote` file is
   /// imported, a code file becomes a note (desktop "Open with" and
   /// double-click).
-  void openFile(BuildContext context, String path) => _createNoteFromFile(context, path);
+  void openFile(BuildContext context, String path) {
+    // A "Practice in CodeNote" link from inPace (or the web fallback).
+    if (LessonImport.isLink(path)) {
+      InpaceBridge.openLink(context, path);
+      return;
+    }
+    _createNoteFromFile(context, path);
+  }
 
   static Future<bool> _looksLikeCodenote(String path) async {
     try {
@@ -158,6 +169,17 @@ class SharingService {
         messenger?.showSnackBar(SnackBar(content: Text('Imported: $summary'), persist: false));
       } catch (e) {
         messenger?.showSnackBar(SnackBar(content: Text("Couldn't open that file: $e"), persist: false));
+      }
+      return;
+    }
+    // Markdown (an inPace lesson, a README): text blocks plus runnable
+    // code blocks for every ``` fence.
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.md') || lower.endsWith('.markdown')) {
+      try {
+        if (context.mounted) await InpaceBridge.openMarkdownFile(context, path);
+      } catch (e) {
+        showMessage(message: "Couldn't open that file: $e", type: SnackType.faild);
       }
       return;
     }

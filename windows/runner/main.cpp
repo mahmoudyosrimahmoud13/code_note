@@ -64,11 +64,35 @@ void RegisterCodenoteFiles() {
       L"Software\\Classes\\CodeNote.File\\shell\\open\\command";
   wchar_t current[2048];
   DWORD size = sizeof(current);
+  // codenote:// links (inPace's "Practice in CodeNote" button). inPace
+  // looks for this key to know CodeNote is installed.
+  const wchar_t* link_key = L"Software\\Classes\\codenote\\shell\\open\\command";
+  wchar_t current_link[2048];
+  DWORD link_size = sizeof(current_link);
+  const bool link_ok =
+      ::RegGetValueW(HKEY_CURRENT_USER, link_key, nullptr, RRF_RT_REG_SZ,
+                     nullptr, current_link, &link_size) == ERROR_SUCCESS &&
+      command == current_link;
   if (::RegGetValueW(HKEY_CURRENT_USER, command_key, nullptr, RRF_RT_REG_SZ,
                      nullptr, current, &size) == ERROR_SUCCESS &&
-      command == current) {
+      command == current && link_ok) {
     return;
   }
+  SetUserRegistryValue(L"Software\\Classes\\codenote", L"URL:CodeNote link");
+  {
+    HKEY scheme;
+    if (::RegCreateKeyExW(HKEY_CURRENT_USER, L"Software\\Classes\\codenote", 0,
+                          nullptr, 0, KEY_SET_VALUE, nullptr, &scheme,
+                          nullptr) == ERROR_SUCCESS) {
+      const wchar_t empty[] = L"";
+      ::RegSetValueExW(scheme, L"URL Protocol", 0, REG_SZ,
+                       reinterpret_cast<const BYTE*>(empty), sizeof(empty));
+      ::RegCloseKey(scheme);
+    }
+  }
+  SetUserRegistryValue(L"Software\\Classes\\codenote\\DefaultIcon",
+                       L"\"" + std::wstring(exe) + L"\",0");
+  SetUserRegistryValue(link_key, command);
   SetUserRegistryValue(L"Software\\Classes\\.codenote", L"CodeNote.File");
   SetUserRegistryValue(L"Software\\Classes\\CodeNote.File", L"CodeNote file");
   SetUserRegistryValue(L"Software\\Classes\\CodeNote.File\\DefaultIcon",

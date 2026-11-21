@@ -10,6 +10,7 @@ import '../../core/util/image_helper.dart';
 import '../notes/domain/entities/block.dart';
 import '../notes/domain/entities/language.dart';
 import '../notes/domain/entities/note.dart';
+import 'lesson_import.dart';
 
 /// Opens a Jupyter notebook (`.ipynb`) as a note: Markdown cells become
 /// Markdown blocks, code cells become code blocks in the notebook's
@@ -268,7 +269,10 @@ class FileNotes {
   /// Markdown blocks. `.md` is one Markdown block.
   static List<BlockEntity> blocksFor(String fileName, String text) {
     final ext = p.extension(fileName).toLowerCase();
-    if (ext == '.md' || ext == '.markdown') return [MarkdownBlockEntity(id: _uuid.v4(), text: text)];
+    if (ext == '.md' || ext == '.markdown') {
+      final (_, body) = LessonImport.frontMatter(text);
+      return LessonImport.blocks(body);
+    }
     final language = languageForFileName(fileName);
     if (ext == '.py' && RegExp(r'^# ?%%', multiLine: true).hasMatch(text)) {
       final blocks = <BlockEntity>[];

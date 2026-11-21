@@ -2,7 +2,7 @@ name: code_note
 description: "CodeNote Community Edition: a local-only notebook for code, notes and ideas."
 publish_to: 'none'
 
-version: 1.9.2+10902
+version: 1.10.0+11000
 
 environment:
   sdk: '>=3.4.3 <4.0.0'

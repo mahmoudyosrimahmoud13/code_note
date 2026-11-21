@@ -81,6 +81,11 @@ Get the latest build for your platform from **[Releases](https://github.com/mahm
 - **Data viewer** *(new in 1.9.0)*: CSV, TSV and JSON as a table you can search and sort, a summary of every column, a chart per column, and **Analyze in a notebook** to get the pandas code written for you.
 - **Snippets and export** *(new in 1.9.0)*: insert ready-made pandas, chart and scikit-learn code; export a note as `.ipynb` or as an HTML report.
 
+### Works with inPace
+
+- **Practice in CodeNote** *(new in 1.10.0)*: in [inPace](https://mahmoudyosrimahmoud13.github.io/inPace/), lessons with code open in CodeNote with one tap, as a note you can run. Practical tasks come with their prompt. **Export for inPace** makes an HTML report of your work to attach to the task, and **Back to inPace** takes you to the lesson.
+- Any `.md` file opens as a note with runnable code blocks.
+
 ### Start from a template
 
 <p align="center"><img src="poster/5.jpg" width="100%" alt="Templates" /></p>
