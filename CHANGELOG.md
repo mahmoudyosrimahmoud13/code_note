@@ -3,6 +3,13 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [1.11.0] - 2026-11-21
+
+### New
+- **Link previews in text blocks.** Links you paste or type in a text block are highlighted as you write, and a card appears under the text with the page's picture, title, description and site. Tap the card to open the link, long-press it to copy the link.
+- **Links on the home screen.** Note cards highlight links in their preview text and show a small card for the first link, so a note full of links is easy to spot.
+- **Settings → Links.** Link previews are on by default. CodeNote opens each page once a week at most to make its card, and keeps the card on your device. Turn it off to never contact sites (links are still highlighted), or clear the saved cards.
+
 ## [1.10.0] - 2026-11-21
 
 ### New

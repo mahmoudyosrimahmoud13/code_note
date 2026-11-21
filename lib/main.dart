@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'constants/themes.dart';
 import 'core/services/log_service.dart';
 import 'core/services/open_files_service.dart';
+import 'features/links/link_preview.dart';
 import 'features/runner/pyodide/pyodide_host.dart';
 import 'features/notes/presentation/bloc/note_bloc.dart';
 import 'features/notes/presentation/bloc/note_event.dart';
@@ -33,6 +34,8 @@ void main(List<String> args) async {
     // which some Linux setups don't have.
     Hive.init(appDocumentDir.path);
     await di.init();
+    // Whether link previews are on, before the first note card asks.
+    await LinkPreviewService.instance.load();
     LogService().log("App: [SUCCESS] Dependencies initialized.");
   } catch (e) {
     LogService().log("App: [FATAL] Dependency initialization failed: $e");

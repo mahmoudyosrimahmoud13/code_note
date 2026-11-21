@@ -1,11 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/util/note_share_helper.dart';
+import '../../features/links/link_widgets.dart';
 import '../../features/notes/domain/entities/language.dart';
 import 'block.dart';
 import 'block_frame.dart';
 
-/// A plain text block.
+/// A plain text block. Links in it are highlighted, and get a preview
+/// card (picture, title, site) under the text.
 class NoteBlock extends Block {
   const NoteBlock({
     super.key,
@@ -22,18 +26,33 @@ class NoteBlock extends Block {
 }
 
 class _NoteBlockState extends State<NoteBlock> {
-  late final TextEditingController _controller;
+  late final LinkTextController _controller;
+
+  /// The text the previews are made from. It follows the field a moment
+  /// after typing stops, so half-typed links aren't fetched.
+  late String _settled;
+  Timer? _settle;
 
   @override
   void initState() {
     super.initState();
-    _controller = TextEditingController(text: widget.text);
+    _controller = LinkTextController(text: widget.text);
+    _settled = widget.text ?? '';
   }
 
   @override
   void dispose() {
+    _settle?.cancel();
     _controller.dispose();
     super.dispose();
+  }
+
+  void _changed(String val) {
+    widget.onChanged?.call(widget.entity.copyWith(text: val));
+    _settle?.cancel();
+    _settle = Timer(const Duration(milliseconds: 900), () {
+      if (mounted && _settled != _controller.text) setState(() => _settled = _controller.text);
+    });
   }
 
   @override
@@ -67,8 +86,7 @@ class _NoteBlockState extends State<NoteBlock> {
           ),
           TextField(
             controller: _controller,
-            onChanged: (val) =>
-                widget.onChanged?.call(widget.entity.copyWith(text: val)),
+            onChanged: _changed,
             decoration: InputDecoration(
               hintText: 'Write something…',
               filled: false,
@@ -84,6 +102,7 @@ class _NoteBlockState extends State<NoteBlock> {
             maxLines: null,
             keyboardType: TextInputType.multiline,
           ),
+          LinkPreviewList(text: _settled),
         ],
       ),
     );

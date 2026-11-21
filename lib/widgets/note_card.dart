@@ -9,6 +9,8 @@ import 'package:intl/intl.dart';
 import '../constants/themes.dart';
 import '../core/util/code_languages.dart';
 import '../core/util/markdown_preview.dart';
+import '../features/links/link_preview.dart';
+import '../features/links/link_widgets.dart';
 import '../features/notes/domain/entities/block.dart';
 import '../features/notes/domain/entities/language.dart';
 import '../features/notes/domain/entities/note.dart';
@@ -55,6 +57,17 @@ class _NoteCardState extends State<NoteCard> {
       if ((b is NoteBlockEntity || b is MarkdownBlockEntity) &&
           (b.text ?? '').trim().isNotEmpty) {
         return b;
+      }
+    }
+    return null;
+  }
+
+  /// The first link in the note's text blocks, for the small preview.
+  String? get _firstLink {
+    for (final b in note.blocks) {
+      if (b is NoteBlockEntity && (b.text ?? '').isNotEmpty) {
+        final urls = LinkFinder.urls(b.text!);
+        if (urls.isNotEmpty) return urls.first;
       }
     }
     return null;
@@ -142,6 +155,7 @@ class _NoteCardState extends State<NoteCard> {
     final cover = _cover;
     final code = _codePreview;
     final text = _textPreview;
+    final link = _firstLink;
     final title = note.title.trim();
     final usedLanguages = note.blocks
         .whereType<CodeBlockEntity>()
@@ -233,17 +247,31 @@ class _NoteCardState extends State<NoteCard> {
                             maxLines: code == null ? 6 : 2,
                             fontSize: textTheme.bodySmall?.fontSize ?? 12.5,
                           )
-                        : Text(
-                            text,
-                            style: textTheme.bodySmall?.copyWith(
-                              color: color.onSurfaceVariant,
-                              height: 1.45,
+                        : Text.rich(
+                            linkifiedSpan(
+                              context,
+                              text,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: color.onSurfaceVariant,
+                                height: 1.45,
+                              ),
                             ),
                             maxLines: code == null ? 5 : 2,
                             overflow: TextOverflow.ellipsis,
                           ),
                   ),
                 ],
+                if (link != null)
+                  ListenableBuilder(
+                    listenable: LinkPreviewService.instance,
+                    builder: (context, _) => LinkPreviewService.instance.enabled
+                        ? Padding(
+                            padding: const EdgeInsets.only(top: 8, right: 8),
+                            child: LinkPreviewCard(
+                                key: ValueKey(link), url: link, compact: true),
+                          )
+                        : const SizedBox.shrink(),
+                  ),
                 if (code != null) ...[
                   const SizedBox(height: 8),
                   _CodePreview(block: code),

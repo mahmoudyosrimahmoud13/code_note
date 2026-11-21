@@ -10,6 +10,7 @@ import '../../../runner/runtimes_page.dart';
 import '../../../onboarding/sample_notes.dart';
 import '../../../../helpers/helper_methods.dart';
 import '../../../backup/backup_page.dart';
+import '../../../links/link_preview.dart';
 import '../../../../core/services/update_dialog.dart';
 import '../../../../core/services/update_service.dart';
 import '../../../../constants/themes.dart';
@@ -171,6 +172,34 @@ class _SettingsPageState extends State<SettingsPage> {
                         color.error,
                         onTap: () => _showClearDataConfirmation(context),
                         color: color),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader('Links', textTheme, color),
+                    const SizedBox(height: 16),
+                    ListenableBuilder(
+                      listenable: LinkPreviewService.instance,
+                      builder: (context, _) => _buildSettingTile(
+                        'Link previews',
+                        'Links in text blocks get a card with the page\'s title and picture. To make it, CodeNote opens the page once a week at most, so the site sees a visit. Turn off to never contact sites (links are still highlighted).',
+                        Icons.link_rounded,
+                        color.primary,
+                        trailing: Switch(
+                          value: LinkPreviewService.instance.enabled,
+                          onChanged: (v) => LinkPreviewService.instance.setEnabled(v),
+                        ),
+                        bottom: Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: () async {
+                              await LinkPreviewService.instance.clear();
+                              showMessage(message: 'Saved link previews cleared.');
+                            },
+                            icon: const Icon(Icons.cleaning_services_outlined, size: 18),
+                            label: const Text('Clear saved previews'),
+                          ),
+                        ),
+                        color: color,
+                      ),
+                    ),
                     const SizedBox(height: 32),
                     _buildSectionHeader('Backup', textTheme, color),
                     const SizedBox(height: 16),
