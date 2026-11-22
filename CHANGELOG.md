@@ -3,6 +3,11 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [2.0.3] - 2026-11-22
+
+### Fixed
+- The server could hang when it shut down: if a chat connection closed while the server was saving "went offline", the save was cut off halfway and left the database waiting. That save now runs on its own and always finishes, and the server waits for open work before it stops. This also fixes the test that failed now and then on GitHub.
+
 ## [2.0.2] - 2026-11-22
 
 ### Changed

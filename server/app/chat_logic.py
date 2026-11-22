@@ -1,7 +1,6 @@
 """Rules shared by the chat routes: who may do what, posting messages
 (including system lines like "Sara added Omar"), and telling everyone."""
 
-import asyncio
 
 from fastapi import HTTPException
 from sqlalchemy import and_, or_, select
@@ -109,7 +108,7 @@ async def post(
                              "read_seq": m.seq, "delivered_seq": m.seq})
     if notify and sender is not None and kind != "system":
         targets = [mem.user_id for mem in members if mem.user_id != sender.id and not mem.muted]
-        asyncio.create_task(_push(chat, sender, m, targets))
+        hub.run_later(_push(chat, sender, m, targets))
     return m
 
 

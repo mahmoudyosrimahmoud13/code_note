@@ -43,9 +43,10 @@ async def socket(ws: WebSocket, token: str = ""):
             return
         user_id = user.id
     await ws.accept()
-    if await hub.join(user_id, ws):
-        await _presence(user_id, True)
+    hub.handler_started()
     try:
+        if await hub.join(user_id, ws):
+            await _presence(user_id, True)
         while True:
             text = await ws.receive_text()
             try:
@@ -68,5 +69,11 @@ async def socket(ws: WebSocket, token: str = ""):
     except Exception:
         pass
     finally:
-        if await hub.leave(user_id, ws):
-            await _presence(user_id, False)
+        try:
+            if await hub.leave(user_id, ws):
+                # Saved as its own job: if this socket's task is being cut off
+                # (server stopping, client gone), the database write still
+                # finishes cleanly instead of being stopped halfway.
+                hub.run_later(_presence(user_id, False))
+        finally:
+            hub.handler_finished()

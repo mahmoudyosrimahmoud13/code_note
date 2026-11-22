@@ -18,6 +18,38 @@ class Hub:
     def __init__(self) -> None:
         self._sockets: dict[str, set[WebSocket]] = defaultdict(set)
         self._lock = asyncio.Lock()
+        self._handlers = 0                       # socket loops still running
+        self._idle = asyncio.Event()
+        self._idle.set()
+        self._jobs: set[asyncio.Task] = set()    # background work (push)
+
+    def handler_started(self) -> None:
+        self._handlers += 1
+        self._idle.clear()
+
+    def handler_finished(self) -> None:
+        self._handlers = max(0, self._handlers - 1)
+        if self._handlers == 0:
+            self._idle.set()
+
+    def run_later(self, coro) -> None:
+        """Runs work in the background, keeping a reference so it isn't lost."""
+        task = asyncio.create_task(coro)
+        self._jobs.add(task)
+        task.add_done_callback(self._jobs.discard)
+
+    async def drain(self, timeout: float = 5.0) -> None:
+        """On shutdown: let open sockets finish saving "offline" and let
+        background jobs end, so nothing is cut off halfway through a
+        database call."""
+        try:
+            await asyncio.wait_for(self._idle.wait(), timeout)
+        except asyncio.TimeoutError:
+            pass
+        if self._jobs:
+            _, pending = await asyncio.wait(set(self._jobs), timeout=timeout)
+            for task in pending:
+                task.cancel()
 
     def online_count(self) -> int:
         return len(self._sockets)

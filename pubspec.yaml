@@ -2,7 +2,7 @@ name: code_note
 description: "CodeNote Online: CodeNote with accounts, chat and notes sync, on Supabase or your own FastAPI server."
 publish_to: 'none'
 
-version: 2.0.2+20002
+version: 2.0.3+20003
 
 environment:
   sdk: '>=3.4.3 <4.0.0'

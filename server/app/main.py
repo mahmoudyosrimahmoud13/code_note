@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import VERSION, get_settings
-from .db import create_tables
+from .db import create_tables, reset_engine
+from .realtime import hub
 from .routers import admin, auth, chats, files, messages, meta, sync, users, ws
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
@@ -26,6 +27,10 @@ async def lifespan(_: FastAPI):
         )
     await create_tables()
     yield
+    # Shutting down: finish open sockets and background work, then close
+    # the database cleanly.
+    await hub.drain()
+    await reset_engine()
 
 
 app = FastAPI(title="CodeNote server", version=VERSION, lifespan=lifespan)
