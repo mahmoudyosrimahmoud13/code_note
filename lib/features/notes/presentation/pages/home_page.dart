@@ -1,4 +1,6 @@
 import '../../../../online/ui/account_page.dart';
+import '../../../../online/online_service.dart';
+import '../../../../online/shown_profile.dart';
 import '../../../../online/ui/chats_page.dart';
 import '../../../../online/ui/online_gate.dart';
 import 'dart:async';
@@ -848,7 +850,7 @@ class _HomePageState extends State<HomePage> {
                 PromptLine(path: _view.path, size: 18),
                 const SizedBox(height: 2),
                 Text(
-                  '$noteCount ${noteCount == 1 ? 'note' : 'notes'} · $groupCount ${groupCount == 1 ? 'group' : 'groups'}${phone ? '' : ' · stored on this device'}',
+                  '$noteCount ${noteCount == 1 ? 'note' : 'notes'} · $groupCount ${groupCount == 1 ? 'group' : 'groups'}${phone ? '' : OnlineService.instance.signedIn ? ' · synced to your account' : ' · stored on this device'}',
                   style: monoStyle(context, size: 11, color: tokens.subtle),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -952,10 +954,12 @@ class _HomePageState extends State<HomePage> {
                     MaterialPageRoute(builder: (_) => const SettingsPage())),
                 icon: Hero(
                   tag: 'user_profile_photo',
-                  child: UserAvatar(
-                    imageUrl: settings?.profileImagePath,
-                    seed: settings?.userHandle ?? 'codenote',
-                    radius: phone ? 14 : 15,
+                  child: ListenableBuilder(
+                    listenable: OnlineService.instance,
+                    builder: (context, _) {
+                      final shown = ShownProfile.of(settings);
+                      return UserAvatar(imageUrl: shown.imageUrl, seed: shown.seed, radius: phone ? 14 : 15);
+                    },
                   ),
                 ),
               );

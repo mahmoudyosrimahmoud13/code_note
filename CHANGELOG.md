@@ -3,6 +3,20 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [2.0.8] - 2026-11-22
+
+### Changed
+- A calmer sidebar on desktop:
+  - **Chats** is now the first item in the list, with the unread count, instead of a small button squeezed into the tools row.
+  - The tools row (template, ask, gist, shell) has room again, so "template" no longer breaks onto two lines. "Ask" has its own icon, so it isn't mixed up with Chats.
+  - Tags are smaller and show the first 8, with a "+N more" chip to see the rest. Folders stay in view.
+- The home header says "synced to your account" when you're signed in, instead of "stored on this device".
+
+## [2.0.7] - 2026-11-22
+
+### Fixed
+- After signing in, Settings, the sidebar and the picture at the top of the home screen still showed the local profile ("Local User", @local). They now show your CodeNote Online account: name, @username and picture. **Edit Profile** and the camera button change your account, so everyone in your chats sees the change. Signed out, they show the local profile as before.
+
 ## [2.0.6] - 2026-11-22
 
 ### Fixed

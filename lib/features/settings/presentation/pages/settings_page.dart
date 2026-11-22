@@ -1,5 +1,8 @@
 import '../../../../online/online_service.dart';
 import '../../../../online/ui/account_page.dart';
+import '../../../../online/shown_profile.dart';
+import '../../../../online/ui/common.dart' show attempt;
+import '../../../../online/ui/new_chat_page.dart' show pickAndUploadPicture;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -91,7 +94,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildProfileCard(settings, color, textTheme),
+                    ListenableBuilder(
+                      listenable: OnlineService.instance,
+                      builder: (context, _) => _buildProfileCard(settings, color, textTheme),
+                    ),
                     const SizedBox(height: 32),
                     _buildSectionHeader('Account', textTheme, color),
                     const SizedBox(height: 16),
@@ -324,6 +330,9 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildProfileCard(SettingsEntity settings, ColorScheme color, TextTheme textTheme) {
+    // Signed in: show and edit the CodeNote Online account. Otherwise the
+    // local profile.
+    final shown = ShownProfile.of(settings);
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -340,15 +349,15 @@ class _SettingsPageState extends State<SettingsPage> {
                   Hero(
                     tag: 'user_profile_photo',
                     child: UserAvatar(
-                        imageUrl: settings.profileImagePath,
-                        seed: settings.userHandle,
+                        imageUrl: shown.imageUrl,
+                        seed: shown.seed,
                         radius: 50),
                   ),
                   Positioned(
                     bottom: 0,
                     right: 0,
                     child: GestureDetector(
-                      onTap: () => _pickImage(settings),
+                      onTap: () => shown.online ? _changeOnlinePicture() : _pickImage(settings),
                       child: Tooltip(
                         message: 'Change photo',
                         child: CircleAvatar(
@@ -366,10 +375,11 @@ class _SettingsPageState extends State<SettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(settings.userName,
+                    Text(shown.name,
                         style: textTheme.headlineSmall!
                             .copyWith(fontWeight: FontWeight.bold)),
-                    Text('@${settings.userHandle}',
+                    if (shown.handle.isNotEmpty)
+                    Text('@${shown.handle}',
                         style: textTheme.bodyLarge!
                             .copyWith(color: color.onSurfaceVariant)),
                   ],
@@ -381,7 +391,8 @@ class _SettingsPageState extends State<SettingsPage> {
           ElevatedButton.icon(
             onPressed: () => Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => ProfileEditPage(settings: settings)),
+              MaterialPageRoute(
+                  builder: (context) => shown.online ? const AccountPage() : ProfileEditPage(settings: settings)),
             ),
             icon: const Icon(Icons.edit_rounded, size: 18),
             label: const Text('Edit Profile'),
@@ -393,6 +404,13 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _changeOnlinePicture() async {
+    final url = await pickAndUploadPicture(context);
+    if (url == null || !mounted) return;
+    await attempt(context, () async => OnlineService.instance
+        .updateMe(await OnlineService.instance.backend.updateProfile(avatarUrl: url)));
   }
 
   Widget _buildSectionHeader(String title, TextTheme textTheme, ColorScheme color) {

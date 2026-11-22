@@ -1,4 +1,6 @@
 import '../online/chat/chat_store.dart';
+import '../online/online_service.dart';
+import '../online/shown_profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -133,8 +135,6 @@ class DesktopSidebar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               children: [
-                if (onChats != null)
-                  Expanded(child: _ChatsToolButton(onTap: onChats!)),
                 if (onNewFromTemplate != null)
                   Expanded(
                     child: _ToolButton(
@@ -145,7 +145,7 @@ class DesktopSidebar extends StatelessWidget {
                 if (onAskNotes != null)
                   Expanded(
                     child: _ToolButton(
-                        icon: Icons.forum_outlined, label: 'ask', onTap: onAskNotes!),
+                        icon: Icons.auto_awesome_outlined, label: 'ask', onTap: onAskNotes!),
                   ),
                 if (onGist != null)
                   Expanded(
@@ -165,6 +165,7 @@ class DesktopSidebar extends StatelessWidget {
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 10),
               children: [
+                if (onChats != null) _ChatsItem(onTap: onChats!),
                 for (var i = 0; i < views.length; i++)
                   _SidebarItem(
                     icon: selectedView == i ? views[i].selectedIcon : views[i].icon,
@@ -199,24 +200,8 @@ class DesktopSidebar extends StatelessWidget {
                     onTap: () => onOpenGroup(group),
                   ),
                 if (tags.isNotEmpty) ...[
-                  const _SectionTitle('tags'),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 8, 12),
-                    child: Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        for (final tag in tags)
-                          FilterChip(
-                            label: Text('#$tag'),
-                            selected: selectedTag == tag,
-                            showCheckmark: false,
-                            visualDensity: VisualDensity.compact,
-                            onSelected: (on) => onSelectTag(on ? tag : null),
-                          ),
-                      ],
-                    ),
-                  ),
+                  _SectionTitle('tags · ${tags.length}'),
+                  _TagCloud(tags: tags, selected: selectedTag, onSelect: onSelectTag),
                 ],
               ],
             ),
@@ -226,6 +211,10 @@ class DesktopSidebar extends StatelessWidget {
           BlocBuilder<SettingsBloc, SettingsState>(
             builder: (context, state) {
               final s = state is SettingsLoaded ? state.settings : null;
+              return ListenableBuilder(
+                listenable: OnlineService.instance,
+                builder: (context, _) {
+              final shown = ShownProfile.of(s);
               return InkWell(
                 onTap: onOpenSettings,
                 child: Padding(
@@ -235,8 +224,8 @@ class DesktopSidebar extends StatelessWidget {
                       Hero(
                         tag: 'user_profile_photo',
                         child: UserAvatar(
-                          imageUrl: s?.profileImagePath,
-                          seed: s?.userHandle ?? 'codenote',
+                          imageUrl: shown.imageUrl,
+                          seed: shown.seed,
                           radius: 16,
                         ),
                       ),
@@ -245,11 +234,11 @@ class DesktopSidebar extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(s?.userName ?? 'You',
+                            Text(shown.name,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: Theme.of(context).textTheme.labelLarge),
-                            Text('v$appVersion · local-only',
+                            Text(shown.online && shown.handle.isNotEmpty ? 'v$appVersion · @${shown.handle}' : 'v$appVersion · local-only',
                                 style: monoStyle(context,
                                     size: 10, color: tokens.subtle)),
                           ],
@@ -259,6 +248,8 @@ class DesktopSidebar extends StatelessWidget {
                     ],
                   ),
                 ),
+              );
+                },
               );
             },
           ),
@@ -428,7 +419,11 @@ class _ToolButton extends StatelessWidget {
             children: [
               Icon(icon, size: 18, color: tokens.subtle),
               const SizedBox(height: 3),
-              Text(label, style: monoStyle(context, size: 10, color: tokens.subtle)),
+              Text(label,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.fade,
+                  style: monoStyle(context, size: 10, color: tokens.subtle)),
             ],
           ),
         ),
@@ -437,40 +432,117 @@ class _ToolButton extends StatelessWidget {
   }
 }
 
-/// The sidebar's chats button, with the unread count.
-class _ChatsToolButton extends StatelessWidget {
-  const _ChatsToolButton({required this.onTap});
+/// Chats, at the top of the sidebar, with the unread count.
+class _ChatsItem extends StatelessWidget {
+  const _ChatsItem({required this.onTap});
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.tokens;
+    final color = Theme.of(context).colorScheme;
     return ListenableBuilder(
       listenable: ChatStore.instance,
       builder: (context, _) {
         final n = ChatStore.instance.totalUnread;
-        return Tooltip(
-          message: n > 0 ? 'Chats ($n unread)' : 'Chats',
-          child: InkWell(
-            borderRadius: BorderRadius.circular(10),
-            onTap: onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Column(
-                children: [
-                  Badge(
-                    isLabelVisible: n > 0,
-                    label: Text(n > 99 ? '99+' : '$n'),
-                    child: Icon(Icons.forum_outlined, size: 18, color: n > 0 ? Theme.of(context).colorScheme.primary : tokens.subtle),
-                  ),
-                  const SizedBox(height: 3),
-                  Text('chats', style: monoStyle(context, size: 10, color: tokens.subtle)),
-                ],
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 1),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppBrand.radiusSmall),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                child: Row(
+                  children: [
+                    Icon(Icons.forum_outlined, size: 20, color: n > 0 ? color.primary : color.onSurfaceVariant),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text('Chats',
+                          style: TextStyle(
+                            fontWeight: n > 0 ? FontWeight.w700 : FontWeight.w500,
+                            color: color.onSurface,
+                          )),
+                    ),
+                    if (n > 0)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(color: color.primary, borderRadius: BorderRadius.circular(10)),
+                        child: Text(n > 99 ? '99+' : '$n',
+                            style: monoStyle(context, size: 11, weight: FontWeight.w700, color: color.onPrimary)),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
         );
       },
+    );
+  }
+}
+
+/// Tags as small chips. Long lists show the first few and a "more" chip,
+/// so the folders above stay in view.
+class _TagCloud extends StatefulWidget {
+  const _TagCloud({required this.tags, required this.selected, required this.onSelect});
+  final List<String> tags;
+  final String? selected;
+  final ValueChanged<String?> onSelect;
+
+  @override
+  State<_TagCloud> createState() => _TagCloudState();
+}
+
+class _TagCloudState extends State<_TagCloud> {
+  static const _shown = 8;
+  bool _all = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme;
+    final tokens = context.tokens;
+    final tags = widget.tags;
+    var visible = _all || tags.length <= _shown + 2 ? tags : tags.take(_shown).toList();
+    // Keep the selected tag visible even when the list is folded.
+    if (widget.selected != null && !visible.contains(widget.selected)) {
+      visible = [...visible, widget.selected!];
+    }
+    Widget chip(String text, {required bool on, required VoidCallback onTap, bool muted = false}) {
+      return Material(
+        color: on ? color.primary.withAlpha(46) : color.surfaceContainerHighest.withAlpha(muted ? 0 : 120),
+        borderRadius: BorderRadius.circular(8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Text(text,
+                style: monoStyle(context,
+                    size: 11.5,
+                    weight: on ? FontWeight.w700 : FontWeight.w400,
+                    color: on ? color.primary : (muted ? tokens.subtle : color.onSurfaceVariant))),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(10, 2, 8, 12),
+      child: Wrap(
+        spacing: 5,
+        runSpacing: 5,
+        children: [
+          for (final tag in visible)
+            chip('#$tag',
+                on: widget.selected == tag,
+                onTap: () => widget.onSelect(widget.selected == tag ? null : tag)),
+          if (tags.length > _shown + 2)
+            chip(_all ? 'show less' : '+${tags.length - _shown} more',
+                on: false, muted: true, onTap: () => setState(() => _all = !_all)),
+        ],
+      ),
     );
   }
 }
