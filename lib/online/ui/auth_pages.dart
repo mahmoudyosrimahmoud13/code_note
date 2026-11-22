@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../constants/themes.dart';
@@ -13,6 +14,10 @@ import '../online_service.dart';
 import 'common.dart';
 
 /// The frame of every sign-in screen: brand on top, a centered card.
+/// Email codes: 6 digits from our own server; Supabase can be set to send
+/// 6 to 10 (new projects send 8).
+const codeMaxLength = 10;
+
 class _AuthFrame extends StatelessWidget {
   const _AuthFrame({required this.title, required this.subtitle, required this.children, this.onBack});
   final String title;
@@ -492,6 +497,7 @@ class EmailCodePage extends StatefulWidget {
 
 class _EmailCodePageState extends State<EmailCodePage> {
   final _code = TextEditingController();
+  int _typed = 0; // length of the code before the last change
   bool _busy = false;
   String? _error;
   int _wait = 0;
@@ -551,20 +557,29 @@ class _EmailCodePageState extends State<EmailCodePage> {
     return _AuthFrame(
       onBack: () => OnlineService.instance.signOut(),
       title: 'Check your email',
-      subtitle: 'We sent a 6-digit code to $_email. Type it here to confirm your email.',
+      subtitle: 'We sent a code to $_email. Type it here to confirm your email.',
       children: [
         _ErrorLine(_error),
         TextField(
           controller: _code,
           autofocus: true,
           keyboardType: TextInputType.number,
-          maxLength: 6,
+          maxLength: codeMaxLength,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           textAlign: TextAlign.center,
-          style: monoStyle(context, size: 26, weight: FontWeight.w700).copyWith(letterSpacing: 10),
+          style: monoStyle(context, size: 26, weight: FontWeight.w700).copyWith(letterSpacing: 8),
           onChanged: (v) {
-            if (v.trim().length == 6) _verify();
+            final n = v.trim().length;
+            // Supabase can be set to send 6 to 10 digits, so only confirm by
+            // itself when the whole code was pasted in one go, or when the
+            // own server's 6 digits are complete.
+            final pasted = n - _typed > 1 && n >= 6;
+            final complete = !OnlineConfig.isSupabase && n == 6;
+            _typed = n;
+            if (pasted || complete) _verify();
           },
-          decoration: const InputDecoration(counterText: '', hintText: '000000'),
+          onSubmitted: (_) => _verify(),
+          decoration: const InputDecoration(counterText: '', hintText: 'code'),
         ),
         const SizedBox(height: 16),
         _BusyButton(label: 'Confirm', busy: _busy, onPressed: _verify, icon: Icons.verified_outlined),
@@ -650,7 +665,7 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
       onBack: () => Navigator.pop(context),
       title: 'Reset your password',
       subtitle: _sent
-          ? 'If there\'s an account for ${_email.text.trim()}, a 6-digit code is on its way. Type it with your new password.'
+          ? 'If there\'s an account for ${_email.text.trim()}, a code is on its way. Type it with your new password.'
           : "Type your account's email. We'll send you a code to set a new password.",
       children: [
         _ErrorLine(_error),
@@ -665,7 +680,8 @@ class _ResetPasswordPageState extends State<ResetPasswordPage> {
           TextField(
             controller: _code,
             keyboardType: TextInputType.number,
-            maxLength: 6,
+            maxLength: codeMaxLength,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             decoration: const InputDecoration(labelText: 'Code', counterText: '', prefixIcon: Icon(Icons.pin_outlined)),
           ),
           const SizedBox(height: 12),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:supabase_flutter/supabase_flutter.dart' as sb;
@@ -32,7 +33,7 @@ class SupabaseBackend extends Backend {
     } on sb.PostgrestException catch (e) {
       throw ApiError(_clean(e.message), status: e.code == '42501' ? 403 : 400);
     } on sb.AuthException catch (e) {
-      throw ApiError(e.message, status: 401);
+      throw ApiError(_authMessage(e.message), status: 401);
     } catch (e) {
       throw const ApiError("You're offline, or Supabase can't be reached.", offline: true);
     }
@@ -60,8 +61,30 @@ class SupabaseBackend extends Backend {
     }
   }
 
-  static String _authMessage(String m) {
+  static String _authMessage(String raw) {
+    // Some Supabase errors arrive as the raw reply, like
+    // {"code":"unexpected_failure","message":"Error sending confirmation email"}.
+    // Take the readable part out of it.
+    var m = raw.trim();
+    if (m.startsWith('{')) {
+      try {
+        final j = jsonDecode(m);
+        if (j is Map) {
+          final inner = j['message'] ?? j['msg'] ?? j['error_description'] ?? j['error'];
+          if (inner is String && inner.trim().isNotEmpty) m = inner.trim();
+        }
+      } catch (_) {}
+    }
     final lower = m.toLowerCase();
+    if (lower.contains('error sending') && lower.contains('email')) {
+      return "We couldn't send the email right now. Try again in a few minutes. "
+          "If it keeps happening, the server's email settings need fixing.";
+    }
+    if (lower.contains('rate limit') || lower.contains('too many') || lower.contains('security purposes')) {
+      return 'Too many tries. Wait a minute, then try again.';
+    }
+    if (lower.contains('email address') && lower.contains('invalid')) return "That email address doesn't look right.";
+    if (lower.contains('email not confirmed')) return 'Confirm your email first. We sent you a code.';
     if (lower.contains('invalid login')) return 'Wrong email or password.';
     if (lower.contains('already registered')) return "There's already an account with this email. Sign in instead.";
     if (lower.contains('token has expired') || lower.contains('otp')) return "That code isn't right, or it expired.";
@@ -69,6 +92,7 @@ class SupabaseBackend extends Backend {
     if (lower.contains('is full')) return 'This server is full. Ask its admin to raise the limit.';
     if (lower.contains('database error saving new user')) return "Sign-up didn't work. It may be closed or full right now.";
     if (lower.contains('password should be')) return 'Passwords need at least 8 characters.';
+    if (lower == 'unexpected_failure' || lower.startsWith('{')) return "Something went wrong on the server. Try again in a minute.";
     return m;
   }
 

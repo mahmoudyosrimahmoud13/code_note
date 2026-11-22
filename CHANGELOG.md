@@ -3,6 +3,19 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [2.0.5] - 2026-11-22
+
+### Fixed
+- The email code box only took 6 digits, but new Supabase projects send 8, so the right code was cut short and refused. The box now takes 6 to 10 digits (numbers only). It confirms by itself when you paste the code; otherwise press Confirm or Enter.
+
+## [2.0.4] - 2026-11-22
+
+### Fixed
+- Sign-up and sign-in errors from Supabase showed up as raw code like `{"code":"unexpected_failure",...}`. They now read as plain sentences, for example "We couldn't send the email right now" or "Too many tries. Wait a minute".
+
+### Changed
+- The README has the website link, the banner and a "Two editions" table (Local and Online) back at the top.
+
 ## [2.0.3] - 2026-11-22
 
 ### Fixed

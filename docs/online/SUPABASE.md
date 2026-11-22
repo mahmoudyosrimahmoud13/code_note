@@ -23,7 +23,7 @@ updates, and a `media` storage bucket for pictures.
 
 **The first account that signs up becomes the admin.**
 
-## 3. Sign-in emails use a 6-digit code
+## 3. Sign-in emails use a code
 
 The app asks for a code (it doesn't open links). Two email templates need
 the code in them:
@@ -32,6 +32,10 @@ the code in them:
    message (keep the rest if you like):
    `Your CodeNote code is {{ .Token }}`
 2. **Reset password** template: the same line, `Your CodeNote code is {{ .Token }}`.
+
+New Supabase projects send **8-digit** codes. The app takes 6 to 10 digits,
+so this works as it is. For shorter codes, set **Authentication → Sign In /
+Providers → Email → Email OTP Length** to `6`.
 
 If you don't want people to confirm their email at all, turn off
 **Authentication → Sign In / Providers → Email → Confirm email**.

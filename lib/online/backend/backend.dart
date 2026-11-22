@@ -24,7 +24,7 @@ class AuthResult {
   /// Signed in (may still need to confirm the email, see [Profile.emailVerified]).
   final Profile? profile;
 
-  /// A 6-digit code was emailed; signing in finishes after [Backend.verifyEmail].
+  /// A code was emailed; signing in finishes after [Backend.verifyEmail].
   final bool needsEmailCode;
   final String email;
 }
