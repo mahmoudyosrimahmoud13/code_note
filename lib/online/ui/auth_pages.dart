@@ -530,8 +530,8 @@ class _EmailCodePageState extends State<EmailCodePage> {
 
   Future<void> _verify() async {
     final code = _code.text.trim();
-    if (!RegExp(r'^\d{6}$').hasMatch(code)) {
-      setState(() => _error = 'The code has 6 numbers.');
+    if (!RegExp(r'^\d{6,10}$').hasMatch(code)) {
+      setState(() => _error = 'Type the whole code from the email.');
       return;
     }
     setState(() {

@@ -3,6 +3,11 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [2.0.6] - 2026-11-22
+
+### Fixed
+- 2.0.5 let you type an 8-digit code, but pressing Confirm still said "The code has 6 numbers". Confirm now takes codes of 6 to 10 digits.
+
 ## [2.0.5] - 2026-11-22
 
 ### Fixed
