@@ -1,6 +1,39 @@
-# CodeNote Online
+# CodeNote
 
-**CodeNote with accounts, chat and notes sync.** Everything the local CodeNote does (notes with text, code, Markdown and images, running Python, Bash, JavaScript and more, Jupyter notebooks, workspaces), plus:
+[![Build](https://github.com/mahmoudyosrimahmoud13/code_note/actions/workflows/build.yml/badge.svg)](https://github.com/mahmoudyosrimahmoud13/code_note/actions/workflows/build.yml)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-7B5CFF.svg)](LICENSE)
+
+**🌐 Website: [mahmoudyosrimahmoud13.github.io/code_note](https://mahmoudyosrimahmoud13.github.io/code_note/)**
+
+**A notebook for code, notes and ideas, and now a chat for developers.** Mix text, code, markdown and images in one note, run your code, and send notes and code to other developers. On Android, Windows, Linux and macOS.
+
+```
+~/notes $ ls
+flutter/   python/   📌 deploy-checklist   #sql #interview   💬 chats
+```
+
+<p align="center">
+  <img src="poster/1.jpg" width="100%" alt="CodeNote" />
+</p>
+
+## Two editions, both free
+
+| | **CodeNote Local** | **CodeNote Online** |
+|---|---|---|
+| Notes, code blocks, running code, AI, templates | ✓ | ✓ |
+| Works offline, no account | ✓ | ✓ (sign in when you want) |
+| Chats and groups with other developers | | ✓ |
+| Send notes and code in a chat | | ✓ |
+| Notes synced across your devices | | ✓ |
+| Push notifications | | ✓ |
+| Version | 1.x | 2.x |
+
+**Download:** pick your edition on the **[website](https://mahmoudyosrimahmoud13.github.io/code_note/#download)**, or get the files from **[Releases](https://github.com/mahmoudyosrimahmoud13/code_note/releases)**: `CodeNote-1.x-…` is Local, `CodeNote-Online-2.x-…` is Online. The two install side by side, so you can keep both.
+
+
+## CodeNote Online
+
+Everything Local does, plus:
 
 - **Chat** with other developers: direct chats and groups, replies, reactions, edits, pins, read ticks, typing and online status, photos.
 - **Send notes and code blocks** in a chat. They arrive as cards with **Preview**, **Copy** and **Save to my notes**, so code is ready to run on the other side.
@@ -11,16 +44,18 @@
 - **Admin dashboard**: numbers, people (turn accounts off, make admins), sign-up switch and limit, announcements to everyone.
 - **Email and password or Google sign-in**, email codes, password reset.
 
-It comes as **two builds from the same code**:
+Notes still live on your device first: the app works offline, and you can use it without an account ("Use CodeNote without an account for now").
+
+### Run it on your own server
+
+Online comes as **two builds from the same code**:
 
 | Build | Backend | Setup |
 |---|---|---|
-| **CodeNote Online** | Supabase | [docs/online/SUPABASE.md](docs/online/SUPABASE.md) |
-| **CodeNote Server** | Your own FastAPI server (`server/`), the app asks for its address the first time | [docs/online/SERVER.md](docs/online/SERVER.md) |
+| **CodeNote Online** | Supabase (ready to use) | [docs/online/SUPABASE.md](docs/online/SUPABASE.md) |
+| **CodeNote Server** | Your own FastAPI server (`server/`). The app asks for its address the first time | [docs/online/SERVER.md](docs/online/SERVER.md) |
 
 Building, secrets, push and Google sign-in: [docs/online/BUILD.md](docs/online/BUILD.md). How both backends behave the same: [docs/online/CONTRACT.md](docs/online/CONTRACT.md).
-
-Notes still live on your device first: the app works offline, and you can use it without an account ("Use CodeNote without an account for now").
 
 ---
 
