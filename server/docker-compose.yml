@@ -1,0 +1,33 @@
+# CodeNote server with Postgres. Start:  docker compose up -d
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: codenote
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-codenote}
+      POSTGRES_DB: codenote
+    volumes:
+      - db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U codenote"]
+      interval: 5s
+      retries: 10
+
+  server:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://codenote:${DB_PASSWORD:-codenote}@db/codenote
+    volumes:
+      - data:/data
+    ports:
+      - "8000:8000"
+
+volumes:
+  db:
+  data:

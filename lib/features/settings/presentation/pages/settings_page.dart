@@ -1,3 +1,5 @@
+import '../../../../online/online_service.dart';
+import '../../../../online/ui/account_page.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -90,6 +92,25 @@ class _SettingsPageState extends State<SettingsPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildProfileCard(settings, color, textTheme),
+                    const SizedBox(height: 32),
+                    _buildSectionHeader('Account', textTheme, color),
+                    const SizedBox(height: 16),
+                    ListenableBuilder(
+                      listenable: OnlineService.instance,
+                      builder: (context, _) {
+                        final me = OnlineService.instance.me;
+                        return _buildSettingTile(
+                          me == null ? 'Sign in' : me.name,
+                          me == null
+                              ? 'Chat, send notes and code, and sync your notes across devices'
+                              : '${me.handle} · chats and notes sync on ${OnlineService.instance.serverName}',
+                          Icons.account_circle_outlined,
+                          color.primary,
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountPage())),
+                          color: color,
+                        );
+                      },
+                    ),
                     const SizedBox(height: 32),
                     _buildSectionHeader('Appearance', textTheme, color),
                     const SizedBox(height: 16),

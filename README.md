@@ -1,45 +1,26 @@
-# CodeNote
+# CodeNote Online
 
-[![Build](https://github.com/mahmoudyosrimahmoud13/code_note/actions/workflows/build.yml/badge.svg)](https://github.com/mahmoudyosrimahmoud13/code_note/actions/workflows/build.yml)
-[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-7B5CFF.svg)](LICENSE)
+**CodeNote with accounts, chat and notes sync.** Everything the local CodeNote does (notes with text, code, Markdown and images, running Python, Bash, JavaScript and more, Jupyter notebooks, workspaces), plus:
 
-**🌐 Website: [mahmoudyosrimahmoud13.github.io/code_note](https://mahmoudyosrimahmoud13.github.io/code_note/)**
+- **Chat** with other developers: direct chats and groups, replies, reactions, edits, pins, read ticks, typing and online status, photos.
+- **Send notes and code blocks** in a chat. They arrive as cards with **Preview**, **Copy** and **Save to my notes**, so code is ready to run on the other side.
+- **Groups** with admins, "only admins can send", members, descriptions and pictures.
+- **Find people** by name, @username or email, or by **QR code**.
+- **Notes sync**: your notes and folders are the same on every device you sign in on.
+- **Push notifications** when the app is closed (Android, iPhone, Mac).
+- **Admin dashboard**: numbers, people (turn accounts off, make admins), sign-up switch and limit, announcements to everyone.
+- **Email and password or Google sign-in**, email codes, password reset.
 
-**A notebook for code, notes and ideas.** Mix text, code, markdown and images in one note, with real syntax highlighting and a code font, on Android, Windows, Linux and macOS.
+It comes as **two builds from the same code**:
 
-```
-~/notes $ ls
-flutter/   python/   📌 deploy-checklist   #sql #interview
-```
+| Build | Backend | Setup |
+|---|---|---|
+| **CodeNote Online** | Supabase | [docs/online/SUPABASE.md](docs/online/SUPABASE.md) |
+| **CodeNote Server** | Your own FastAPI server (`server/`), the app asks for its address the first time | [docs/online/SERVER.md](docs/online/SERVER.md) |
 
-<p align="center">
-  <img src="poster/1.jpg" width="100%" alt="CodeNote" />
-</p>
+Building, secrets, push and Google sign-in: [docs/online/BUILD.md](docs/online/BUILD.md). How both backends behave the same: [docs/online/CONTRACT.md](docs/online/CONTRACT.md).
 
-> [!IMPORTANT]
-> **This repository is the Community Edition: local-only.** Your notes stay on your device. There is no account, no cloud and no tracking. The full version with cloud sync and messaging is distributed separately (see Download).
-
----
-
-## Download
-
-**Community Edition (local-only)**, the version built from this code:
-
-Get the latest build for your platform from **[Releases](https://github.com/mahmoudyosrimahmoud13/code_note/releases/latest)**:
-
-| Platform | File |
-| --- | --- |
-| Android | `CodeNote-<version>-android.apk` (works on every phone, Android 7.0+) |
-| Windows | `CodeNote-<version>-windows-x64.zip` (unzip, run `code_note.exe`) |
-| Ubuntu, Debian, Mint, Zorin | `CodeNote-<version>-linux-amd64.deb`: install with `sudo apt install ./CodeNote-<version>-linux-amd64.deb`, then open CodeNote from the app menu or run `codenote` |
-| Other Linux | `CodeNote-<version>-linux-x64.tar.gz` (extract, run `./code_note`) |
-| macOS | `CodeNote-<version>-macos.zip` (unzip, then right-click the app > Open the first time, because it isn't notarized) |
-
-**Updating on Android:** install the new APK over the old one. Your notes stay. Starting with 1.2.0, every release is signed with the same key and has a higher version number, so Android accepts it as an update.
-
-**Full version** (cloud sync and messaging):
-[Android](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/app-release.apk) ·
-[Windows](https://github.com/mahmoudyosrimahmoud13/code_note/releases/download/Professional/Release.zip)
+Notes still live on your device first: the app works offline, and you can use it without an account ("Use CodeNote without an account for now").
 
 ---
 

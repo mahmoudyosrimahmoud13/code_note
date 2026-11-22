@@ -1,0 +1,12 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+sqlalchemy[asyncio]>=2.0.30
+asyncpg>=0.29
+aiosqlite>=0.20
+pyjwt>=2.8
+bcrypt>=4.1
+python-multipart>=0.0.9
+pydantic-settings>=2.3
+email-validator>=2.1
+google-auth>=2.30
+requests>=2.32

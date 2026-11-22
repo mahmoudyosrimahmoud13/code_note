@@ -3,6 +3,46 @@
 All notable changes to CodeNote Community Edition. Newest first.
 Each release on GitHub uses the matching section below as its notes.
 
+## [2.0.2] - 2026-11-22
+
+### Changed
+- CodeNote Online now lives in the main public repository (code_note). Updates, release pages and the website all point there.
+- The website now offers both editions: CodeNote Local (notes stay on your device) and CodeNote Online (chat and sync). Pick one and every download button points to that edition's newest files.
+
+### Fixed
+- The download links on the release page used the old Community Edition file names, so they gave "404". The release page now lists both builds (CodeNote Online and CodeNote Server) with the right files, plus the server and Supabase files.
+- "Check for updates" now looks at CodeNote Online's own releases and picks the file for the build you have (Online or Server).
+- Build settings files and Firebase files can't be committed by accident.
+
+## [2.0.1] - 2026-11-22
+
+### Fixed
+- The server tests couldn't find the server code on GitHub Actions, which stopped the 2.0.0 release from being published. Nothing changed in the app or the server itself.
+
+## [2.0.0] - 2026-11-22
+
+CodeNote Online: CodeNote 1.12.0 plus accounts, chat and notes sync, as two builds (Supabase, or your own FastAPI server).
+
+### New
+- **Two builds, one code.** "CodeNote Online" runs on Supabase. "CodeNote Server" runs on the FastAPI server in `server/` and asks for the server address the first time it opens. Both follow the same rules (docs/online/CONTRACT.md).
+- **Chat, rebuilt.** Direct chats and groups; replies (swipe a message or long-press it), reactions, edit, delete for everyone, pin with a pinned bar, message info (who has seen it). Read ticks work in groups too. Typing and online status, "last seen".
+- **Messages never get lost.** What you send shows at once. Offline, it waits and goes when you're back, even after closing the app. A message the server refuses shows "Not sent" with Try again.
+- **Notes and code in chat.** Send a whole note or one block from the chat (+ button) or from a note's ⋮ menu (Send in a chat). They arrive as cards with Preview, Copy, and Save to my notes. Pictures in notes are uploaded so the other person sees them.
+- **Groups.** Picture, name, description, members, admins, "only admins can send", add and remove people, leave, delete for everyone. Group updates show as lines in the chat ("Sara added Omar").
+- **Find people** by name, @username or email, or with a QR code (show yours, scan theirs).
+- **Notes sync.** Notes and folders stay the same on all your devices; the newest change wins. Status and "Sync now" in Account.
+- **Push notifications** through Firebase Cloud Messaging when the app is closed. While it's open, new messages show as a banner at the top.
+- **Wide screens** show the chat list and the conversation side by side. Enter sends on computers, Shift+Enter makes a new line.
+- **Admin dashboard**: numbers, people (turn an account off, make an admin), sign-up on or off, a user limit, a message on the sign-in screen, and announcements shown to everyone.
+- **Accounts**: email and password, Google (Android and iPhone), 6-digit email codes, password reset and change, username check while you type, profile picture and about, blocked people, delete account.
+
+### Fixed (compared with the old online version)
+- Read ticks didn't work in groups (they depended on one receiver). They now come from each member's read position.
+- Unread counts were counted on each phone and drifted. The server counts them now.
+- The chat list looked up each person separately, so it got slow with many chats. It's one request now.
+- Only the newest 50 messages were watched, so deleting or editing an older one didn't show. Edits and deletions now come as live updates for any message.
+- A message could be sent twice after a bad connection. Each message has an id from the phone, and the server keeps only one.
+
 ## [1.12.0] - 2026-11-21
 
 ### New

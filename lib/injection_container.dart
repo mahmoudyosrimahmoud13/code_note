@@ -10,6 +10,7 @@ import 'features/notes/presentation/bloc/note_bloc.dart';
 import 'features/notes/presentation/bloc/note_group_bloc.dart';
 
 import 'features/settings/data/datasources/settings_local_data_source.dart';
+import 'online/sync/syncing_note_repository.dart';
 import 'features/settings/data/repositories/settings_repository_impl.dart';
 import 'features/settings/domain/repositories/settings_repository.dart';
 import 'features/settings/presentation/bloc/settings_bloc.dart';
@@ -35,10 +36,11 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetNotes(sl()));
 
   // Repository
+  // Every change is also queued for notes sync (CodeNote Online).
   sl.registerLazySingleton<NoteRepository>(
-    () => NoteRepositoryImpl(
+    () => SyncingNoteRepository(NoteRepositoryImpl(
       localDataSource: sl(),
-    ),
+    )),
   );
 
   // Data sources

@@ -7,6 +7,8 @@ import 'constants/themes.dart';
 import 'core/services/log_service.dart';
 import 'core/services/open_files_service.dart';
 import 'features/links/link_preview.dart';
+import 'online/online_service.dart';
+import 'online/ui/online_gate.dart';
 import 'features/runner/pyodide/pyodide_host.dart';
 import 'features/notes/presentation/bloc/note_bloc.dart';
 import 'features/notes/presentation/bloc/note_event.dart';
@@ -36,6 +38,12 @@ void main(List<String> args) async {
     await di.init();
     // Whether link previews are on, before the first note card asks.
     await LinkPreviewService.instance.load();
+    // Accounts, chat and sync (CodeNote Online). Never blocks the notes.
+    try {
+      await OnlineService.instance.init();
+    } catch (e) {
+      LogService().log("App: [WARN] Online start failed: $e");
+    }
     LogService().log("App: [SUCCESS] Dependencies initialized.");
   } catch (e) {
     LogService().log("App: [FATAL] Dependency initialization failed: $e");
@@ -141,7 +149,7 @@ class MyApp extends StatelessWidget {
           return MaterialApp(
             navigatorKey: navigatorKey,
             debugShowCheckedModeBanner: false,
-            title: 'CodeNote',
+            title: 'CodeNote Online',
             theme: mainTheme,
             darkTheme: darkTheme,
             themeMode: themeMode,
@@ -151,13 +159,19 @@ class MyApp extends StatelessWidget {
                   textScaler: TextScaler.linear(fontMultiplier),
                 ),
                 // Python on phones runs in a tiny hidden web view here.
-                child: Stack(fit: StackFit.expand, children: [child!, const PyodideHost()]),
+                child: Stack(fit: StackFit.expand, children: [
+                  child!,
+                  const PyodideHost(),
+                  // New messages while you're elsewhere in the app.
+                  const Positioned(left: 0, right: 0, top: 0, child: IncomingBanner()),
+                ]),
               );
             },
             home: state is SettingsLoaded
-                ? (state.settings.hasCompletedOnboarding
-                    ? const HomePage()
-                    : const OnboardingPage())
+                ? OnlineGate(
+                    child: state.settings.hasCompletedOnboarding
+                        ? const HomePage()
+                        : const OnboardingPage())
                 : const Scaffold(body: Center(child: BrandMark(size: 64))),
           );
         },

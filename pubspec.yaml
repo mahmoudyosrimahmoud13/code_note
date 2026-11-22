@@ -1,8 +1,8 @@
 name: code_note
-description: "CodeNote Community Edition: a local-only notebook for code, notes and ideas."
+description: "CodeNote Online: CodeNote with accounts, chat and notes sync, on Supabase or your own FastAPI server."
 publish_to: 'none'
 
-version: 1.12.0+11200
+version: 2.0.2+20002
 
 environment:
   sdk: '>=3.4.3 <4.0.0'
@@ -42,6 +42,16 @@ dependencies:
   random_avatar: ^0.0.8
   cached_network_image: ^3.4.1
   receive_sharing_intent: ^1.8.1
+
+  # CodeNote Online
+  supabase_flutter: ^2.8.0
+  web_socket_channel: ^3.0.1
+  http_parser: ^4.0.2
+  firebase_core: ">=3.6.0 <5.0.0"
+  firebase_messaging: ">=15.1.0 <17.0.0"
+  google_sign_in: ^7.1.0
+  mobile_scanner: ">=6.0.0 <8.0.0"
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:

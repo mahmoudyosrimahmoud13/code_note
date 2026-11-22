@@ -1,3 +1,6 @@
+import '../../../../online/ui/account_page.dart';
+import '../../../../online/ui/chats_page.dart';
+import '../../../../online/ui/online_gate.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -505,6 +508,8 @@ class _HomePageState extends State<HomePage> {
     showCommandPalette(context, [
       PaletteItem(label: 'New note', icon: Icons.add_rounded, hint: 'Ctrl+N', run: _addNote, keywords: 'create write'),
       PaletteItem(label: 'New from template', icon: Icons.dashboard_customize_outlined, run: _addFromTemplate, keywords: 'template bug devlog leetcode meeting api snippet'),
+      PaletteItem(label: 'Chats', icon: Icons.forum_rounded, run: () => ChatsPage.open(context), keywords: 'chat message people group online'),
+      PaletteItem(label: 'Your account', icon: Icons.account_circle_outlined, run: () => _openPage(const AccountPage()), keywords: 'profile sign in out sync online'),
       PaletteItem(label: 'Ask your notes', icon: Icons.forum_outlined, run: () => _openPage(const AskNotesPage()), keywords: 'ai question chat search'),
       PaletteItem(label: 'Import from GitHub Gist', icon: Icons.download_rounded, run: () => _openPage(const GistPage()), keywords: 'gist github import export'),
       if (Sandbox.supported) ...[
@@ -628,6 +633,7 @@ class _HomePageState extends State<HomePage> {
       }),
       onNewNote: _addNote,
       onNewFromTemplate: _addFromTemplate,
+      onChats: () => ChatsPage.open(context),
       onAskNotes: () => _openPage(const AskNotesPage()),
       onGist: () => _openPage(const GistPage()),
       onTerminal: Sandbox.supported ? () => _openPage(const TerminalPage()) : null,
@@ -850,6 +856,8 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
+          // CodeNote Online: chats, with the unread count.
+          if (!wide) ChatsButton(dense: phone),
           IconButton(
             visualDensity: dense,
             tooltip: 'Search (Ctrl+F)',

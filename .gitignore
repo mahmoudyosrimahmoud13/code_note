@@ -44,3 +44,15 @@ app.*.map.json
 
 # Agents
 /.agents/
+
+# CodeNote Online: Python test leftovers
+__pycache__/
+.pytest_cache/
+*.db
+
+# CodeNote Online: build settings and Firebase files hold keys, never commit them
+online-defines.json
+google-services.json
+GoogleService-Info.plist
+firebase*.json
+*-service-account*.json

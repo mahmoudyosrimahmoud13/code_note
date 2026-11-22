@@ -1,0 +1,6 @@
+# Supabase CLI settings for CodeNote Online (only needed if you use the CLI).
+project_id = "codenote-online"
+
+[functions.push]
+# The database calls this function with its own secret, not a user token.
+verify_jwt = false

@@ -1,3 +1,4 @@
+import '../online/chat/chat_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -47,6 +48,7 @@ class DesktopSidebar extends StatelessWidget {
     required this.onSearch,
     required this.onOpenSettings,
     this.onNewFromTemplate,
+    this.onChats,
     this.onAskNotes,
     this.onGist,
     this.onTerminal,
@@ -67,6 +69,9 @@ class DesktopSidebar extends StatelessWidget {
   final VoidCallback onOpenSettings;
   final VoidCallback? onNewFromTemplate;
   final VoidCallback? onAskNotes;
+
+  /// CodeNote Online: opens the chats.
+  final VoidCallback? onChats;
   final VoidCallback? onGist;
   final VoidCallback? onTerminal;
 
@@ -128,6 +133,8 @@ class DesktopSidebar extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14),
             child: Row(
               children: [
+                if (onChats != null)
+                  Expanded(child: _ChatsToolButton(onTap: onChats!)),
                 if (onNewFromTemplate != null)
                   Expanded(
                     child: _ToolButton(
@@ -409,6 +416,7 @@ class _ToolButton extends StatelessWidget {
         'template' => 'New from template',
         'ask' => 'Ask your notes (AI)',
         'shell' => 'Terminal (sandboxed)',
+        'chats' => 'Chats',
         _ => 'Import from GitHub Gist',
       },
       child: InkWell(
@@ -425,6 +433,44 @@ class _ToolButton extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// The sidebar's chats button, with the unread count.
+class _ChatsToolButton extends StatelessWidget {
+  const _ChatsToolButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final tokens = context.tokens;
+    return ListenableBuilder(
+      listenable: ChatStore.instance,
+      builder: (context, _) {
+        final n = ChatStore.instance.totalUnread;
+        return Tooltip(
+          message: n > 0 ? 'Chats ($n unread)' : 'Chats',
+          child: InkWell(
+            borderRadius: BorderRadius.circular(10),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Column(
+                children: [
+                  Badge(
+                    isLabelVisible: n > 0,
+                    label: Text(n > 99 ? '99+' : '$n'),
+                    child: Icon(Icons.forum_outlined, size: 18, color: n > 0 ? Theme.of(context).colorScheme.primary : tokens.subtle),
+                  ),
+                  const SizedBox(height: 3),
+                  Text('chats', style: monoStyle(context, size: 10, color: tokens.subtle)),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }

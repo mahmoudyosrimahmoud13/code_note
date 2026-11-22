@@ -3,6 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+
+import '../../online/online_config.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:http/http.dart' as http;
 
@@ -38,6 +40,7 @@ class UpdateService {
   UpdateService._();
   static final UpdateService instance = UpdateService._();
 
+  // CodeNote Online's own releases (not the local Community Edition's).
   static const repo = 'mahmoudyosrimahmoud13/code_note';
   static const releasesPage = 'https://github.com/$repo/releases/latest';
   static const _boxName = 'appBox';
@@ -103,9 +106,12 @@ class UpdateService {
 
   String? _assetForThisPlatform(List<String> urls) {
     if (kIsWeb) return null;
+    // Each release has both builds: take the one this app is.
+    final build = OnlineConfig.isSupabase ? '/codenote-online-' : '/codenote-server-';
     String? pick(String ending) {
       for (final u in urls) {
-        if (u.toLowerCase().endsWith(ending)) return u;
+        final lower = u.toLowerCase();
+        if (lower.contains(build) && lower.endsWith(ending)) return u;
       }
       return null;
     }

@@ -1,3 +1,4 @@
+import '../../../../online/ui/send_to_chat.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -768,6 +769,8 @@ class _NotePageState extends State<NotePage> {
               tooltip: 'More',
               onSelected: (value) {
                 switch (value) {
+                  case 'send-chat':
+                    sendNoteToChat(context, _currentNote());
                   case 'group':
                     _addToGroup();
                   case 'share':
@@ -818,6 +821,15 @@ class _NotePageState extends State<NotePage> {
                 }
               },
               itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'send-chat',
+                  child: ListTile(
+                    leading: Icon(Icons.send_rounded),
+                    title: Text('Send in a chat'),
+                    subtitle: Text('It arrives ready to run'),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
                 const PopupMenuItem(
                   value: 'group',
                   child: ListTile(

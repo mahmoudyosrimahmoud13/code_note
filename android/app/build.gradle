@@ -59,8 +59,10 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "org.code.note.community"
+        // CodeNote Online: each build gets its own id, so the Supabase and
+        // FastAPI builds (and the local CodeNote) install side by side.
+        // GitHub Actions sets CODENOTE_APP_ID; see docs/online/BUILD.md.
+        applicationId = System.getenv("CODENOTE_APP_ID") ?: "org.code.note.online"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
         // Pinned on purpose. If a future Flutter raised it, phones on older
@@ -70,6 +72,7 @@ android {
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
         multiDexEnabled true
+        manifestPlaceholders += [appLabel: System.getenv("CODENOTE_APP_LABEL") ?: "CodeNote Online"]
     }
 
     signingConfigs {

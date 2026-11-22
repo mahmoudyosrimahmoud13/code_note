@@ -184,6 +184,17 @@ kbd { font-family: var(--mono); font-size: 13.5px; padding: 4px 9px; border-radi
 
 
 /* download */
+.editions { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 34px; max-width: 760px; }
+.ed { text-align: left; cursor: pointer; font: inherit; color: inherit; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; transition: border-color .15s, box-shadow .15s; }
+.ed:hover { border-color: rgba(123,92,255,.55); }
+.ed.on { border-color: var(--violet); box-shadow: 0 0 0 1px var(--violet), 0 12px 34px rgba(123,92,255,.18); }
+.ed b { display: block; font-size: 17px; }
+.ed .v { font-family: var(--mono); font-size: 12px; color: var(--subtle); margin-left: 6px; font-weight: 400; }
+.ed span.d { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+.ed-note { margin-top: 16px; color: var(--muted); font-size: 14px; }
+[data-for][hidden] { display: none !important; }
+@media (max-width: 560px) { .editions { grid-template-columns: 1fr; } }
 .downloads { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 44px; }
 .dl { display: flex; flex-direction: column; position: relative; }
 .dl.mine { border-color: var(--violet); box-shadow: 0 0 0 1px var(--violet), 0 18px 50px rgba(123,92,255,.2); }
@@ -634,16 +645,25 @@ df = pd.<span class="f">read_csv</span>(<span class="s">"orders.csv"</span>)</pr
   <div class="wrap">
     <div class="label">// <b>download</b></div>
     <h2>Download CodeNote.</h2>
-    <p class="lead">Always the newest version, straight from GitHub. Free forever. <span class="mono" id="dl-version"></span></p>
+    <p class="lead">Two editions, both free, always the newest version straight from GitHub. Pick the one you want.</p>
+    <div class="editions" role="tablist" aria-label="Edition">
+      <button class="ed on" role="tab" aria-selected="true" data-ed="local"><b>CodeNote Local<span class="v" data-ver="local"></span></b>
+        <span class="d">Notes stay on this device. No account, works fully offline.</span></button>
+      <button class="ed" role="tab" aria-selected="false" data-ed="online"><b>CodeNote Online<span class="v" data-ver="online"></span></b>
+        <span class="d">Everything in Local, plus chats, groups and notes synced across your devices.</span></button>
+    </div>
+    <p class="ed-note" data-for="local">Installs separately from CodeNote Online, so you can keep both.</p>
+    <p class="ed-note" data-for="online" hidden>Sign in with email or Google, or skip and use it offline first. Running your own server?
+      Get <b>CodeNote Server</b> and the backend files from the <a href="https://github.com/mahmoudyosrimahmoud13/code_note/releases">releases page</a>.</p>
     <div class="downloads">
       <div class="card dl" data-os="windows"><span class="you">for you</span><div class="os">// windows 10, 11</div><h3>Windows</h3>
         <p>Unzip, then run <code>code_note.exe</code>. No installer needed.</p>
         <div class="btns"><a class="btn primary" data-asset="-windows-x64.zip" href="https://github.com/mahmoudyosrimahmoud13/code_note/releases/latest">Download .zip <small></small></a></div></div>
       <div class="card dl" data-os="mac"><span class="you">for you</span><div class="os">// macos</div><h3>Mac</h3>
-        <p>Unzip and move CodeNote to Applications.</p>
+        <p>Unzip and move <span data-for="local">CodeNote</span><span data-for="online" hidden>CodeNote Online</span> to Applications.</p>
         <div class="btns"><a class="btn primary" data-asset="-macos.zip" href="https://github.com/mahmoudyosrimahmoud13/code_note/releases/latest">Download .zip <small></small></a></div></div>
       <div class="card dl" data-os="linux"><span class="you">for you</span><div class="os">// ubuntu, debian, mint, zorin</div><h3>Linux</h3>
-        <p>Install the <code>.deb</code>, then open CodeNote from the app menu or run <code>codenote</code>. The <code>.tar.gz</code> works on any Linux.</p>
+        <p>Install the <code>.deb</code>, then open <span data-for="local">CodeNote</span><span data-for="online" hidden>CodeNote Online</span> from the app menu or run <code data-for="local">codenote</code><code data-for="online" hidden>codenote-online</code>. The <code>.tar.gz</code> works on any Linux.</p>
         <div class="btns"><a class="btn primary" data-asset="-linux-amd64.deb" href="https://github.com/mahmoudyosrimahmoud13/code_note/releases/latest">Download .deb <small></small></a>
           <a class="btn ghost" data-asset="-linux-x64.tar.gz" href="https://github.com/mahmoudyosrimahmoud13/code_note/releases/latest">Download .tar.gz <small></small></a></div></div>
       <div class="card dl" data-os="android"><span class="you">for you</span><div class="os">// android 7.0 and newer</div><h3>Android</h3>
@@ -655,8 +675,8 @@ df = pd.<span class="f">read_csv</span>(<span class="s">"orders.csv"</span>)</pr
       <summary>First time opening it?</summary>
       <div class="grid3">
         <div><b>Windows</b><p>SmartScreen may say "Windows protected your PC". Click <b>More info</b>, then <b>Run anyway</b>. This happens because the app isn't code-signed yet.</p></div>
-        <div><b>Mac</b><p>The app isn't notarized yet, so the first time, <b>right-click</b> CodeNote and choose <b>Open</b>, then <b>Open</b> again.</p></div>
-        <div><b>Linux</b><p>In a terminal: <code>sudo apt install ./CodeNote-*-linux-amd64.deb</code>. For the <code>.tar.gz</code>, extract it and run <code>./code_note</code>.</p></div>
+        <div><b>Mac</b><p>The app isn't notarized yet, so the first time, <b>right-click</b> the app and choose <b>Open</b>, then <b>Open</b> again.</p></div>
+        <div><b>Linux</b><p>In a terminal: <code data-for="local">sudo apt install ./CodeNote-*-linux-amd64.deb</code><code data-for="online" hidden>sudo apt install ./CodeNote-Online-*-linux-amd64.deb</code>. For the <code>.tar.gz</code>, extract it and run <code>./code_note</code>.</p></div>
       </div>
     </details>
     <p style="margin-top:22px"><a href="https://github.com/mahmoudyosrimahmoud13/code_note/releases">All versions and what's new →</a> · <a href="https://github.com/mahmoudyosrimahmoud13/code_note/blob/master/CHANGELOG.md">Changelog</a></p>
@@ -747,28 +767,69 @@ df = pd.<span class="f">read_csv</span>(<span class="s">"orders.csv"</span>)</pr
   else if (ua.indexOf('linux') !== -1) os = 'linux';
   if (os) { var card = document.querySelector('.dl[data-os="' + os + '"]'); if (card) { card.classList.add('mine'); card.parentNode.insertBefore(card, card.parentNode.firstChild); } }
 
-  // Point every button at the file in the newest release.
-  // If GitHub can't be reached, the buttons keep linking to the releases page.
-  fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+  // Two editions live in the same repository:
+  //   Local:  CodeNote-<version>-...         (1.x)
+  //   Online: CodeNote-Online-<version>-...  (2.x, chat and sync)
+  // For each edition, find the newest release that has its files, then point
+  // every button at the right file. If GitHub can't be reached, the buttons
+  // keep linking to the releases page.
+  var PREFIX = { local: /^CodeNote-\d/, online: /^CodeNote-Online-\d/ };
+  var found = { local: null, online: null };
+  var edition = /online/.test(location.hash) ? 'online' : 'local';
+  try { if (!location.hash) edition = localStorage.getItem('cn-edition') || edition; } catch (e) {}
+  if (!PREFIX[edition]) edition = 'local';
+
+  function apply() {
+    document.querySelectorAll('.ed').forEach(function (b) {
+      var on = b.dataset.ed === edition;
+      b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    document.querySelectorAll('[data-for]').forEach(function (el) { el.hidden = el.dataset.for !== edition; });
+    var rel = found[edition];
+    document.querySelectorAll('[data-asset]').forEach(function (a) {
+      var small = a.querySelector('small');
+      a.href = 'https://github.com/' + REPO + '/releases';
+      if (small) small.textContent = '';
+      if (!rel) return;
+      var suffix = a.dataset.asset;
+      var asset = (rel.assets || []).filter(function (x) {
+        return PREFIX[edition].test(x.name) && x.name.slice(-suffix.length) === suffix;
+      })[0];
+      if (!asset) return;
+      a.href = asset.browser_download_url;
+      var mb = asset.size / 1048576;
+      if (small) small.textContent = mb >= 1 ? mb.toFixed(0) + ' MB' : '';
+    });
+  }
+  document.querySelectorAll('.ed').forEach(function (b) {
+    b.addEventListener('click', function () {
+      edition = b.dataset.ed;
+      try { localStorage.setItem('cn-edition', edition); } catch (e) {}
+      apply();
+    });
+  });
+  apply();
+
+  fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=40', { headers: { Accept: 'application/vnd.github+json' } })
     .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(function (rel) {
-      var v = (rel.tag_name || '').replace(/^v/, '');
-      if (v) {
-        // Features marked "coming in x.y.z" lose the mark once that version is out.
-        var num = function (s) { return s.split('.').map(function (n) { return parseInt(n, 10) || 0; }); };
-        var atLeast = function (a, b) { a = num(a); b = num(b); for (var i = 0; i < 3; i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); } return true; };
-        document.querySelectorAll('.soon[data-since]').forEach(function (el) { if (atLeast(v, el.dataset.since)) el.remove(); });
-        document.getElementById('hero-version').textContent = 'v' + v;
-        document.getElementById('dl-version').textContent = '// v' + v;
-      }
-      document.querySelectorAll('[data-asset]').forEach(function (a) {
-        var suffix = a.dataset.asset;
-        var asset = (rel.assets || []).filter(function (x) { return x.name.slice(-suffix.length) === suffix; })[0];
-        if (!asset) return;
-        a.href = asset.browser_download_url;
-        var mb = asset.size / 1048576;
-        a.querySelector('small').textContent = mb >= 1 ? mb.toFixed(0) + ' MB' : '';
+    .then(function (list) {
+      // The list comes newest first; skip drafts and test builds.
+      list.filter(function (r) { return !r.draft && !r.prerelease; }).forEach(function (rel) {
+        Object.keys(PREFIX).forEach(function (ed) {
+          if (found[ed]) return;
+          if ((rel.assets || []).some(function (x) { return PREFIX[ed].test(x.name); })) found[ed] = rel;
+        });
       });
+      var ver = function (rel) { return rel ? (rel.tag_name || '').replace(/^v/, '') : ''; };
+      var num = function (s) { return s.split('.').map(function (n) { return parseInt(n, 10) || 0; }); };
+      var atLeast = function (a, b) { a = num(a); b = num(b); for (var i = 0; i < 3; i++) { if ((a[i] || 0) !== (b[i] || 0)) return (a[i] || 0) > (b[i] || 0); } return true; };
+      var vl = ver(found.local), vo = ver(found.online);
+      document.querySelectorAll('[data-ver]').forEach(function (el) { var v = ver(found[el.dataset.ver]); el.textContent = v ? 'v' + v : ''; });
+      // Features marked "coming in x.y.z" lose the mark once the Local edition reaches it.
+      if (vl) document.querySelectorAll('.soon[data-since]').forEach(function (el) { if (atLeast(vl, el.dataset.since)) el.remove(); });
+      var hero = [vl && 'Local v' + vl, vo && 'Online v' + vo].filter(Boolean).join(' · ');
+      if (hero) document.getElementById('hero-version').textContent = hero;
+      apply();
     })
     .catch(function () {});
 })();

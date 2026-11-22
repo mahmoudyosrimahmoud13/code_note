@@ -1,13 +1,16 @@
 name: Build
 
-# Runs on every push and pull request, and can be started by hand.
-# Pushing a tag like v1.2.0 also publishes a GitHub Release with all builds.
+# CodeNote Online: every install is built twice, once per backend:
+#   supabase  -> "CodeNote Online"  (org.code.note.online)
+#   fastapi   -> "CodeNote Server"  (org.code.note.online.server), asks for
+#                the server address the first time it opens.
+# Pushing a tag like v2.0.0 also publishes a GitHub Release with all builds.
+# Settings come from GitHub secrets (see docs/online/BUILD.md); none are
+# required to build, but without SUPABASE_URL the Supabase build can't sign in.
 on:
   push:
     branches: ["**"]
     tags: ["v*"]
-    # Changes to the website or the docs alone don't need new app builds.
-    # (Tags always build: GitHub doesn't apply path filters to tags.)
     paths-ignore: ["website/**", "**.md", "poster/**", ".github/workflows/pages.yml"]
   pull_request:
   workflow_dispatch:
@@ -17,9 +20,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  # Pinned on purpose: this is the Flutter version the project (and its
-  # pubspec.lock) is made for. Newer Flutter needs Gradle 9 and breaks the
-  # icons_plus package. Upgrade this deliberately, together with those.
+  # Pinned on purpose (see the Community Edition notes). Upgrade deliberately.
   FLUTTER_VERSION: "3.41.9"
 
 jobs:
@@ -34,10 +35,7 @@ jobs:
         id: version
         shell: bash
         run: |
-          # pubspec.yaml has "version: 1.2.0+10200".
-          # The build number (after +) is Android's versionCode. It must always
-          # go up, or phones refuse the update. We make it automatic:
-          #   versionCode = major*10000 + minor*100 + patch   (1.2.0 -> 10200)
+          # versionCode = major*10000 + minor*100 + patch   (2.0.0 -> 20000)
           line=$(grep -E '^version:' pubspec.yaml | head -1 | awk '{print $2}')
           name=${line%%+*}
           code=${line##*+}
@@ -63,7 +61,7 @@ jobs:
           echo "version=$name" >> "$GITHUB_OUTPUT"
 
   test:
-    name: Analyze and test
+    name: Analyze and test the app
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,13 +74,64 @@ jobs:
       - name: Analyze (fails only on real errors)
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
       - name: Run tests
-        # --reporter expanded prints every test and the full error text.
         run: flutter test --reporter expanded
 
+  backends:
+    name: Test the FastAPI server and the Supabase SQL
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 10
+    env:
+      PGPASSWORD: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: |
+          pip install -r server/requirements.txt pytest pytest-timeout "psycopg[binary]" httpx
+          sudo apt-get install -y postgresql-client
+          psql -h localhost -U postgres -c "create database server_test" -c "create database sb_test"
+      - name: Server tests on SQLite
+        working-directory: server
+        run: pytest -q --timeout 60
+      - name: Server tests on Postgres
+        working-directory: server
+        env:
+          TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/server_test
+        run: pytest -q --timeout 60
+      - name: Supabase SQL tests
+        env:
+          SB_TEST_DSN: postgresql://postgres:postgres@localhost:5432/sb_test
+        run: |
+          psql -h localhost -U postgres -d sb_test -v ON_ERROR_STOP=1 -q -f supabase/tests/supabase_stub.sql -f supabase/migrations/20261122000000_codenote_online.sql
+          # Running it again must work too (updates re-run the same file).
+          psql -h localhost -U postgres -d sb_test -v ON_ERROR_STOP=1 -q -f supabase/migrations/20261122000000_codenote_online.sql
+          pytest -q --timeout 60 supabase/tests
+
   android:
-    name: Android APK
+    name: Android (${{ matrix.backend }})
     needs: version
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: supabase
+            app_id: org.code.note.online
+            label: CodeNote Online
+            file: CodeNote-Online
+          - backend: fastapi
+            app_id: org.code.note.online.server
+            label: CodeNote Server
+            file: CodeNote-Server
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -94,6 +143,35 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
+      - name: Build settings
+        shell: bash
+        env:
+          BACKEND: ${{ matrix.backend }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SERVER_URL: ${{ secrets.SERVER_URL }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_APP_ID: ${{ matrix.backend == 'supabase' && secrets.FIREBASE_APP_ID || secrets.FIREBASE_APP_ID_SERVER }}
+          FIREBASE_SENDER_ID: ${{ secrets.FIREBASE_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
+        run: |
+          # One JSON file of --dart-define values. Empty ones are left out.
+          PY=$(command -v python3 || command -v python)
+          "$PY" - <<'PY'
+          import json, os
+          keys = ["BACKEND", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SERVER_URL", "GOOGLE_WEB_CLIENT_ID",
+                  "GOOGLE_IOS_CLIENT_ID", "FIREBASE_API_KEY", "FIREBASE_APP_ID", "FIREBASE_SENDER_ID",
+                  "FIREBASE_PROJECT_ID", "FIREBASE_IOS_APP_ID"]
+          values = {k: os.environ[k] for k in keys if os.environ.get(k)}
+          json.dump(values, open("online-defines.json", "w"))
+          print("Settings:", ", ".join(sorted(values)))
+          PY
+          if [ "$BACKEND" = supabase ] && [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::No SUPABASE_URL secret: this Supabase build will open, but can't sign in."
+          fi
 
       - name: Load the signing key
         shell: bash
@@ -103,12 +181,11 @@ jobs:
           if [ -n "$KEYSTORE_BASE64" ]; then
             echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/codenote.keystore"
             echo "CODENOTE_KEYSTORE_PATH=$RUNNER_TEMP/codenote.keystore" >> "$GITHUB_ENV"
-            echo "Signing with the CodeNote release key."
           elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            echo "::error::Releases must be signed with the CodeNote key, or phones can't update. Add the ANDROID_KEYSTORE_BASE64 secret (see README)."
+            echo "::error::Releases must be signed with the CodeNote key, or phones can't update. Add the ANDROID_KEYSTORE_BASE64 secret."
             exit 1
           else
-            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret. This test APK can't update an installed CodeNote."
+            echo "::warning::No ANDROID_KEYSTORE_BASE64 secret. This test APK can't update an installed copy."
           fi
 
       - name: Build APK
@@ -116,27 +193,35 @@ jobs:
           CODENOTE_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           CODENOTE_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           CODENOTE_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        # One universal APK that works on every phone CPU (no split-per-abi),
-        # so no phone gets "not compatible".
-        run: flutter build apk --release
+          CODENOTE_APP_ID: ${{ matrix.app_id }}
+          CODENOTE_APP_LABEL: ${{ matrix.label }}
+        run: flutter build apk --release --dart-define-from-file=online-defines.json
 
       - name: Show what was built
         shell: bash
         run: |
           apk=build/app/outputs/flutter-apk/app-release.apk
           aapt=$(ls "$ANDROID_HOME"/build-tools/*/aapt | sort -V | tail -1)
-          "$aapt" dump badging "$apk" | grep -E "package:|sdkVersion|native-code" || true
-          mv "$apk" "CodeNote-${{ needs.version.outputs.version }}-android.apk"
+          "$aapt" dump badging "$apk" | grep -E "package:|application-label:|sdkVersion" || true
+          mv "$apk" "${{ matrix.file }}-${{ needs.version.outputs.version }}-android.apk"
 
       - uses: actions/upload-artifact@v4
         with:
-          name: android
-          path: CodeNote-*-android.apk
+          name: android-${{ matrix.backend }}
+          path: ${{ matrix.file }}-*-android.apk
 
   windows:
-    name: Windows
+    name: Windows (${{ matrix.backend }})
     needs: version
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: supabase
+            file: CodeNote-Online
+          - backend: fastapi
+            file: CodeNote-Server
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -144,19 +229,63 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - run: flutter build windows --release
+      - name: Build settings
+        shell: bash
+        env:
+          BACKEND: ${{ matrix.backend }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SERVER_URL: ${{ secrets.SERVER_URL }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_APP_ID: ${{ matrix.backend == 'supabase' && secrets.FIREBASE_APP_ID || secrets.FIREBASE_APP_ID_SERVER }}
+          FIREBASE_SENDER_ID: ${{ secrets.FIREBASE_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
+        run: |
+          # One JSON file of --dart-define values. Empty ones are left out.
+          PY=$(command -v python3 || command -v python)
+          "$PY" - <<'PY'
+          import json, os
+          keys = ["BACKEND", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SERVER_URL", "GOOGLE_WEB_CLIENT_ID",
+                  "GOOGLE_IOS_CLIENT_ID", "FIREBASE_API_KEY", "FIREBASE_APP_ID", "FIREBASE_SENDER_ID",
+                  "FIREBASE_PROJECT_ID", "FIREBASE_IOS_APP_ID"]
+          values = {k: os.environ[k] for k in keys if os.environ.get(k)}
+          json.dump(values, open("online-defines.json", "w"))
+          print("Settings:", ", ".join(sorted(values)))
+          PY
+          if [ "$BACKEND" = supabase ] && [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::No SUPABASE_URL secret: this Supabase build will open, but can't sign in."
+          fi
+
+      - run: flutter build windows --release --dart-define-from-file=online-defines.json
       - name: Zip
         shell: pwsh
-        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "CodeNote-${{ needs.version.outputs.version }}-windows-x64.zip"
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "${{ matrix.file }}-${{ needs.version.outputs.version }}-windows-x64.zip"
       - uses: actions/upload-artifact@v4
         with:
-          name: windows
-          path: CodeNote-*-windows-x64.zip
+          name: windows-${{ matrix.backend }}
+          path: ${{ matrix.file }}-*-windows-x64.zip
 
   linux:
-    name: Linux
+    name: Linux (${{ matrix.backend }})
     needs: version
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: supabase
+            file: CodeNote-Online
+            deb_name: codenote-online
+            title: CodeNote Online
+            app_id: org.code.note.online
+          - backend: fastapi
+            file: CodeNote-Server
+            deb_name: codenote-server
+            title: CodeNote Server
+            app_id: org.code.note.online.server
     steps:
       - uses: actions/checkout@v4
       - name: Install Linux build tools
@@ -168,30 +297,71 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - run: flutter build linux --release
+      - name: Build settings
+        shell: bash
+        env:
+          BACKEND: ${{ matrix.backend }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SERVER_URL: ${{ secrets.SERVER_URL }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_APP_ID: ${{ matrix.backend == 'supabase' && secrets.FIREBASE_APP_ID || secrets.FIREBASE_APP_ID_SERVER }}
+          FIREBASE_SENDER_ID: ${{ secrets.FIREBASE_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
+        run: |
+          # One JSON file of --dart-define values. Empty ones are left out.
+          PY=$(command -v python3 || command -v python)
+          "$PY" - <<'PY'
+          import json, os
+          keys = ["BACKEND", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SERVER_URL", "GOOGLE_WEB_CLIENT_ID",
+                  "GOOGLE_IOS_CLIENT_ID", "FIREBASE_API_KEY", "FIREBASE_APP_ID", "FIREBASE_SENDER_ID",
+                  "FIREBASE_PROJECT_ID", "FIREBASE_IOS_APP_ID"]
+          values = {k: os.environ[k] for k in keys if os.environ.get(k)}
+          json.dump(values, open("online-defines.json", "w"))
+          print("Settings:", ", ".join(sorted(values)))
+          PY
+          if [ "$BACKEND" = supabase ] && [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::No SUPABASE_URL secret: this Supabase build will open, but can't sign in."
+          fi
+
+      - run: flutter build linux --release --dart-define-from-file=online-defines.json
       - name: Pack
         run: |
-          name="CodeNote-${{ needs.version.outputs.version }}-linux-x64"
+          name="${{ matrix.file }}-${{ needs.version.outputs.version }}-linux-x64"
           mkdir -p "$name"
           cp -r build/linux/x64/release/bundle/* "$name/"
           tar -czf "$name.tar.gz" "$name"
       - name: Build the .deb installer
+        env:
+          NAME: ${{ matrix.deb_name }}
+          TITLE: ${{ matrix.title }}
+          APP_ID: ${{ matrix.app_id }}
+          OUT: ${{ matrix.file }}
         run: bash linux/packaging/build-deb.sh "${{ needs.version.outputs.version }}"
       - name: Check the .deb
-        run: |
-          dpkg-deb --info CodeNote-*-linux-amd64.deb
-          dpkg-deb --contents CodeNote-*-linux-amd64.deb | head -20
+        run: dpkg-deb --info ${{ matrix.file }}-*-linux-amd64.deb
       - uses: actions/upload-artifact@v4
         with:
-          name: linux
+          name: linux-${{ matrix.backend }}
           path: |
-            CodeNote-*-linux-x64.tar.gz
-            CodeNote-*-linux-amd64.deb
+            ${{ matrix.file }}-*-linux-x64.tar.gz
+            ${{ matrix.file }}-*-linux-amd64.deb
 
   macos:
-    name: macOS
+    name: macOS (${{ matrix.backend }})
     needs: version
     runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - backend: supabase
+            file: CodeNote-Online
+          - backend: fastapi
+            file: CodeNote-Server
     steps:
       - uses: actions/checkout@v4
       - uses: subosito/flutter-action@v2
@@ -199,20 +369,50 @@ jobs:
           channel: stable
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
-      - run: flutter build macos --release
+      - name: Build settings
+        shell: bash
+        env:
+          BACKEND: ${{ matrix.backend }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SERVER_URL: ${{ secrets.SERVER_URL }}
+          GOOGLE_WEB_CLIENT_ID: ${{ secrets.GOOGLE_WEB_CLIENT_ID }}
+          GOOGLE_IOS_CLIENT_ID: ${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+          FIREBASE_API_KEY: ${{ secrets.FIREBASE_API_KEY }}
+          FIREBASE_APP_ID: ${{ matrix.backend == 'supabase' && secrets.FIREBASE_APP_ID || secrets.FIREBASE_APP_ID_SERVER }}
+          FIREBASE_SENDER_ID: ${{ secrets.FIREBASE_SENDER_ID }}
+          FIREBASE_PROJECT_ID: ${{ secrets.FIREBASE_PROJECT_ID }}
+          FIREBASE_IOS_APP_ID: ${{ secrets.FIREBASE_IOS_APP_ID }}
+        run: |
+          # One JSON file of --dart-define values. Empty ones are left out.
+          PY=$(command -v python3 || command -v python)
+          "$PY" - <<'PY'
+          import json, os
+          keys = ["BACKEND", "SUPABASE_URL", "SUPABASE_ANON_KEY", "SERVER_URL", "GOOGLE_WEB_CLIENT_ID",
+                  "GOOGLE_IOS_CLIENT_ID", "FIREBASE_API_KEY", "FIREBASE_APP_ID", "FIREBASE_SENDER_ID",
+                  "FIREBASE_PROJECT_ID", "FIREBASE_IOS_APP_ID"]
+          values = {k: os.environ[k] for k in keys if os.environ.get(k)}
+          json.dump(values, open("online-defines.json", "w"))
+          print("Settings:", ", ".join(sorted(values)))
+          PY
+          if [ "$BACKEND" = supabase ] && [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::No SUPABASE_URL secret: this Supabase build will open, but can't sign in."
+          fi
+
+      - run: flutter build macos --release --dart-define-from-file=online-defines.json
       - name: Zip
         run: |
           app=$(ls -d build/macos/Build/Products/Release/*.app | head -1)
-          ditto -c -k --keepParent "$app" "CodeNote-${{ needs.version.outputs.version }}-macos.zip"
+          ditto -c -k --keepParent "$app" "${{ matrix.file }}-${{ needs.version.outputs.version }}-macos.zip"
       - uses: actions/upload-artifact@v4
         with:
-          name: macos
-          path: CodeNote-*-macos.zip
+          name: macos-${{ matrix.backend }}
+          path: ${{ matrix.file }}-*-macos.zip
 
   release:
     name: Publish release
     if: startsWith(github.ref, 'refs/tags/v')
-    needs: [version, test, android, windows, linux, macos]
+    needs: [version, test, backends, android, windows, linux, macos]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -222,6 +422,10 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+      - name: Server and Supabase files
+        run: |
+          zip -qr "dist/CodeNote-server-${{ needs.version.outputs.version }}.zip" server -x "server/tests/*" "server/.env"
+          zip -qr "dist/CodeNote-supabase-${{ needs.version.outputs.version }}.zip" supabase -x "supabase/tests/*"
       - name: Checksums
         run: |
           cd dist
@@ -235,6 +439,6 @@ jobs:
         run: |
           gh release create "${GITHUB_REF#refs/tags/}" dist/* \
             --repo "$GITHUB_REPOSITORY" \
-            --title "CodeNote ${{ needs.version.outputs.version }}" \
+            --title "CodeNote Online ${{ needs.version.outputs.version }}" \
             --notes-file notes.md \
             --latest
